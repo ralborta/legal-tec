@@ -9,6 +9,8 @@ coverage/
 # Production
 dist/
 build/
+.next/
+out/
 
 # Environment variables
 .env
@@ -43,4 +45,5 @@ lerna-debug.log*
 
 # TypeScript
 *.tsbuildinfo
+next-env.d.ts
 

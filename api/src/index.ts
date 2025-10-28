@@ -1,10 +1,21 @@
 import "dotenv/config";
 import Fastify from "fastify";
+import cors from "@fastify/cors";
 import { z } from "zod";
 import { generateDoc } from "./generate";
 import { ingestBatch } from "./ingest";
 
 const app = Fastify({ logger: true });
+
+// CORS para frontend en Vercel y desarrollo local
+await app.register(cors, {
+  origin: [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    /\.vercel\.app$/,  // Todos los subdominios de Vercel
+  ],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+});
 
 app.get("/health", async () => ({ ok: true }));
 
