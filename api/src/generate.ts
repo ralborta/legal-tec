@@ -21,9 +21,12 @@ Quiero normativa (artículos exactos + fuente/vigencia) y jurisprudencia (tribun
 Si no hay evidencia suficiente, marcá [REVISAR].`;
   const results = await retriever.retrieve(q);
 
-  const context = results.map(r => `### ${r.node.metadata?.title || "Fuente"}
-${r.node.getContent()}
-[${r.node.metadata?.source||"fuente"}](${r.node.metadata?.url||"#"})`).join("\n\n");
+  const context = results.map(r => {
+    const text = (r.node as any).text || '';
+    return `### ${r.node.metadata?.title || "Fuente"}
+${text}
+[${r.node.metadata?.source||"fuente"}](${r.node.metadata?.url||"#"})`;
+  }).join("\n\n");
 
   const citations = results.map(r => ({
     source: r.node.metadata?.source, title: r.node.metadata?.title, url: r.node.metadata?.url
