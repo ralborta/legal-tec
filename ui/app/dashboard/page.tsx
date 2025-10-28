@@ -215,7 +215,7 @@ function DocCard({ row }: { row: any }) {
       </div>
       {open && (
         <div className="mt-3 grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-2 rounded-xl border bg-slate-50 p-3 max-h-[380px] overflow-auto prose prose-slate max-w-none">
+          <div className="lg:col-span-2 rounded-xl border bg-slate-50 p-3 max-h-[380px] overflow-auto markdown-content">
             <ReactMarkdown>{row.markdown}</ReactMarkdown>
           </div>
           <div className="lg:col-span-1 rounded-xl border p-3">
