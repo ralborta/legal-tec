@@ -8,7 +8,11 @@ type In = { type: "dictamen"|"contrato"|"memo"|"escrito"; title: string; instruc
 
 export async function generateDoc(dbUrl: string, openaiKey: string, input: In) {
   const client = new Client({ connectionString: dbUrl }); await client.connect();
-  const store = new PGVectorStore({ client, schemaName: "public", tableName: "chunks", embedDim: 1536 });
+  const store = new PGVectorStore({ 
+    clientConfig: { connectionString: dbUrl },
+    schemaName: "public", 
+    tableName: "chunks"
+  });
   const index = await VectorStoreIndex.fromVectorStore(store);
   const retriever = index.asRetriever({ similarityTopK: input.k ?? 6 });
 

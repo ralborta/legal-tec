@@ -38,6 +38,46 @@ export const TPL = {
 
 **Citas**
 {{citas}}
+`,
+  memo: `# Memorándum – {{titulo}}
+
+**Destinatario**
+{{destinatario}}
+
+**Asunto**
+{{asunto}}
+
+**Contexto**
+{{contexto}}
+
+**Análisis**
+{{analisis}}
+
+**Recomendación**
+{{recomendacion}}
+
+**Citas**
+{{citas}}
+`,
+  escrito: `# Escrito Judicial – {{titulo}}
+
+**Jurisdicción**
+{{jurisdiccion}}
+
+**Carátula**
+{{caratula}}
+
+**Hechos**
+{{hechos}}
+
+**Derecho**
+{{derecho}}
+
+**Petitorio**
+{{petitorio}}
+
+**Citas**
+{{citas}}
 `
 } as const;
 
