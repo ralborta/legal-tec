@@ -22,7 +22,7 @@ Si no hay evidencia suficiente, marcá [REVISAR].`;
   const results = await retriever.retrieve(q);
 
   const context = results.map(r => `### ${r.node.metadata?.title || "Fuente"}
-${r.node.text}
+${r.node.getContent()}
 [${r.node.metadata?.source||"fuente"}](${r.node.metadata?.url||"#"})`).join("\n\n");
 
   const citations = results.map(r => ({

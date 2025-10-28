@@ -24,7 +24,8 @@ export async function ingestBatch(dbUrl: string, items: Array<{
     }
   }));
   
-  await VectorStoreIndex.fromDocuments(docs, { storageContext: { vectorStore: store } });
+  // @ts-ignore - LlamaIndex types are inconsistent
+  await VectorStoreIndex.fromDocuments(docs, { vectorStore: store });
 
   await client.end();
 }

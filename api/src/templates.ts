@@ -79,5 +79,5 @@ export const TPL = {
 **Citas**
 {{citas}}
 `
-} as const;
+};
 
