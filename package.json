@@ -1,6 +1,10 @@
 {
   "name": "legal-agents",
   "private": true,
+  "engines": {
+    "node": "20.x",
+    "npm": ">=10.0.0"
+  },
   "scripts": {
     "dev": "tsx api/src/index.ts",
     "seed": "tsx api/src/seed-run.ts",
