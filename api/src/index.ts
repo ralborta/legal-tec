@@ -2,8 +2,8 @@ import "dotenv/config";
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import { z } from "zod";
-import { generateDoc } from "./generate";
-import { ingestBatch } from "./ingest";
+import { generateDoc } from "./generate.js";
+import { ingestBatch } from "./ingest.js";
 
 async function start() {
   const app = Fastify({ logger: true });

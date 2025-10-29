@@ -1,15 +1,11 @@
 import { Client } from "pg";
-import { Document, VectorStoreIndex, OpenAIEmbedding, Settings } from "llamaindex";
-import { PGVectorStore } from "llamaindex/vector-stores/pgvector";
+import { Document, VectorStoreIndex } from "llamaindex";
+import { PGVectorStore } from "@llamaindex/postgres";
 
 export async function ingestBatch(dbUrl: string, openaiKey: string, items: Array<{
   text: string; source: "normativa"|"juris"|"interno"; title?: string; url?: string; meta?: any;
 }>) {
-  // Configurar embedding model
-  Settings.embedModel = new OpenAIEmbedding({
-    apiKey: openaiKey,
-    model: "text-embedding-3-small" // 1536 dimensiones
-  });
+  // En 0.11.21, el embedding se configura automáticamente en PGVectorStore
 
   const client = new Client({ connectionString: dbUrl });
   await client.connect();
