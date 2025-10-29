@@ -44,7 +44,7 @@ async function start() {
       }))
     }).parse(req.body);
 
-    await ingestBatch(process.env.DATABASE_URL!, body.items);
+    await ingestBatch(process.env.DATABASE_URL!, process.env.OPENAI_API_KEY!, body.items);
     return rep.send({ ok: true, count: body.items.length });
   });
 

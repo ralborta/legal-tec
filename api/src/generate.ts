@@ -1,17 +1,24 @@
 import { Client } from "pg";
-import { VectorStoreIndex } from "llamaindex";
-import { PGVectorStore } from "@llamaindex/postgres";
+import { VectorStoreIndex, OpenAIEmbedding, Settings } from "llamaindex";
+import { PGVectorStore } from "llamaindex/vector-stores/pgvector";
 import OpenAI from "openai";
 import { TPL } from "./templates";
 
 type In = { type: "dictamen"|"contrato"|"memo"|"escrito"; title: string; instructions: string; k?: number };
 
 export async function generateDoc(dbUrl: string, openaiKey: string, input: In) {
+  // Configurar embedding model (text-embedding-3-small = 1536 dims)
+  Settings.embedModel = new OpenAIEmbedding({
+    apiKey: openaiKey,
+    model: "text-embedding-3-small"
+  });
+
   const client = new Client({ connectionString: dbUrl }); await client.connect();
   const store = new PGVectorStore({ 
     clientConfig: { connectionString: dbUrl },
     schemaName: "public", 
     tableName: "chunks"
+    // distanceMetric: "cosine" - por defecto ya es cosine
   });
   const index = await VectorStoreIndex.fromVectorStore(store);
   const retriever = index.asRetriever({ similarityTopK: input.k ?? 6 });
