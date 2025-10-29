@@ -6,7 +6,7 @@
     "seed": "tsx api/src/seed-run.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
-    "railway:start": "npm run build && npm start"
+    "postinstall": "npm run build"
   },
   "dependencies": {
     "@fastify/cors": "^11.1.0",
