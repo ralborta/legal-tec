@@ -66,12 +66,14 @@ Si falta evidencia, marcá [REVISAR] en la sección correspondiente.`;
     md = md.replaceAll("{{citas}}", list);
   }
 
-  await client.query(
-    `INSERT INTO documents (type, title, content_md, citations) VALUES ($1,$2,$3,$4)`,
+  const result = await client.query(
+    `INSERT INTO documents (type, title, content_md, citations) VALUES ($1,$2,$3,$4) RETURNING id`,
     [input.type, input.title, md, JSON.stringify(citations)]
   );
 
+  const documentId = result.rows[0].id;
+
   await client.end();
-  return { markdown: md, citations };
+  return { markdown: md, citations, documentId };
 }
 

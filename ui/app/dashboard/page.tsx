@@ -51,7 +51,7 @@ export default function CentroGestionLegalPage() {
                   <GenerarPanel
                     onGenerated={(out) => {
                       pushItem({
-                        id: crypto.randomUUID(),
+                        id: out.documentId || crypto.randomUUID(), // Usar ID real de DB si existe
                         tipo: out.type.toUpperCase(),
                         asunto: out.title,
                         estado: "Listo para revisión",
@@ -200,6 +200,7 @@ function BandejaLocal({ items }: { items: any[] }) {
 
 function DocCard({ row }: { row: any }) {
   const [open, setOpen] = useState(false);
+  const [queryMode, setQueryMode] = useState(false);
   return (
     <div className="rounded-xl border p-3">
       <div className="flex items-center justify-between gap-2">
@@ -208,30 +209,95 @@ function DocCard({ row }: { row: any }) {
           <div className="text-slate-400 text-xs">{row.tipo} · {row.estado} · {row.creado}</div>
         </div>
         <div className="flex items-center gap-2">
-          <button className="icon-btn" title="Ver" onClick={() => setOpen(v=>!v)}><Eye className="h-4 w-4" /></button>
+          <button className="icon-btn" title="Ver" onClick={() => { setOpen(v=>!v); setQueryMode(false); }}><Eye className="h-4 w-4" /></button>
+          <button className="icon-btn" title="Preguntar (tipo NotebookLM)" onClick={() => { setQueryMode(v=>!v); setOpen(true); }}><Search className="h-4 w-4" /></button>
           <button className="icon-btn" title="Descargar Markdown" onClick={()=>downloadMD(row.asunto, row.markdown)}><Download className="h-4 w-4" /></button>
           <button className="icon-btn" title="Eliminar"><Trash2 className="h-4 w-4" /></button>
         </div>
       </div>
       {open && (
-        <div className="mt-3 grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-2 rounded-xl border bg-slate-50 p-3 max-h-[380px] overflow-auto markdown-content">
-            <ReactMarkdown>{row.markdown}</ReactMarkdown>
-          </div>
-          <div className="lg:col-span-1 rounded-xl border p-3">
-            <div className="text-sm font-medium text-slate-700 mb-2">Citas</div>
-            <ul className="space-y-2 text-sm">
-              {(row.citations || []).map((c:any, i:number) => (
-                <li key={i} className="flex items-start gap-2">
-                  <span className="mt-1 h-2 w-2 rounded-full bg-emerald-500" />
-                  <div>
-                    <div className="text-slate-700">{c.title || "(sin título)"}</div>
-                    <div className="text-slate-500 text-xs">{c.source || "fuente"} · {c.url ? <a className="underline" href={c.url} target="_blank" rel="noreferrer">link</a> : "s/link"}</div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
+        <div className="mt-3">
+          {queryMode ? (
+            <QueryDocPanel documentId={row.id} />
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <div className="lg:col-span-2 rounded-xl border bg-slate-50 p-3 max-h-[380px] overflow-auto markdown-content">
+                <ReactMarkdown>{row.markdown}</ReactMarkdown>
+              </div>
+              <div className="lg:col-span-1 rounded-xl border p-3">
+                <div className="text-sm font-medium text-slate-700 mb-2">Citas</div>
+                <ul className="space-y-2 text-sm">
+                  {(row.citations || []).map((c:any, i:number) => (
+                    <li key={i} className="flex items-start gap-2">
+                      <span className="mt-1 h-2 w-2 rounded-full bg-emerald-500" />
+                      <div>
+                        <div className="text-slate-700">{c.title || "(sin título)"}</div>
+                        <div className="text-slate-500 text-xs">{c.source || "fuente"} · {c.url ? <a className="underline" href={c.url} target="_blank" rel="noreferrer">link</a> : "s/link"}</div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function QueryDocPanel({ documentId }: { documentId: string }) {
+  const [query, setQuery] = useState("");
+  const [response, setResponse] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const API = useMemo(() => process.env.NEXT_PUBLIC_API_URL || "", []);
+
+  async function handleQuery() {
+    if (!query.trim() || !API) return;
+    setLoading(true);
+    setResponse(null);
+    try {
+      const r = await fetch(`${API}/v1/query`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ documentId, query })
+      });
+      if (!r.ok) throw new Error(`Error ${r.status}`);
+      const data = await r.json();
+      setResponse(data.response);
+      setQuery(""); // Limpiar input después de enviar
+    } catch (e: any) {
+      setResponse(`Error: ${e.message || "Error al consultar"}`);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="rounded-xl border bg-white p-4 space-y-4">
+      <div>
+        <div className="text-sm font-medium text-slate-700 mb-1">Consulta sobre el documento</div>
+        <div className="text-xs text-slate-500">Tipo NotebookLM: pregunta o pide modificaciones</div>
+      </div>
+      
+      <div className="flex gap-2">
+        <input
+          className="input flex-1"
+          placeholder="Ej: Explica la conclusión / Modifica la sección de análisis / ¿Qué dice sobre el incumplimiento?"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleQuery()}
+          disabled={loading}
+        />
+        <button className="btn" onClick={handleQuery} disabled={loading || !query.trim()}>
+          <Send className="h-4 w-4" /> {loading ? "..." : "Enviar"}
+        </button>
+      </div>
+
+      {response && (
+        <div className="rounded-xl border bg-slate-50 p-3">
+          <div className="text-xs text-slate-500 mb-2">Respuesta:</div>
+          <div className="text-sm text-slate-700 whitespace-pre-wrap">{response}</div>
         </div>
       )}
     </div>

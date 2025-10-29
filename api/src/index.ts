@@ -4,6 +4,7 @@ import cors from "@fastify/cors";
 import { z } from "zod";
 import { generateDoc } from "./generate.js";
 import { ingestBatch } from "./ingest.js";
+import { queryDocument } from "./query-doc.js";
 
 async function start() {
   const app = Fastify({ logger: true });
@@ -46,6 +47,22 @@ async function start() {
 
     await ingestBatch(process.env.DATABASE_URL!, process.env.OPENAI_API_KEY!, body.items);
     return rep.send({ ok: true, count: body.items.length });
+  });
+
+  // Query documento (tipo NotebookLM - input/output basado en documento)
+  app.post("/v1/query", async (req, rep) => {
+    const body = z.object({
+      documentId: z.string().uuid(),
+      query: z.string().min(5)
+    }).parse(req.body);
+
+    const res = await queryDocument(
+      process.env.DATABASE_URL!,
+      process.env.OPENAI_API_KEY!,
+      body.documentId,
+      body.query
+    );
+    return rep.send(res);
   });
 
   await app.listen({ host: "0.0.0.0", port: Number(process.env.PORT) || 3000 });
