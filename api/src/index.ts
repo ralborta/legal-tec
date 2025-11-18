@@ -14,12 +14,24 @@ async function start() {
 
   // CORS para frontend en Vercel y desarrollo local
   await app.register(cors, {
-    origin: [
-      "http://localhost:3000",
-      "http://localhost:3001",
-      /\.vercel\.app$/,  // Todos los subdominios de Vercel
-    ],
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    origin: (origin, cb) => {
+      // Permitir requests sin origin (Postman, curl, etc.)
+      if (!origin) {
+        return cb(null, true);
+      }
+      // Permitir localhost
+      if (origin.startsWith("http://localhost:") || origin.startsWith("http://127.0.0.1:")) {
+        return cb(null, true);
+      }
+      // Permitir todos los dominios de Vercel
+      if (origin.includes(".vercel.app") || origin.includes("vercel.app")) {
+        return cb(null, true);
+      }
+      // Denegar otros orígenes
+      return cb(new Error("Not allowed by CORS"), false);
+    },
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    credentials: true
   });
 
   // Multipart para manejar archivos
