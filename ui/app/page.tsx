@@ -314,10 +314,14 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
   const [file, setFile] = useState<File | null>(null);
   const [memoResult, setMemoResult] = useState<any | null>(null);
   const [useMemoEndpoint, setUseMemoEndpoint] = useState(false); // Toggle entre endpoints
+  const [loading, setLoadingLocal] = useState(false); // Estado local para loading
   const API = useMemo(() => process.env.NEXT_PUBLIC_API_URL || "", []);
 
   async function handleSubmit() {
-    setError(null); setLoading(true); setMemoResult(null);
+    setError(null); 
+    setLoadingLocal(true);
+    setLoading(true); 
+    setMemoResult(null);
     try {
       if (!API) throw new Error("Falta NEXT_PUBLIC_API_URL");
 
@@ -359,7 +363,10 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
       }
     } catch (e:any) {
       setError(e.message || "Error al generar");
-    } finally { setLoading(false); }
+    } finally { 
+      setLoadingLocal(false);
+      setLoading(false); 
+    }
   }
 
   return (
