@@ -9,6 +9,13 @@ import ReactMarkdown from "react-markdown";
  * Dashboard principal en la raíz (/)
  */
 
+// Helper para normalizar URL de API
+function getApiUrl(): string {
+  const url = process.env.NEXT_PUBLIC_API_URL || "";
+  // Remover barra final si existe para evitar URLs como https://api.com//v1/generate
+  return url.endsWith("/") ? url.slice(0, -1) : url;
+}
+
 const kpis = [
   { title: "Solicitudes en Cola", value: "7", caption: "Pendientes", icon: Clock3, color: "text-amber-600" },
   { title: "Docs Generados (7d)", value: "126", caption: "+18% vs prev.", icon: FileText, color: "text-emerald-600" },
@@ -243,7 +250,7 @@ function QueryDocPanel({ documentId }: { documentId: string }) {
   const [query, setQuery] = useState("");
   const [response, setResponse] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const API = useMemo(() => process.env.NEXT_PUBLIC_API_URL || "", []);
+  const API = useMemo(() => getApiUrl(), []);
 
   async function handleQuery() {
     if (!query.trim() || !API) return;
@@ -315,7 +322,7 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
   const [memoResult, setMemoResult] = useState<any | null>(null);
   const [useMemoEndpoint, setUseMemoEndpoint] = useState(false); // Toggle entre endpoints
   const [loading, setLoadingLocal] = useState(false); // Estado local para loading
-  const API = useMemo(() => process.env.NEXT_PUBLIC_API_URL || "", []);
+  const API = useMemo(() => getApiUrl(), []);
 
   async function handleSubmit() {
     setError(null); 
@@ -341,8 +348,15 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
         });
 
         if (!r.ok) {
-          const errorData = await r.json().catch(() => ({ error: `Error ${r.status}` }));
-          throw new Error(errorData.error || `Error ${r.status}`);
+          const errorText = await r.text();
+          let errorData;
+          try {
+            errorData = JSON.parse(errorText);
+          } catch {
+            errorData = { error: `Error ${r.status}: ${errorText || "Sin detalles"}` };
+          }
+          console.error("Error en /api/memos/generate:", r.status, errorData);
+          throw new Error(errorData.error || `Error ${r.status}: ${errorText || "Method Not Allowed"}`);
         }
 
         const data = await r.json();
@@ -356,7 +370,11 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ type, title, instructions })
         });
-        if (!r.ok) throw new Error(`Error ${r.status}`);
+        if (!r.ok) {
+          const errorText = await r.text();
+          console.error("Error en /v1/generate:", r.status, errorText);
+          throw new Error(`Error ${r.status}: ${errorText || "Method Not Allowed"}`);
+        }
         const data = await r.json();
         onGenerated({ type, title, ...data });
         setTitle(""); setInstructions("");
