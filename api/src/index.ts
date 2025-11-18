@@ -78,22 +78,40 @@ async function start() {
   // Generar memo jurídico desde transcripción (PDF o texto)
   app.post("/api/memos/generate", async (req, rep) => {
     try {
+      app.log.info("POST /api/memos/generate recibido");
+      
       // Leer todos los campos del multipart
       const fields: Record<string, string> = {};
       let pdfBuffer: Buffer | null = null;
 
+      // Verificar que el request sea multipart
+      if (!req.isMultipart()) {
+        app.log.warn("Request no es multipart");
+        return rep.status(400).send({ error: "Se requiere multipart/form-data" });
+      }
+
       // Iterar sobre todas las partes del multipart
-      for await (const part of req.parts()) {
-        if (part.type === "file") {
-          // Es un archivo (PDF)
-          if (part.fieldname === "transcripcion" && part.filename) {
-            pdfBuffer = await part.toBuffer();
+      try {
+        for await (const part of req.parts()) {
+          if (part.type === "file") {
+            // Es un archivo (PDF)
+            if (part.fieldname === "transcripcion" && part.filename) {
+              pdfBuffer = await part.toBuffer();
+              app.log.info(`PDF recibido: ${part.filename}, tamaño: ${pdfBuffer.length} bytes`);
+            }
+          } else {
+            // Es un campo de texto
+            const value = await (part.value as any).toString();
+            fields[part.fieldname] = value;
+            app.log.info(`Campo recibido: ${part.fieldname} = ${value.substring(0, 50)}...`);
           }
-        } else {
-          // Es un campo de texto
-          const value = await (part.value as any).toString();
-          fields[part.fieldname] = value;
         }
+      } catch (multipartError) {
+        app.log.error(multipartError, "Error al leer multipart");
+        return rep.status(400).send({ 
+          error: "Error al procesar multipart",
+          details: multipartError instanceof Error ? multipartError.message : "Error desconocido"
+        });
       }
 
       // Validar campos requeridos
@@ -101,9 +119,13 @@ async function start() {
       const titulo = fields.titulo || fields.title;
       const instrucciones = fields.instrucciones || fields.instructions;
 
+      app.log.info("Campos recibidos:", { tipoDocumento, titulo, instrucciones: instrucciones?.substring(0, 50), tienePDF: !!pdfBuffer });
+
       if (!tipoDocumento || !titulo || !instrucciones) {
+        app.log.warn("Faltan campos requeridos", { tipoDocumento, titulo, instrucciones: !!instrucciones });
         return rep.status(400).send({ 
-          error: "Faltan campos requeridos: tipoDocumento, titulo, instrucciones" 
+          error: "Faltan campos requeridos: tipoDocumento, titulo, instrucciones",
+          recibidos: Object.keys(fields)
         });
       }
 
