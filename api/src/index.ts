@@ -30,6 +30,13 @@ async function start() {
   });
 
   app.get("/health", async () => ({ ok: true }));
+  
+  // Endpoint de prueba para verificar que el servidor está corriendo
+  app.get("/api/test", async () => ({ 
+    ok: true, 
+    message: "Servidor funcionando correctamente",
+    timestamp: new Date().toISOString()
+  }));
 
   app.post("/v1/generate", async (req, rep) => {
     const body = z.object({
