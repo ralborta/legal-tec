@@ -1,10 +1,13 @@
 import "dotenv/config";
 import Fastify from "fastify";
 import cors from "@fastify/cors";
+import multipart from "@fastify/multipart";
 import { z } from "zod";
 import { generateDoc } from "./generate.js";
 import { ingestBatch } from "./ingest.js";
 import { queryDocument } from "./query-doc.js";
+import { extractTextFromPdf } from "./pdf-extract.js";
+import { generarMemoJuridico } from "./memos/generate-memo.js";
 
 async function start() {
   const app = Fastify({ logger: true });
@@ -17,6 +20,13 @@ async function start() {
       /\.vercel\.app$/,  // Todos los subdominios de Vercel
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+  });
+
+  // Multipart para manejar archivos
+  await app.register(multipart, {
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10MB máximo
+    }
   });
 
   app.get("/health", async () => ({ ok: true }));
@@ -63,6 +73,86 @@ async function start() {
       body.query
     );
     return rep.send(res);
+  });
+
+  // Generar memo jurídico desde transcripción (PDF o texto)
+  app.post("/api/memos/generate", async (req, rep) => {
+    try {
+      // Leer todos los campos del multipart
+      const fields: Record<string, string> = {};
+      let pdfBuffer: Buffer | null = null;
+
+      // Iterar sobre todas las partes del multipart
+      for await (const part of req.parts()) {
+        if (part.type === "file") {
+          // Es un archivo (PDF)
+          if (part.fieldname === "transcripcion" && part.filename) {
+            pdfBuffer = await part.toBuffer();
+          }
+        } else {
+          // Es un campo de texto
+          const value = await part.value.toString();
+          fields[part.fieldname] = value;
+        }
+      }
+
+      // Validar campos requeridos
+      const tipoDocumento = fields.tipoDocumento || fields.tipo_documento;
+      const titulo = fields.titulo || fields.title;
+      const instrucciones = fields.instrucciones || fields.instructions;
+
+      if (!tipoDocumento || !titulo || !instrucciones) {
+        return rep.status(400).send({ 
+          error: "Faltan campos requeridos: tipoDocumento, titulo, instrucciones" 
+        });
+      }
+
+      // Extraer texto del PDF si existe
+      let transcriptText = "";
+      if (pdfBuffer) {
+        try {
+          transcriptText = await extractTextFromPdf(pdfBuffer);
+          if (!transcriptText.trim()) {
+            return rep.status(400).send({ error: "El PDF no contiene texto extraíble" });
+          }
+        } catch (error) {
+          return rep.status(400).send({ 
+            error: `Error al procesar PDF: ${error instanceof Error ? error.message : "Error desconocido"}` 
+          });
+        }
+      }
+
+      // Validar que haya al menos transcripción o instrucciones
+      if (!transcriptText.trim() && !instrucciones.trim()) {
+        return rep.status(400).send({ 
+          error: "Se requiere al menos transcripción (PDF) o instrucciones" 
+        });
+      }
+
+      // Generar memo
+      const openaiKey = process.env.OPENAI_API_KEY;
+      if (!openaiKey) {
+        return rep.status(500).send({ error: "OPENAI_API_KEY no configurada" });
+      }
+
+      const memoInput = {
+        tipoDocumento,
+        titulo,
+        instrucciones,
+        transcriptText
+      };
+
+      const memoOutput = await generarMemoJuridico(openaiKey, memoInput);
+
+      return rep.send(memoOutput);
+
+    } catch (error) {
+      app.log.error(error, "Error en /api/memos/generate");
+      return rep.status(500).send({ 
+        error: "Error interno al generar memo",
+        message: error instanceof Error ? error.message : "Error desconocido"
+      });
+    }
   });
 
   await app.listen({ host: "0.0.0.0", port: Number(process.env.PORT) || 3000 });

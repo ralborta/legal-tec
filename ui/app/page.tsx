@@ -311,21 +311,52 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
   const [title, setTitle] = useState("");
   const [instructions, setInstructions] = useState("");
   const [type, setType] = useState<"dictamen"|"contrato"|"memo"|"escrito">("dictamen");
+  const [file, setFile] = useState<File | null>(null);
+  const [memoResult, setMemoResult] = useState<any | null>(null);
+  const [useMemoEndpoint, setUseMemoEndpoint] = useState(false); // Toggle entre endpoints
   const API = useMemo(() => process.env.NEXT_PUBLIC_API_URL || "", []);
 
   async function handleSubmit() {
-    setError(null); setLoading(true);
+    setError(null); setLoading(true); setMemoResult(null);
     try {
       if (!API) throw new Error("Falta NEXT_PUBLIC_API_URL");
-      const r = await fetch(`${API}/v1/generate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type, title, instructions })
-      });
-      if (!r.ok) throw new Error(`Error ${r.status}`);
-      const data = await r.json();
-      onGenerated({ type, title, ...data });
-      setTitle(""); setInstructions("");
+
+      // Si hay archivo PDF o se quiere usar el endpoint de memos, usar /api/memos/generate
+      if (useMemoEndpoint || file) {
+        const formData = new FormData();
+        formData.append("tipoDocumento", type === "memo" ? "Memo de reunión" : type);
+        formData.append("titulo", title);
+        formData.append("instrucciones", instructions);
+        if (file) {
+          formData.append("transcripcion", file);
+        }
+
+        const r = await fetch(`${API}/api/memos/generate`, {
+          method: "POST",
+          body: formData
+        });
+
+        if (!r.ok) {
+          const errorData = await r.json().catch(() => ({ error: `Error ${r.status}` }));
+          throw new Error(errorData.error || `Error ${r.status}`);
+        }
+
+        const data = await r.json();
+        setMemoResult(data);
+        onGenerated({ type, title, markdown: data.texto_formateado, memoData: data });
+        setTitle(""); setInstructions(""); setFile(null);
+      } else {
+        // Endpoint original /v1/generate (RAG con corpus)
+        const r = await fetch(`${API}/v1/generate`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type, title, instructions })
+        });
+        if (!r.ok) throw new Error(`Error ${r.status}`);
+        const data = await r.json();
+        onGenerated({ type, title, ...data });
+        setTitle(""); setInstructions("");
+      }
     } catch (e:any) {
       setError(e.message || "Error al generar");
     } finally { setLoading(false); }
@@ -348,16 +379,133 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
         <label className="block text-sm font-medium text-slate-700">Instrucciones</label>
         <textarea className="textarea w-full h-28" placeholder="Hechos, contexto, puntos a resolver, tono, jurisdicción…" value={instructions} onChange={e=>setInstructions(e.target.value)} />
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Adjuntos (próximamente)</label>
-          <div className="rounded-xl border border-dashed p-6 text-center text-slate-500">
+          <label className="block text-sm font-medium text-slate-700 mb-1">Transcripción (PDF opcional)</label>
+          <div 
+            className="rounded-xl border border-dashed p-6 text-center text-slate-500 cursor-pointer hover:bg-slate-50 transition-colors"
+            onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add("bg-slate-50"); }}
+            onDragLeave={(e) => { e.currentTarget.classList.remove("bg-slate-50"); }}
+            onDrop={(e) => {
+              e.preventDefault();
+              e.currentTarget.classList.remove("bg-slate-50");
+              const droppedFile = e.dataTransfer.files[0];
+              if (droppedFile && droppedFile.type === "application/pdf") {
+                setFile(droppedFile);
+                setUseMemoEndpoint(true);
+              } else {
+                setError("Solo se aceptan archivos PDF");
+              }
+            }}
+            onClick={() => document.getElementById("pdf-upload")?.click()}
+          >
             <Upload className="h-5 w-5 mx-auto mb-2" />
-            Arrastrá PDFs o hacé click para subir
+            {file ? (
+              <div className="text-sm text-slate-700">
+                <span className="font-medium">{file.name}</span>
+                <button 
+                  className="ml-2 text-rose-600 hover:text-rose-700"
+                  onClick={(e) => { e.stopPropagation(); setFile(null); }}
+                >
+                  ✕
+                </button>
+              </div>
+            ) : (
+              <span>Arrastrá PDFs o hacé click para subir</span>
+            )}
           </div>
+          <input
+            id="pdf-upload"
+            type="file"
+            accept=".pdf"
+            className="hidden"
+            onChange={(e) => {
+              const selectedFile = e.target.files?.[0];
+              if (selectedFile) {
+                setFile(selectedFile);
+                setUseMemoEndpoint(true);
+              }
+            }}
+          />
+        </div>
+        <div className="flex items-center gap-2 text-sm">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={useMemoEndpoint}
+              onChange={(e) => setUseMemoEndpoint(e.target.checked)}
+              className="rounded"
+            />
+            <span className="text-slate-600">Usar generador de memos (sin RAG)</span>
+          </label>
         </div>
         <div className="flex items-center gap-2">
-          <button className="btn" onClick={handleSubmit}><Send className="h-4 w-4" /> Generar</button>
-          <button className="btn-secondary" onClick={()=>{ setTitle(""); setInstructions(""); }}>Limpiar</button>
+          <button className="btn" onClick={handleSubmit} disabled={loading}>
+            <Send className="h-4 w-4" /> {loading ? "Generando..." : "Generar"}
+          </button>
+          <button className="btn-secondary" onClick={()=>{ 
+            setTitle(""); 
+            setInstructions(""); 
+            setFile(null);
+            setMemoResult(null);
+            setUseMemoEndpoint(false);
+          }}>Limpiar</button>
         </div>
+
+        {memoResult && (
+          <div className="mt-4 rounded-xl border bg-slate-50 p-4 space-y-3 max-h-[400px] overflow-auto">
+            <div className="text-sm font-medium text-slate-700">Resultado del Memo</div>
+            <div className="text-xs text-slate-600 space-y-2">
+              <div><strong>Resumen:</strong> {memoResult.resumen}</div>
+              {memoResult.puntos_tratados && memoResult.puntos_tratados.length > 0 && (
+                <div>
+                  <strong>Puntos tratados:</strong>
+                  <ul className="list-disc list-inside ml-2">
+                    {memoResult.puntos_tratados.map((p: string, i: number) => (
+                      <li key={i}>{p}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {memoResult.proximos_pasos && memoResult.proximos_pasos.length > 0 && (
+                <div>
+                  <strong>Próximos pasos:</strong>
+                  <ul className="list-disc list-inside ml-2">
+                    {memoResult.proximos_pasos.map((p: string, i: number) => (
+                      <li key={i}>{p}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {memoResult.riesgos && memoResult.riesgos.length > 0 && (
+                <div>
+                  <strong>Riesgos:</strong>
+                  <ul className="list-disc list-inside ml-2">
+                    {memoResult.riesgos.map((r: string, i: number) => (
+                      <li key={i}>{r}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+            <div className="mt-3">
+              <div className="text-xs font-medium text-slate-700 mb-1">Texto completo:</div>
+              <textarea
+                className="w-full rounded-lg border bg-white p-2 text-xs font-mono"
+                rows={8}
+                readOnly
+                value={memoResult.texto_formateado}
+              />
+              <button
+                className="mt-2 btn-secondary text-xs"
+                onClick={() => {
+                  navigator.clipboard.writeText(memoResult.texto_formateado);
+                  alert("Texto copiado al portapapeles");
+                }}
+              >
+                Copiar texto
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
