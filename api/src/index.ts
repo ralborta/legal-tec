@@ -119,10 +119,10 @@ async function start() {
       const titulo = fields.titulo || fields.title;
       const instrucciones = fields.instrucciones || fields.instructions;
 
-      app.log.info("Campos recibidos:", { tipoDocumento, titulo, instrucciones: instrucciones?.substring(0, 50), tienePDF: !!pdfBuffer });
+      app.log.info({ tipoDocumento, titulo, instrucciones: instrucciones?.substring(0, 50), tienePDF: !!pdfBuffer }, "Campos recibidos");
 
       if (!tipoDocumento || !titulo || !instrucciones) {
-        app.log.warn("Faltan campos requeridos", { tipoDocumento, titulo, instrucciones: !!instrucciones });
+        app.log.warn({ tipoDocumento, titulo, instrucciones: !!instrucciones }, "Faltan campos requeridos");
         return rep.status(400).send({ 
           error: "Faltan campos requeridos: tipoDocumento, titulo, instrucciones",
           recibidos: Object.keys(fields)
@@ -177,8 +177,20 @@ async function start() {
     }
   });
 
+  // Log de endpoints registrados
+  app.log.info("Endpoints registrados:");
+  app.log.info("  GET  /health");
+  app.log.info("  POST /v1/generate");
+  app.log.info("  POST /v1/ingest");
+  app.log.info("  POST /v1/query");
+  app.log.info("  POST /api/memos/generate");
+
   await app.listen({ host: "0.0.0.0", port: Number(process.env.PORT) || 3000 });
+  app.log.info(`Servidor escuchando en puerto ${process.env.PORT || 3000}`);
 }
 
-start().catch(console.error);
+start().catch((error) => {
+  console.error("Error al iniciar servidor:", error);
+  process.exit(1);
+});
 
