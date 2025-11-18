@@ -1,3 +1,4 @@
+// @ts-ignore - pdf-parse no tiene tipos correctos para ESM
 import pdfParse from "pdf-parse";
 
 /**
@@ -7,6 +8,7 @@ import pdfParse from "pdf-parse";
  */
 export async function extractTextFromPdf(buffer: Buffer): Promise<string> {
   try {
+    // @ts-ignore - pdf-parse types are incorrect
     const data = await pdfParse(buffer);
     return data.text || "";
   } catch (error) {

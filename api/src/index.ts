@@ -91,7 +91,7 @@ async function start() {
           }
         } else {
           // Es un campo de texto
-          const value = await part.value.toString();
+          const value = await (part.value as any).toString();
           fields[part.fieldname] = value;
         }
       }
