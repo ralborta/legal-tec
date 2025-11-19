@@ -68,14 +68,18 @@ Devolvé SIEMPRE un JSON válido, sin texto extra, con esta estructura:
     
     // Si hay PDF, subirlo a OpenAI Files API
     if (input.pdfBuffer && input.pdfFilename) {
-      // El SDK de OpenAI en Node.js acepta Buffer directamente
-      // Pero necesitamos pasarlo con el nombre del archivo
-      // Usar el Buffer directamente - el SDK lo manejará
-      const file = await openai.files.create({
-        file: input.pdfBuffer,
-        purpose: "assistants"
-      } as any);
-      fileId = file.id;
+      try {
+        // Intentar usar el Buffer directamente
+        // El SDK de OpenAI en Node.js puede aceptar Buffer
+        const file = await openai.files.create({
+          file: input.pdfBuffer as any,
+          purpose: "assistants"
+        });
+        fileId = file.id;
+      } catch (uploadError) {
+        // Si falla la subida directa, lanzar error descriptivo
+        throw new Error(`Error al subir PDF a OpenAI: ${uploadError instanceof Error ? uploadError.message : "Error desconocido"}`);
+      }
     }
 
     const userPrompt = `Instrucciones del abogado:
