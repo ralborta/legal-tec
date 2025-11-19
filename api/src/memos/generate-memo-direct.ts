@@ -68,13 +68,13 @@ Devolvé SIEMPRE un JSON válido, sin texto extra, con esta estructura:
     
     // Si hay PDF, subirlo a OpenAI Files API
     if (input.pdfBuffer && input.pdfFilename) {
-      // En Node.js, convertir Buffer a Uint8Array para Blob
-      const uint8Array = new Uint8Array(input.pdfBuffer);
-      const blob = new Blob([uint8Array], { type: "application/pdf" });
+      // El SDK de OpenAI en Node.js acepta Buffer directamente
+      // Pero necesitamos pasarlo con el nombre del archivo
+      // Usar el Buffer directamente - el SDK lo manejará
       const file = await openai.files.create({
-        file: blob as any,
+        file: input.pdfBuffer,
         purpose: "assistants"
-      });
+      } as any);
       fileId = file.id;
     }
 
