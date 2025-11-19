@@ -1,4 +1,7 @@
 import OpenAI from "openai";
+import { writeFileSync, unlinkSync, createReadStream } from "fs";
+import { join } from "path";
+import { tmpdir } from "os";
 
 export type MemoInputDirect = {
   tipoDocumento: string;
@@ -68,17 +71,37 @@ Devolvé SIEMPRE un JSON válido, sin texto extra, con esta estructura:
     
     // Si hay PDF, subirlo a OpenAI Files API
     if (input.pdfBuffer && input.pdfFilename) {
+      // Crear archivo temporal para subir a OpenAI
+      // El SDK de OpenAI en Node.js funciona mejor con ReadStream
+      const tempPath = join(tmpdir(), `pdf-${Date.now()}-${input.pdfFilename}`);
+      let tempFileCreated = false;
+      
       try {
-        // Intentar usar el Buffer directamente
-        // El SDK de OpenAI en Node.js puede aceptar Buffer
+        // Escribir Buffer a archivo temporal
+        writeFileSync(tempPath, input.pdfBuffer);
+        tempFileCreated = true;
+        
+        // Crear ReadStream desde el archivo temporal
+        const fileStream = createReadStream(tempPath);
+        
+        // Subir a OpenAI
         const file = await openai.files.create({
-          file: input.pdfBuffer as any,
+          file: fileStream,
           purpose: "assistants"
         });
         fileId = file.id;
       } catch (uploadError) {
-        // Si falla la subida directa, lanzar error descriptivo
         throw new Error(`Error al subir PDF a OpenAI: ${uploadError instanceof Error ? uploadError.message : "Error desconocido"}`);
+      } finally {
+        // Limpiar archivo temporal
+        if (tempFileCreated) {
+          try {
+            unlinkSync(tempPath);
+          } catch (cleanupError) {
+            // Ignorar errores de limpieza
+            console.warn("No se pudo eliminar archivo temporal:", tempPath);
+          }
+        }
       }
     }
 
