@@ -94,6 +94,12 @@ ${input.instrucciones}`;
     parsed.puntos_tratados = parsed.puntos_tratados || [];
     parsed.proximos_pasos = parsed.proximos_pasos || [];
     parsed.riesgos = parsed.riesgos || [];
+    parsed.citas = parsed.citas || [];
+
+    // Validar que citas sea un array
+    if (!Array.isArray(parsed.citas)) {
+      parsed.citas = [];
+    }
 
     return parsed;
   } catch (error) {
