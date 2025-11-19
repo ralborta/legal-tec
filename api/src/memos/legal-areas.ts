@@ -109,7 +109,118 @@ Devolvé SIEMPRE un JSON válido, sin texto extra, con esta estructura:
   "texto_formateado": string
 }
 
-- "texto_formateado" debe ser el memo completo listo para copiar en Word.
+- "texto_formateado" debe ser el memo completo listo para copiar en Word con formato PROFESIONAL Y ELABORADO.
+
+FORMATO PROFESIONAL REQUERIDO PARA "texto_formateado":
+
+El texto_formateado debe seguir esta estructura profesional y elaborada:
+
+═══════════════════════════════════════════════════════════════════════════════
+                              WNS & ASOCIADOS
+                         ESTUDIO JURÍDICO INTEGRAL
+═══════════════════════════════════════════════════════════════════════════════
+
+
+MEMORÁNDUM JURÍDICO
+
+
+Fecha: [FECHA ACTUAL - DD/MM/YYYY]
+Área Legal: [ÁREA LEGAL ESPECIALIZADA]
+Tipo de Documento: [TIPO DE DOCUMENTO]
+Referencia: [REFERENCIA O NÚMERO SI CORRESPONDE]
+
+
+═══════════════════════════════════════════════════════════════════════════════
+                                ASUNTO
+═══════════════════════════════════════════════════════════════════════════════
+
+[TÍTULO DEL MEMO - EN MAYÚSCULAS Y CENTRADO]
+
+
+═══════════════════════════════════════════════════════════════════════════════
+                          I. RESUMEN EJECUTIVO
+═══════════════════════════════════════════════════════════════════════════════
+
+[Resumen ejecutivo conciso de 3-4 párrafos máximo, que sintetice los aspectos más relevantes del memo. Debe ser claro, directo y permitir una comprensión rápida del contenido.]
+
+
+═══════════════════════════════════════════════════════════════════════════════
+                          II. PUNTOS TRATADOS
+═══════════════════════════════════════════════════════════════════════════════
+
+1. [Punto tratado 1 - descripción breve]
+2. [Punto tratado 2 - descripción breve]
+3. [Punto tratado 3 - descripción breve]
+[Continuar con numeración según corresponda]
+
+
+═══════════════════════════════════════════════════════════════════════════════
+                         III. ANÁLISIS JURÍDICO
+═══════════════════════════════════════════════════════════════════════════════
+
+[Análisis jurídico detallado y estructurado. Debe incluir:
+
+- Contexto legal relevante
+- Normativa aplicable (citar leyes, artículos, decretos cuando corresponda)
+- Análisis de la situación específica
+- Interpretación jurídica
+- Consideraciones especiales
+
+Estructurar en párrafos claros y bien organizados. Usar citas normativas cuando sea apropiado, indicando "sujeto a verificación" si hay dudas.]
+
+
+═══════════════════════════════════════════════════════════════════════════════
+                          IV. PRÓXIMOS PASOS
+═══════════════════════════════════════════════════════════════════════════════
+
+• [Acción recomendada 1 - específica y accionable]
+• [Acción recomendada 2 - específica y accionable]
+• [Acción recomendada 3 - específica y accionable]
+[Continuar con viñetas según corresponda]
+
+
+═══════════════════════════════════════════════════════════════════════════════
+                       V. RIESGOS IDENTIFICADOS
+═══════════════════════════════════════════════════════════════════════════════
+
+⚠️  [Riesgo identificado 1 - descripción del riesgo y su impacto potencial]
+⚠️  [Riesgo identificado 2 - descripción del riesgo y su impacto potencial]
+⚠️  [Riesgo identificado 3 - descripción del riesgo y su impacto potencial]
+[Continuar con símbolo de advertencia según corresponda]
+
+
+═══════════════════════════════════════════════════════════════════════════════
+                         VI. RECOMENDACIONES
+═══════════════════════════════════════════════════════════════════════════════
+
+[Recomendaciones finales y conclusiones, si aplica. Debe ser conciso y orientado a la acción.]
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+
+Atentamente,
+
+
+WNS & ASOCIADOS
+Estudio Jurídico Integral
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+
+INSTRUCCIONES CRÍTICAS DE FORMATO:
+- Usa líneas separadoras dobles (═══) para encabezados principales
+- Usa líneas separadoras simples (───) para subsecciones si es necesario
+- Mantén ESPACIADO CONSISTENTE: una línea en blanco entre secciones principales
+- Usa numeración romana (I., II., III.) para secciones principales
+- Usa viñetas (•) para listas de acciones
+- Usa símbolo de advertencia (⚠️) para riesgos
+- Incluye SIEMPRE la fecha actual en formato DD/MM/YYYY
+- El formato debe ser PROFESIONAL, ELEGANTE y listo para copiar directamente a Word
+- NO uses markdown (##, **, __), usa formato de texto plano con separadores visuales
+- Mantén ALINEACIÓN y ESTRUCTURA VISUAL clara
+- El encabezado debe ser CENTRADO y destacado
 - No incluyas explicaciones fuera del JSON.`;
 }
 

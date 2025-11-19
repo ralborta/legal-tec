@@ -3,6 +3,7 @@ import { writeFileSync, unlinkSync, createReadStream } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { getSystemPromptForArea, type LegalArea } from "./legal-areas.js";
+import { formatMemoProfesional } from "./format-memo.js";
 
 export type MemoInputDirect = {
   tipoDocumento: string;
