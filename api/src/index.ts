@@ -214,11 +214,13 @@ async function start() {
           });
         }
         
+        const areaLegal = fields.areaLegal || fields.area_legal || "civil_comercial";
         memoOutput = await generarMemoJuridico(openaiKey, {
           tipoDocumento,
           titulo,
           instrucciones,
-          transcriptText
+          transcriptText,
+          areaLegal: areaLegal as any
         });
       }
 
