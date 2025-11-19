@@ -23,6 +23,12 @@ export type MemoOutput = {
   proximos_pasos: string[];
   riesgos: string[];
   texto_formateado: string;
+  citas?: Array<{
+    tipo: "normativa" | "jurisprudencia" | "doctrina" | "otra";
+    referencia: string;
+    descripcion?: string;
+    url?: string;
+  }>;
 };
 
 /**
@@ -162,6 +168,7 @@ ${input.pdfBuffer ? "Por favor, lee el PDF adjunto que contiene la transcripció
       parsed.puntos_tratados = parsed.puntos_tratados || [];
       parsed.proximos_pasos = parsed.proximos_pasos || [];
       parsed.riesgos = parsed.riesgos || [];
+      parsed.citas = parsed.citas || [];
 
       return parsed;
     } else {
@@ -198,6 +205,7 @@ ${input.pdfBuffer ? "Por favor, lee el PDF adjunto que contiene la transcripció
       parsed.puntos_tratados = parsed.puntos_tratados || [];
       parsed.proximos_pasos = parsed.proximos_pasos || [];
       parsed.riesgos = parsed.riesgos || [];
+      parsed.citas = parsed.citas || [];
 
       return parsed;
     }

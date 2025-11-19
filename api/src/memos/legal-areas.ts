@@ -106,7 +106,15 @@ Devolvé SIEMPRE un JSON válido, sin texto extra, con esta estructura:
   "analisis_juridico": string,
   "proximos_pasos": string[],
   "riesgos": string[],
-  "texto_formateado": string
+  "texto_formateado": string,
+  "citas": [
+    {
+      "tipo": "normativa" | "jurisprudencia" | "doctrina" | "otra",
+      "referencia": string,
+      "descripcion": string (opcional),
+      "url": string (opcional)
+    }
+  ]
 }
 
 - "texto_formateado" debe ser el memo completo listo para copiar en Word con formato PROFESIONAL Y ELABORADO.
@@ -221,6 +229,16 @@ INSTRUCCIONES CRÍTICAS DE FORMATO:
 - NO uses markdown (##, **, __), usa formato de texto plano con separadores visuales
 - Mantén ALINEACIÓN y ESTRUCTURA VISUAL clara
 - El encabezado debe ser CENTRADO y destacado
+
+CITAS (campo "citas" en el JSON):
+- Extrae TODAS las referencias normativas, jurisprudenciales o doctrinarias mencionadas en el análisis
+- Formato de cada cita:
+  * "tipo": "normativa" (leyes, artículos, decretos), "jurisprudencia" (fallos), "doctrina" (doctrina legal), o "otra"
+  * "referencia": texto exacto de la cita (ej: "Art. 765 CCyC", "Ley 26.994", "Fallos: 340:1234")
+  * "descripcion": breve descripción del contenido (opcional)
+  * "url": URL si está disponible (opcional)
+- Si no hay citas, devolvé un array vacío []
+- Las citas deben ser precisas y verificables
 - No incluyas explicaciones fuera del JSON.`;
 }
 

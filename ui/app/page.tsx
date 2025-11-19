@@ -226,17 +226,31 @@ function DocCard({ row }: { row: any }) {
               </div>
               <div className="lg:col-span-1 rounded-xl border p-3">
                 <div className="text-sm font-medium text-slate-700 mb-2">Citas</div>
-                <ul className="space-y-2 text-sm">
-                  {(row.citations || []).map((c:any, i:number) => (
-                    <li key={i} className="flex items-start gap-2">
-                      <span className="mt-1 h-2 w-2 rounded-full bg-emerald-500" />
-                      <div>
-                        <div className="text-slate-700">{c.title || "(sin título)"}</div>
-                        <div className="text-slate-500 text-xs">{c.source || "fuente"} · {c.url ? <a className="underline" href={c.url} target="_blank" rel="noreferrer">link</a> : "s/link"}</div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+                {(row.citations && row.citations.length > 0) ? (
+                  <ul className="space-y-2 text-sm">
+                    {row.citations.map((c:any, i:number) => (
+                      <li key={i} className="flex items-start gap-2">
+                        <span className={`mt-1 h-2 w-2 rounded-full ${
+                          c.source === "normativa" ? "bg-blue-500" :
+                          c.source === "jurisprudencia" ? "bg-purple-500" :
+                          c.source === "doctrina" ? "bg-orange-500" :
+                          "bg-emerald-500"
+                        }`} />
+                        <div className="flex-1">
+                          <div className="text-slate-700 font-medium">{c.title || "(sin título)"}</div>
+                          <div className="text-slate-500 text-xs mt-0.5">
+                            <span className="capitalize">{c.source || "otra"}</span>
+                            {c.url && (
+                              <> · <a className="underline hover:text-slate-700" href={c.url} target="_blank" rel="noreferrer">ver fuente</a></>
+                            )}
+                          </div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="text-xs text-slate-400 italic">No hay citas registradas</div>
+                )}
               </div>
             </div>
           )}
@@ -361,10 +375,22 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
           throw new Error(errorData.error || `Error ${r.status}: ${errorText || "Method Not Allowed"}`);
         }
 
-        const data = await r.json();
-        setMemoResult(data);
-        onGenerated({ type, title, markdown: data.texto_formateado, memoData: data });
-        setTitle(""); setInstructions(""); setFile(null);
+                    const data = await r.json();
+                    setMemoResult(data);
+                    // Convertir citas del memo al formato esperado por la bandeja
+                    const citations = (data.citas || []).map((c: any) => ({
+                      title: c.referencia || c.descripcion || "(sin título)",
+                      source: c.tipo || "otra",
+                      url: c.url || undefined
+                    }));
+                    onGenerated({ 
+                      type, 
+                      title, 
+                      markdown: data.texto_formateado, 
+                      memoData: data,
+                      citations: citations // Agregar citas al formato de la bandeja
+                    });
+                    setTitle(""); setInstructions(""); setFile(null);
       } else {
         // Endpoint original /v1/generate (RAG con corpus)
         const r = await fetch(`${API}/v1/generate`, {

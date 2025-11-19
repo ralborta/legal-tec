@@ -18,6 +18,12 @@ export type MemoOutput = {
   proximos_pasos: string[];
   riesgos: string[];
   texto_formateado: string;
+  citas?: Array<{
+    tipo: "normativa" | "jurisprudencia" | "doctrina" | "otra";
+    referencia: string; // Ej: "Art. 765 CCyC", "Ley 26.994"
+    descripcion?: string; // Descripción breve
+    url?: string; // URL si está disponible
+  }>;
 };
 
 /**
