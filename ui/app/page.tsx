@@ -318,6 +318,7 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
   const [title, setTitle] = useState("");
   const [instructions, setInstructions] = useState("");
   const [type, setType] = useState<"dictamen"|"contrato"|"memo"|"escrito">("dictamen");
+  const [areaLegal, setAreaLegal] = useState<"civil_comercial"|"laboral"|"corporativo"|"compliance"|"marcas"|"consumidor"|"traducir">("civil_comercial");
   const [file, setFile] = useState<File | null>(null);
   const [memoResult, setMemoResult] = useState<any | null>(null);
   const [useMemoEndpoint, setUseMemoEndpoint] = useState(false); // Toggle entre endpoints
@@ -338,6 +339,7 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
         formData.append("tipoDocumento", type === "memo" ? "Memo de reunión" : type);
         formData.append("titulo", title);
         formData.append("instrucciones", instructions);
+        formData.append("areaLegal", areaLegal); // Agregar área legal
         if (file) {
           formData.append("transcripcion", file);
         }
@@ -398,6 +400,16 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
           <option value="contrato">Contrato</option>
           <option value="memo">Memo</option>
           <option value="escrito">Escrito</option>
+        </select>
+        <label className="block text-sm font-medium text-slate-700">Área legal</label>
+        <select className="select w-full" value={areaLegal} onChange={e=>setAreaLegal(e.target.value as any)}>
+          <option value="civil_comercial">Civil, Comercial y Societario</option>
+          <option value="laboral">Laboral</option>
+          <option value="corporativo">Corporativo</option>
+          <option value="compliance">Compliance</option>
+          <option value="marcas">Marcas y Propiedad Intelectual</option>
+          <option value="consumidor">Consumidor</option>
+          <option value="traducir">Traducir</option>
         </select>
         <label className="block text-sm font-medium text-slate-700">Título</label>
         <input className="input w-full" placeholder="Ej.: Aplicación del art. 765 CCyC en mutuo USD" value={title} onChange={e=>setTitle(e.target.value)} />

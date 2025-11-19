@@ -1,10 +1,12 @@
 import OpenAI from "openai";
+import { getSystemPromptForArea, type LegalArea } from "./legal-areas.js";
 
 export type MemoInput = {
   tipoDocumento: string;
   titulo: string;
   instrucciones: string;
   transcriptText: string;
+  areaLegal?: LegalArea; // Nueva: área legal especializada
 };
 
 export type MemoOutput = {
@@ -27,39 +29,9 @@ export async function generarMemoJuridico(
 ): Promise<MemoOutput> {
   const openai = new OpenAI({ apiKey: openaiKey });
 
-  const systemPrompt = `Sos un abogado argentino senior, especialista en derecho civil, comercial y societario,
-que trabaja para el estudio WNS & Asociados.
-
-Tu tarea es elaborar un ${input.tipoDocumento} a partir de la transcripción de una reunión
-y las instrucciones del abogado.
-
-Lineamientos:
-
-- Actuás como un abogado argentino real, no como un asistente genérico.
-- Usás lenguaje jurídico claro, profesional y conciso.
-- Te basás EXCLUSIVAMENTE en la transcripción y las instrucciones: no inventes hechos ni acuerdos que no estén.
-- Si falta información relevante, señalalo explícitamente como "Punto a confirmar".
-- Tené en cuenta la prelación normativa argentina y el art. 2 del CCyC:
-  considerá el texto legal, su finalidad, normas análogas, tratados de derechos humanos vigentes,
-  principios y coherencia del sistema.
-- Cuando cites normas, hacelo de forma responsable. Si no estás seguro, indicá
-  "sujeto a verificación de normativa vigente".
-
-Devolvé SIEMPRE un JSON válido, sin texto extra, con esta estructura:
-
-{
-  "titulo": string,
-  "tipo_documento": string,
-  "resumen": string,
-  "puntos_tratados": string[],
-  "analisis_juridico": string,
-  "proximos_pasos": string[],
-  "riesgos": string[],
-  "texto_formateado": string
-}
-
-- "texto_formateado" debe ser el memo completo listo para copiar en Word.
-- No incluyas explicaciones fuera del JSON.`;
+  // Usar prompt especializado según el área legal
+  const areaLegal = input.areaLegal || "civil_comercial";
+  const systemPrompt = getSystemPromptForArea(areaLegal, input.tipoDocumento);
 
   const transcriptSection = input.transcriptText.trim()
     ? `Transcripción de la reunión:\n${input.transcriptText}`

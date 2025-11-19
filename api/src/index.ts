@@ -189,10 +189,12 @@ async function start() {
       // Si hay PDF, usar la versión directa (pasa PDF a OpenAI sin extraer texto)
       if (pdfBuffer) {
         app.log.info("Usando generación directa con PDF (sin extraer texto)");
+        const areaLegal = fields.areaLegal || fields.area_legal || "civil_comercial";
         memoOutput = await generarMemoJuridicoDirect(openaiKey, {
           tipoDocumento,
           titulo,
           instrucciones,
+          areaLegal: areaLegal as any,
           pdfBuffer,
           pdfFilename: pdfFilename || "transcripcion.pdf"
         });
