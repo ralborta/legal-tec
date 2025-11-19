@@ -2,7 +2,7 @@
 nixPkgs = ["nodejs_20"]
 
 [phases.install]
-cmds = ["rm -rf node_modules .npm", "npm ci", "npm install @fastify/cors@10.1.0 --save-exact --force"]
+cmds = ["rm -rf node_modules .npm", "npm ci"]
 
 [phases.build]
 cmds = ["npm run build"]

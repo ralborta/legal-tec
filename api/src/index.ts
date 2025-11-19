@@ -9,6 +9,24 @@ import { queryDocument } from "./query-doc.js";
 import { extractTextFromPdf } from "./pdf-extract.js";
 import { generarMemoJuridico } from "./memos/generate-memo.js";
 
+// Log de versiones para diagnóstico
+import { readFileSync } from "fs";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+try {
+  const fastifyPkg = JSON.parse(readFileSync(join(__dirname, "../../node_modules/fastify/package.json"), "utf-8"));
+  const corsPkg = JSON.parse(readFileSync(join(__dirname, "../../node_modules/@fastify/cors/package.json"), "utf-8"));
+  console.log("🔍 VERSIONES INSTALADAS:");
+  console.log("  Fastify:", fastifyPkg.version);
+  console.log("  @fastify/cors:", corsPkg.version);
+} catch (e) {
+  console.warn("⚠️  No se pudieron leer versiones de paquetes:", e);
+}
+
 async function start() {
   const app = Fastify({ logger: true });
 
