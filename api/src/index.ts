@@ -35,21 +35,31 @@ async function start() {
     origin: (origin, cb) => {
       // Permitir requests sin origin (Postman, curl, etc.)
       if (!origin) {
+        app.log.info("CORS: Request sin origin, permitido");
         return cb(null, true);
       }
+      
+      app.log.info(`CORS: Verificando origin: ${origin}`);
+      
       // Permitir localhost
       if (origin.startsWith("http://localhost:") || origin.startsWith("http://127.0.0.1:")) {
+        app.log.info("CORS: Localhost permitido");
         return cb(null, true);
       }
-      // Permitir todos los dominios de Vercel
-      if (origin.includes(".vercel.app") || origin.includes("vercel.app")) {
+      
+      // Permitir todos los dominios de Vercel (cualquier subdominio)
+      if (origin.includes("vercel.app")) {
+        app.log.info("CORS: Dominio Vercel permitido");
         return cb(null, true);
       }
+      
       // Denegar otros orígenes
+      app.log.warn(`CORS: Origin denegado: ${origin}`);
       return cb(new Error("Not allowed by CORS"), false);
     },
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    credentials: true
+    credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization"]
   });
 
   // Multipart para manejar archivos
