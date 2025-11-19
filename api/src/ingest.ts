@@ -1,4 +1,5 @@
-import { Client } from "pg";
+import pg from "pg";
+const { Client } = pg;
 import { Document, VectorStoreIndex } from "llamaindex";
 import { PGVectorStore } from "@llamaindex/postgres";
 
