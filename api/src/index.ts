@@ -8,6 +8,7 @@ import { ingestBatch } from "./ingest.js";
 import { queryDocument } from "./query-doc.js";
 import { extractTextFromPdf } from "./pdf-extract.js";
 import { generarMemoJuridico } from "./memos/generate-memo.js";
+import { generarMemoJuridicoDirect } from "./memos/generate-memo-direct.js";
 
 // Log de versiones para diagnóstico
 import { readFileSync } from "fs";
@@ -130,6 +131,7 @@ async function start() {
       // Leer todos los campos del multipart
       const fields: Record<string, string> = {};
       let pdfBuffer: Buffer | null = null;
+      let pdfFilename: string | null = null;
 
       // Verificar que el request sea multipart
       if (!req.isMultipart()) {
@@ -144,6 +146,7 @@ async function start() {
             // Es un archivo (PDF)
             if (part.fieldname === "transcripcion" && part.filename) {
               pdfBuffer = await part.toBuffer();
+              pdfFilename = part.filename;
               app.log.info(`PDF recibido: ${part.filename}, tamaño: ${pdfBuffer.length} bytes`);
             }
           } else {
@@ -176,42 +179,46 @@ async function start() {
         });
       }
 
-      // Extraer texto del PDF si existe
-      let transcriptText = "";
-      if (pdfBuffer) {
-        try {
-          transcriptText = await extractTextFromPdf(pdfBuffer);
-          if (!transcriptText.trim()) {
-            return rep.status(400).send({ error: "El PDF no contiene texto extraíble" });
-          }
-        } catch (error) {
-          return rep.status(400).send({ 
-            error: `Error al procesar PDF: ${error instanceof Error ? error.message : "Error desconocido"}` 
-          });
-        }
-      }
-
-      // Validar que haya al menos transcripción o instrucciones
-      if (!transcriptText.trim() && !instrucciones.trim()) {
-        return rep.status(400).send({ 
-          error: "Se requiere al menos transcripción (PDF) o instrucciones" 
-        });
-      }
-
-      // Generar memo
       const openaiKey = process.env.OPENAI_API_KEY;
       if (!openaiKey) {
         return rep.status(500).send({ error: "OPENAI_API_KEY no configurada" });
       }
 
-      const memoInput = {
-        tipoDocumento,
-        titulo,
-        instrucciones,
-        transcriptText
-      };
-
-      const memoOutput = await generarMemoJuridico(openaiKey, memoInput);
+      let memoOutput;
+      
+      // Si hay PDF, usar la versión directa (pasa PDF a OpenAI sin extraer texto)
+      if (pdfBuffer) {
+        app.log.info("Usando generación directa con PDF (sin extraer texto)");
+        memoOutput = await generarMemoJuridicoDirect(openaiKey, {
+          tipoDocumento,
+          titulo,
+          instrucciones,
+          pdfBuffer,
+          pdfFilename: pdfFilename || "transcripcion.pdf"
+        });
+      } else {
+        // Sin PDF, usar la versión con texto extraído (o solo instrucciones)
+        app.log.info("Usando generación con texto extraído o solo instrucciones");
+        let transcriptText = "";
+        
+        // Si hay texto en algún campo, usarlo
+        if (fields.transcriptText || fields.transcripcion) {
+          transcriptText = fields.transcriptText || fields.transcripcion || "";
+        }
+        
+        if (!transcriptText.trim() && !instrucciones.trim()) {
+          return rep.status(400).send({ 
+            error: "Se requiere al menos transcripción (PDF) o instrucciones" 
+          });
+        }
+        
+        memoOutput = await generarMemoJuridico(openaiKey, {
+          tipoDocumento,
+          titulo,
+          instrucciones,
+          transcriptText
+        });
+      }
 
       return rep.send(memoOutput);
 
