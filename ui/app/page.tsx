@@ -46,7 +46,7 @@ export default function CentroGestionLegalPage() {
               <KPIGrid />
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-6">
-                <div className="lg:col-span-2"><BandejaLocal items={items} /></div>
+                <div className="lg:col-span-2 min-w-0"><BandejaLocal items={items} /></div>
                 <div className="lg:col-span-1">
                   <GenerarPanel
                     onGenerated={(out) => {
@@ -277,12 +277,12 @@ function DocCard({ row }: { row: any }) {
         </div>
       </div>
       {open && (
-        <div className="mt-3">
+        <div className="mt-4 -mx-4 sm:-mx-6 md:-mx-8 px-4 sm:px-6 md:px-8">
           {queryMode ? (
             <QueryDocPanel documentId={row.id} />
           ) : (
             <div className="space-y-4">
-              <div className="rounded-xl border border-slate-700 bg-slate-900 p-5 max-h-[600px] overflow-auto markdown-content text-slate-200 w-full">
+              <div className="rounded-xl border border-slate-700 bg-slate-900 p-6 sm:p-8 md:p-10 max-h-[700px] overflow-auto markdown-content text-slate-200 w-full">
                 <ReactMarkdown>{row.markdown}</ReactMarkdown>
               </div>
               <div className="rounded-xl border border-purple-500/30 bg-gradient-to-br from-purple-900/40 via-purple-800/30 to-purple-900/40 backdrop-blur-sm p-4">
