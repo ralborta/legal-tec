@@ -281,11 +281,11 @@ function DocCard({ row }: { row: any }) {
           {queryMode ? (
             <QueryDocPanel documentId={row.id} />
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-              <div className="lg:col-span-3 rounded-xl border border-slate-700 bg-slate-900 p-5 max-h-[600px] overflow-auto markdown-content text-slate-200">
+            <div className="space-y-4">
+              <div className="rounded-xl border border-slate-700 bg-slate-900 p-5 max-h-[600px] overflow-auto markdown-content text-slate-200 w-full">
                 <ReactMarkdown>{row.markdown}</ReactMarkdown>
               </div>
-              <div className="lg:col-span-2 rounded-xl border border-purple-500/30 bg-gradient-to-br from-purple-900/40 via-purple-800/30 to-purple-900/40 backdrop-blur-sm p-4">
+              <div className="rounded-xl border border-purple-500/30 bg-gradient-to-br from-purple-900/40 via-purple-800/30 to-purple-900/40 backdrop-blur-sm p-4">
                 <div className="text-sm font-medium text-white mb-3">Citas</div>
                 {(row.citations && row.citations.length > 0) ? (
                   <ul className="space-y-2 text-sm">
