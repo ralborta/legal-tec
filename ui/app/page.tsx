@@ -21,7 +21,7 @@ const kpis = [
   { title: "Docs Generados (7d)", value: "126", caption: "+18% vs prev.", icon: FileText, color: "text-emerald-600" },
   { title: "Exactitud de Citas", value: "96.2%", caption: "últ. 100 docs", icon: CheckCircle2, color: "text-emerald-600" },
   { title: "Latencia Media", value: "1.8m", caption: "p95: 3.2m", icon: Loader2, color: "text-slate-600" },
-  { title: "Fuentes Conectadas", value: "4", caption: "BO, vLex, MicroJuris, Internas", icon: BookOpen, color: "text-slate-600" },
+  { title: "Fuentes Conectadas", value: "4", caption: "BQ, vLex, MicroJuris, Internas", icon: BookOpen, color: "text-slate-600" },
   { title: "Usuarios Activos", value: "12", caption: "WNS & Asociados", icon: Users, color: "text-slate-600" },
 ];
 
@@ -33,15 +33,15 @@ export default function CentroGestionLegalPage() {
   const pushItem = (entry: any) => setItems((prev) => [entry, ...prev]);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div className="min-h-screen bg-slate-50 text-slate-900 antialiased">
       <div className="flex">
         <Sidebar />
         <div className="flex-1 min-w-0">
           <Topbar />
           <main className="px-4 sm:px-6 lg:px-8 pb-10">
-            <div className="pt-4">
-              <h1 className="text-2xl font-semibold">Centro de Gestión</h1>
-              <p className="text-slate-500">Operación de agentes jurídicos · WNS & Asociados</p>
+            <div className="pt-6">
+              <h1 className="text-2xl font-bold text-slate-900">Centro de Gestión</h1>
+              <p className="text-slate-600 mt-1">Operación de agentes jurídicos · WNS & Asociados</p>
 
               <KPIGrid />
 
@@ -56,7 +56,8 @@ export default function CentroGestionLegalPage() {
                         asunto: out.title,
                         estado: "Listo para revisión",
                         prioridad: "Media",
-                        creado: new Date().toLocaleTimeString(),
+                        creado: new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' ' + 
+                                 new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
                         agente: "Orquestador",
                         markdown: out.markdown,
                         citations: out.citations as any[]
@@ -91,32 +92,34 @@ export default function CentroGestionLegalPage() {
 
 function Sidebar() {
   return (
-    <aside className="hidden lg:flex w-72 shrink-0 border-r bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+    <aside className="hidden lg:flex w-72 shrink-0 border-r bg-white">
       <div className="flex h-full w-full flex-col">
-        <div className="flex items-center gap-2 px-4 h-16 border-b">
-          <div className="h-9 w-9 rounded-xl bg-slate-900 text-white grid place-items-center font-bold">IA</div>
+        <div className="flex items-center gap-3 px-4 h-16 border-b">
+          <div className="h-10 w-10 rounded-lg bg-blue-600 text-white grid place-items-center font-bold text-sm">IA</div>
           <div className="leading-tight">
-            <p className="text-sm text-slate-500">Centro de Gestión</p>
-            <p className="font-semibold">Legal Agents</p>
+            <p className="text-xs text-slate-500 font-medium">Centro de Gestión</p>
+            <p className="text-sm font-semibold text-slate-900">Legal Agents</p>
           </div>
         </div>
-        <div className="p-3">
+        <div className="p-4 border-b">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <input className="w-full rounded-xl border bg-white pl-10 pr-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-900/10" placeholder="Buscar solicitud o documento…" />
+            <input className="w-full rounded-lg border border-slate-200 bg-white pl-10 pr-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="Buscar solicitud o documento" />
           </div>
         </div>
-        <nav className="px-2 space-y-1 overflow-y-auto pb-6">
+        <nav className="px-3 py-4 space-y-1 overflow-y-auto flex-1">
           <SideLink icon={Sparkles} label="Bandeja" active />
           <SideLink icon={Plus} label="Generar" />
           <SideLink icon={History} label="Historial" />
-          <section>
-            <div className="px-3 py-2 text-[11px] uppercase tracking-wider text-slate-400">Fuentes</div>
-            <SideLink className="ml-7" icon={BookOpen} label="Normativa" />
-            <SideLink className="ml-7" icon={Gavel} label="Jurisprudencia" />
-          </section>
-          <SideLink icon={CheckCircle2} label="Calidad" />
-          <SideLink icon={Settings} label="Configuración" />
+          <div className="pt-4 mt-4 border-t border-slate-200">
+            <div className="px-3 py-2 text-[10px] uppercase tracking-wider text-slate-500 font-semibold">FUENTES</div>
+            <SideLink className="ml-2" icon={BookOpen} label="Normativa" />
+            <SideLink className="ml-2" icon={Gavel} label="Jurisprudencia" />
+          </div>
+          <div className="pt-2">
+            <SideLink icon={CheckCircle2} label="Calidad" />
+            <SideLink icon={Settings} label="Configuración" />
+          </div>
         </nav>
       </div>
     </aside>
@@ -125,8 +128,8 @@ function Sidebar() {
 
 function SideLink({ icon: Icon, label, active, className = "" }: any) {
   return (
-    <a className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm hover:bg-slate-100 ${active ? "bg-slate-900 text-white hover:bg-slate-900" : "text-slate-700"} ${className}`} href="#">
-      <Icon className="h-4 w-4" />
+    <a className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${active ? "bg-blue-50 text-blue-700 font-medium" : "text-slate-700 hover:bg-slate-50"} ${className}`} href="#">
+      <Icon className={`h-4 w-4 ${active ? "text-blue-600" : "text-slate-500"}`} />
       <span>{label}</span>
     </a>
   );
@@ -134,18 +137,18 @@ function SideLink({ icon: Icon, label, active, className = "" }: any) {
 
 function Topbar() {
   return (
-    <header className="sticky top-0 z-10 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-b">
-      <div className="h-16 flex items-center justify-between px-4">
+    <header className="sticky top-0 z-10 bg-white border-b">
+      <div className="h-16 flex items-center justify-between px-6">
         <div className="flex items-center gap-4">
-          <div className="rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs px-3 py-1">Estado: Operativo</div>
+          <div className="rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium px-3 py-1.5">Estado: Operativo</div>
         </div>
-        <div className="flex-1 max-w-xl hidden md:block">
+        <div className="flex-1 max-w-xl hidden md:block mx-6">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <input className="w-full rounded-xl border bg-white pl-10 pr-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-900/10" placeholder="Buscar por asunto, ID o cliente…" />
+            <input className="w-full rounded-lg border border-slate-200 bg-white pl-10 pr-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="Buscar por asunto, ID o cliente…" />
           </div>
         </div>
-        <div className="text-sm text-slate-500">{new Date().toLocaleDateString()}</div>
+        <div className="text-sm text-slate-600 font-medium">{new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })}</div>
       </div>
     </header>
   );
@@ -155,17 +158,20 @@ function KPIGrid() {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 mt-6">
       {kpis.map((k, i) => (
-        <motion.div key={k.title} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="rounded-2xl border bg-white p-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div className="text-slate-500 text-sm">{k.title}</div>
-            <k.icon className={`h-4 w-4 ${k.color}`} />
+        <motion.div 
+          key={k.title} 
+          initial={{ opacity: 0, y: 8 }} 
+          animate={{ opacity: 1, y: 0 }} 
+          transition={{ delay: i * 0.05 }} 
+          className="rounded-2xl border bg-white p-5 shadow-sm hover:shadow-md transition-shadow"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-slate-600 text-sm font-medium">{k.title}</div>
+            <k.icon className={`h-5 w-5 ${k.color}`} />
           </div>
-          <div className="mt-2 flex items-end justify-between">
-            <div className="text-2xl font-semibold">{k.value}</div>
-            <div className="text-xs text-slate-500">{k.caption}</div>
-          </div>
-          <div className="mt-3 h-2 rounded-full bg-slate-100">
-            <div className="h-2 rounded-full bg-emerald-500" style={{ width: `${Math.min(95, 20 + i * 12)}%` }} />
+          <div className="flex items-baseline justify-between gap-2">
+            <div className="text-3xl font-bold text-slate-900">{k.value}</div>
+            <div className="text-xs text-slate-500 text-right whitespace-nowrap">{k.caption}</div>
           </div>
         </motion.div>
       ))}
@@ -176,19 +182,26 @@ function KPIGrid() {
 function BandejaLocal({ items }: { items: any[] }) {
   return (
     <div className="rounded-2xl border bg-white p-4 shadow-sm">
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-4">
         <div>
-          <div className="text-slate-700 font-medium">Bandeja de Solicitudes</div>
-          <div className="text-slate-400 text-sm">Documentos generados en esta sesión</div>
+          <div className="text-slate-900 font-semibold text-lg">Bandeja de Solicitudes</div>
+          <div className="text-slate-500 text-sm mt-0.5">Documentos generados en esta sesión</div>
         </div>
         <div className="flex items-center gap-2">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <input 
+              className="rounded-xl border bg-white pl-9 pr-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-slate-900/10 w-48" 
+              placeholder="Filtrar..." 
+            />
+          </div>
           <button className="icon-btn"><Filter className="h-4 w-4" /></button>
         </div>
       </div>
       {items.length === 0 ? (
-        <div className="text-sm text-slate-500">Aún no hay documentos. Generá uno desde la derecha.</div>
+        <div className="text-sm text-slate-500 py-8 text-center">Aún no hay documentos. Generá uno desde la derecha.</div>
       ) : (
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {items.map((row) => (
             <DocCard key={row.id} row={row} />
           ))}
@@ -201,16 +214,47 @@ function BandejaLocal({ items }: { items: any[] }) {
 function DocCard({ row }: { row: any }) {
   const [open, setOpen] = useState(false);
   const [queryMode, setQueryMode] = useState(false);
+  
+  // Determinar color del estado según el texto
+  const getEstadoColor = (estado: string) => {
+    if (estado.toLowerCase().includes("listo") || estado.toLowerCase().includes("ready")) {
+      return "bg-emerald-50 text-emerald-700 border-emerald-200";
+    }
+    if (estado.toLowerCase().includes("proceso") || estado.toLowerCase().includes("process")) {
+      return "bg-amber-50 text-amber-700 border-amber-200";
+    }
+    if (estado.toLowerCase().includes("atención") || estado.toLowerCase().includes("attention") || estado.toLowerCase().includes("requiere")) {
+      return "bg-rose-50 text-rose-700 border-rose-200";
+    }
+    return "bg-slate-50 text-slate-700 border-slate-200";
+  };
+
+  // Formatear fecha si viene en formato diferente
+  const formatFecha = (fecha: string) => {
+    try {
+      const date = new Date(fecha);
+      if (!isNaN(date.getTime())) {
+        return date.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' ' + 
+               date.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+      }
+    } catch {}
+    return fecha;
+  };
+
   return (
-    <div className="rounded-xl border p-3">
-      <div className="flex items-center justify-between gap-2">
-        <div>
-          <div className="text-slate-700 font-medium">{row.asunto}</div>
-          <div className="text-slate-400 text-xs">{row.tipo} · {row.estado} · {row.creado}</div>
+    <div className="rounded-xl border bg-white p-4 shadow-sm hover:shadow-md transition-shadow">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-2">
+            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getEstadoColor(row.estado)}`}>
+              {row.estado}
+            </span>
+          </div>
+          <div className="text-slate-900 font-medium mb-1">{row.asunto}</div>
+          <div className="text-slate-500 text-xs">Fecha: {formatFecha(row.creado || new Date().toISOString())}</div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 shrink-0">
           <button className="icon-btn" title="Ver" onClick={() => { setOpen(v=>!v); setQueryMode(false); }}><Eye className="h-4 w-4" /></button>
-          <button className="icon-btn" title="Preguntar (tipo NotebookLM)" onClick={() => { setQueryMode(v=>!v); setOpen(true); }}><Search className="h-4 w-4" /></button>
           <button className="icon-btn" title="Descargar Markdown" onClick={()=>downloadMD(row.asunto, row.markdown)}><Download className="h-4 w-4" /></button>
           <button className="icon-btn" title="Eliminar"><Trash2 className="h-4 w-4" /></button>
         </div>
@@ -416,9 +460,9 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
   }
 
   return (
-    <div className="rounded-2xl border bg-white p-4 shadow-sm">
-      <div className="text-slate-700 font-medium mb-1">Generar Documento</div>
-      <div className="text-slate-400 text-sm mb-4">Orquesta agentes Normativo + Jurisprudencial</div>
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="text-slate-900 font-semibold mb-1">Generar Documento</div>
+      <div className="text-slate-500 text-sm mb-5">Orquesta agentes Normativo + Jurisprudencial</div>
       <div className="space-y-3">
         <label className="block text-sm font-medium text-slate-700">Tipo de documento</label>
         <select className="select w-full" value={type} onChange={e=>setType(e.target.value as any)}>
