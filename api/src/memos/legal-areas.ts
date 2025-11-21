@@ -283,7 +283,9 @@ NOTA: Esta sección es OBLIGATORIA y debe ser EXTENSA. Si no hay puntos claros e
 - Interpretación jurídica
 - Consideraciones especiales
 
-Estructurar en párrafos claros y bien organizados. Usar citas normativas cuando sea apropiado, indicando "sujeto a verificación" si hay dudas.]
+Estructurar en párrafos claros y bien organizados. Usar citas normativas cuando sea apropiado, indicando "sujeto a verificación" si hay dudas.
+
+IMPORTANTE: Cuando menciones o uses cualquier referencia legal (leyes, artículos, decretos, fallos, doctrina), asegurate de incluirla en el campo "citas" del JSON. Todas las referencias legales que uses como fundamento deben aparecer en las citas.]
 
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -346,15 +348,25 @@ INSTRUCCIONES CRÍTICAS DE FORMATO:
 - Mantén ALINEACIÓN y ESTRUCTURA VISUAL clara
 - El encabezado debe ser CENTRADO y destacado
 
-CITAS (campo "citas" en el JSON):
-- Extrae TODAS las referencias normativas, jurisprudenciales o doctrinarias mencionadas en el análisis
+CITAS (campo "citas" en el JSON) - MUY IMPORTANTE:
+- Debes extraer TODAS las referencias legales que usaste o mencionaste para generar el memo, incluyendo:
+  * Normativas: leyes, decretos, resoluciones, artículos específicos (ej: "Art. 765 CCyC", "Ley 26.994", "Decreto 1234/2020")
+  * Jurisprudencia: fallos de tribunales, sentencias (ej: "Fallos: 340:1234", "CSJN, 2020", "CNCom, Sala A")
+  * Doctrina: publicaciones, artículos doctrinarios, libros, revistas jurídicas
+  * Reglamentaciones: resoluciones administrativas, disposiciones
+  * Tratados y convenios internacionales si aplican
+  * Cualquier otra fuente legal relevante que hayas usado como base
+
 - Formato de cada cita:
-  * "tipo": "normativa" (leyes, artículos, decretos), "jurisprudencia" (fallos), "doctrina" (doctrina legal), o "otra"
-  * "referencia": texto exacto de la cita (ej: "Art. 765 CCyC", "Ley 26.994", "Fallos: 340:1234")
-  * "descripcion": breve descripción del contenido (opcional)
+  * "tipo": "normativa" (leyes, artículos, decretos, resoluciones), "jurisprudencia" (fallos, sentencias), "doctrina" (publicaciones, artículos doctrinarios), o "otra"
+  * "referencia": texto exacto y completo de la cita (ej: "Art. 765 CCyC", "Ley 26.994 - Código Civil y Comercial", "Decreto 1234/2020", "Fallos: 340:1234", "Doctrina: Revista de Derecho Comercial, año 2020")
+  * "descripcion": breve descripción del contenido o tema que cubre (opcional pero recomendado)
   * "url": URL si está disponible (opcional)
+
+- CRÍTICO: Incluí TODAS las referencias legales que usaste como fundamento, incluso si no las mencionaste explícitamente en el texto del memo
+- Si mencionaste artículos, leyes, decretos o cualquier referencia legal en el análisis jurídico o en los puntos tratados, DEBEN aparecer en el array de citas
 - Si no hay citas, devolvé un array vacío []
-- Las citas deben ser precisas y verificables
+- Las citas deben ser precisas, verificables y completas
 - No incluyas explicaciones fuera del JSON.`;
 }
 

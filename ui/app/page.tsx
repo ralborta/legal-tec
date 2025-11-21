@@ -297,24 +297,47 @@ function DocCard({ row }: { row: any }) {
               <div className="rounded-lg border border-slate-200 bg-white p-6 sm:p-8 md:p-10 max-h-[700px] overflow-auto markdown-content text-slate-700 w-full">
                 <ReactMarkdown>{row.markdown}</ReactMarkdown>
               </div>
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                <div className="text-sm font-medium text-slate-900 mb-3">Citas</div>
+              <div className="rounded-lg border border-purple-200 bg-gradient-to-br from-purple-50 via-purple-50/50 to-purple-100/30 p-4 backdrop-blur-sm">
+                <div className="text-sm font-semibold text-purple-900 mb-3 flex items-center gap-2">
+                  <BookOpen className="h-4 w-4" />
+                  Referencias Legales Utilizadas
+                </div>
                 {(row.citations && row.citations.length > 0) ? (
-                  <ul className="space-y-2 text-sm">
+                  <ul className="space-y-3 text-sm">
                     {row.citations.map((c:any, i:number) => (
-                      <li key={i} className="flex items-start gap-2">
-                        <span className={`mt-1 h-2 w-2 rounded-full ${
+                      <li key={i} className="flex items-start gap-3 bg-white/60 rounded-lg p-3 border border-purple-100">
+                        <span className={`mt-1 h-3 w-3 rounded-full shrink-0 ${
                           c.source === "normativa" ? "bg-blue-500" :
                           c.source === "jurisprudencia" ? "bg-purple-500" :
                           c.source === "doctrina" ? "bg-orange-500" :
                           "bg-emerald-500"
                         }`} />
-                        <div className="flex-1">
-                          <div className="text-slate-900 font-medium">{c.title || "(sin título)"}</div>
-                          <div className="text-slate-500 text-xs mt-0.5">
-                            <span className="capitalize">{c.source || "otra"}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-slate-900 font-semibold text-sm">{c.title || "(sin título)"}</div>
+                          {c.descripcion && (
+                            <div className="text-slate-600 text-xs mt-1">{c.descripcion}</div>
+                          )}
+                          <div className="flex items-center gap-2 mt-1.5">
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                              c.source === "normativa" ? "bg-blue-100 text-blue-700" :
+                              c.source === "jurisprudencia" ? "bg-purple-100 text-purple-700" :
+                              c.source === "doctrina" ? "bg-orange-100 text-orange-700" :
+                              "bg-emerald-100 text-emerald-700"
+                            }`}>
+                              {c.source === "normativa" ? "Normativa" :
+                               c.source === "jurisprudencia" ? "Jurisprudencia" :
+                               c.source === "doctrina" ? "Doctrina" : "Otra"}
+                            </span>
                             {c.url && (
-                              <> · <a className="underline hover:text-blue-600 text-blue-600" href={c.url} target="_blank" rel="noreferrer">ver fuente</a></>
+                              <a 
+                                className="text-xs text-purple-600 hover:text-purple-700 underline flex items-center gap-1" 
+                                href={c.url} 
+                                target="_blank" 
+                                rel="noreferrer"
+                              >
+                                <ExternalLink className="h-3 w-3" />
+                                Ver fuente
+                              </a>
                             )}
                           </div>
                         </div>
@@ -322,7 +345,9 @@ function DocCard({ row }: { row: any }) {
                     ))}
                   </ul>
                 ) : (
-                  <div className="text-xs text-slate-400 italic">No hay citas registradas</div>
+                  <div className="text-xs text-purple-600 italic bg-white/40 rounded-lg p-3 text-center">
+                    No hay referencias legales registradas
+                  </div>
                 )}
               </div>
             </div>
@@ -586,7 +611,8 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
                     const citations = (data.citas || []).map((c: any) => ({
                       title: c.referencia || c.descripcion || "(sin título)",
                       source: c.tipo || "otra",
-                      url: c.url || undefined
+                      url: c.url || undefined,
+                      descripcion: c.descripcion || undefined
                     }));
                     onGenerated({ 
                       type, 
