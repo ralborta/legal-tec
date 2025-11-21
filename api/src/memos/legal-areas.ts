@@ -52,7 +52,45 @@ REQUISITOS OBLIGATORIOS DEL MEMO:
 
 - Cuando cites normas, hacelo de forma responsable. Si no estás seguro, indicá "sujeto a verificación de normativa vigente".
 
-- El objetivo es que los abogados de WNS tengan rápidamente un borrador consistente en estructura y estilo, para evitar tener que corregir siempre lo mismo.`;
+- El objetivo es que los abogados de WNS tengan rápidamente un borrador consistente en estructura y estilo, para evitar tener que corregir siempre lo mismo.
+
+═══════════════════════════════════════════════════════════════════════════════
+3. NIVEL DE DETALLE Y EXTENSIÓN REQUERIDOS
+═══════════════════════════════════════════════════════════════════════════════
+
+IMPORTANTE: El memo debe ser MUY DETALLADO y EXTENSO, similar a un memo de reunión completo.
+
+- "Puntos tratados" debe ser EXHAUSTIVO:
+  * Incluí TODOS los temas mencionados en la transcripción, organizados por secciones numeradas si hay múltiples temas.
+  * Para cada tema, desarrollá en detalle "Qué se dijo:" con múltiples puntos que expliquen:
+    - El contexto y la situación analizada
+    - Las discusiones y debates que tuvieron lugar
+    - Las propuestas y alternativas evaluadas
+    - Las advertencias o riesgos mencionados
+    - Los acuerdos o decisiones tomadas
+    - Cualquier detalle relevante mencionado en la conversación
+  * Sé ESPECÍFICO: incluye nombres de personas, empresas, montos, fechas, plazos, etc. si fueron mencionados.
+  * Expandí cada punto con suficiente contexto para que un abogado que no estuvo en la reunión pueda entender completamente qué se discutió.
+
+- "Próximos pasos" debe ser ESPECÍFICO y ACCIONABLE:
+  * Para cada tema tratado, incluí los pasos concretos a seguir.
+  * Especificá quién debe realizar cada acción (si se mencionó).
+  * Incluí plazos o fechas si fueron mencionados.
+  * Detallá qué documentos deben prepararse, qué reuniones coordinar, qué confirmaciones hacer, etc.
+  * Si hay múltiples temas, organizá los pasos por tema o sección.
+
+- El "Resumen" debe ser completo pero conciso, sintetizando los puntos principales.
+
+- El "Análisis jurídico" debe profundizar en los aspectos legales relevantes mencionados, con contexto y consideraciones.
+
+- Si la transcripción es extensa, el memo debe reflejar esa extensión con el nivel de detalle apropiado.
+
+EJEMPLO DE NIVEL DE DETALLE ESPERADO:
+- En lugar de: "Se discutió el tema de poderes"
+- Debe ser: "Se analizó la necesidad de gestionar poderes de personas físicas vinculadas a Oslo y PBG. Se mencionó que 'Pato' habitualmente firma, pero se propuso confirmar si el resto también desea otorgar poderes para evitar depender de una sola firma. Se evaluó la conveniencia de tener múltiples apoderados disponibles."
+
+- En lugar de: "Coordinar firma de poder"
+- Debe ser: "Confirmar con los socios si quieren que solo 'Pato' firme o si se emitirán poderes por parte de todos. Lucía firmará un poder faltante esta semana con una de las sociedades (se mencionó Terre Maure)."`;
 
   const areaPrompts: Record<LegalArea, string> = {
     civil_comercial: `Especialista en derecho civil, comercial y societario.
@@ -150,7 +188,11 @@ IMPORTANTE:
 - Si no hay puntos tratados claros en la transcripción, indicá "Puntos a confirmar" o similar.
 - Si no hay próximos pasos definidos, indicá "Próximos pasos a definir" o similar.
 
+- "puntos_tratados" debe ser un array EXTENSO con múltiples elementos detallados. Cada elemento debe desarrollar completamente un tema o aspecto de la reunión.
+- "proximos_pasos" debe ser un array ESPECÍFICO con acciones concretas y detalladas, incluyendo quién, qué, cuándo y cómo cuando sea posible.
+
 - "texto_formateado" debe ser el memo completo listo para copiar en Word con formato PROFESIONAL Y ELABORADO.
+- El texto_formateado debe ser MUY EXTENSO y DETALLADO, desarrollando cada tema con profundidad.
 
 FORMATO PROFESIONAL REQUERIDO PARA "texto_formateado":
 
@@ -182,7 +224,9 @@ Referencia: [REFERENCIA O NÚMERO SI CORRESPONDE]
                           I. RESUMEN EJECUTIVO
 ═══════════════════════════════════════════════════════════════════════════════
 
-[Resumen ejecutivo conciso de 3-4 párrafos máximo, que sintetice los aspectos más relevantes del memo. Debe ser claro, directo y permitir una comprensión rápida del contenido.]
+[Si la transcripción incluye información sobre participantes, duración de la reunión, o contexto de la reunión, incluyela aquí al inicio del resumen.]
+
+[Resumen ejecutivo completo de 3-5 párrafos que sintetice los aspectos más relevantes del memo. Debe ser claro, directo y permitir una comprensión rápida del contenido. Incluye los temas principales tratados y las decisiones más importantes tomadas.]
 
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -190,12 +234,41 @@ Referencia: [REFERENCIA O NÚMERO SI CORRESPONDE]
                     (OBLIGATORIO - "Discussion Points" si es inglés)
 ═══════════════════════════════════════════════════════════════════════════════
 
-1. [Punto tratado 1 - descripción breve]
-2. [Punto tratado 2 - descripción breve]
-3. [Punto tratado 3 - descripción breve]
-[Continuar con numeración según corresponda]
+IMPORTANTE: Esta sección debe ser MUY DETALLADA y EXTENSA. Organizá los temas por secciones numeradas si hay múltiples temas.
 
-NOTA: Esta sección es OBLIGATORIA. Si no hay puntos claros en la transcripción, indicá "Puntos a confirmar" o "Puntos pendientes de clarificación".
+Para cada tema o punto tratado, desarrollá en detalle:
+
+1. [TÍTULO DEL TEMA O PUNTO TRATADO]
+
+Qué se dijo:
+• [Punto detallado 1: desarrollá completamente el contexto, la situación analizada, las discusiones que tuvieron lugar, las propuestas evaluadas, etc.]
+• [Punto detallado 2: incluye nombres de personas, empresas, montos, fechas, plazos si fueron mencionados]
+• [Punto detallado 3: expandí con suficiente contexto para que un abogado que no estuvo en la reunión pueda entender completamente]
+• [Continuar con múltiples puntos detallados según lo que se haya discutido]
+
+Pasos a seguir:
+• [Acción específica 1: detallá quién debe hacer qué, cuándo, cómo]
+• [Acción específica 2: incluye plazos, documentos a preparar, reuniones a coordinar, etc.]
+• [Continuar con acciones específicas y detalladas]
+
+───────────────────────────────────────────────────────────────────────────────
+
+2. [TÍTULO DEL SEGUNDO TEMA O PUNTO TRATADO]
+
+Qué se dijo:
+• [Desarrollá este tema con el mismo nivel de detalle que el anterior]
+• [Incluye todos los aspectos mencionados en la transcripción]
+• [Sé exhaustivo en la descripción]
+
+Pasos a seguir:
+• [Acciones específicas para este tema]
+• [Detallá cada paso con precisión]
+
+───────────────────────────────────────────────────────────────────────────────
+
+[Continuar con más temas numerados según corresponda, cada uno con "Qué se dijo:" y "Pasos a seguir:" desarrollados en detalle]
+
+NOTA: Esta sección es OBLIGATORIA y debe ser EXTENSA. Si no hay puntos claros en la transcripción, indicá "Puntos a confirmar" o "Puntos pendientes de clarificación".
 
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -218,12 +291,16 @@ Estructurar en párrafos claros y bien organizados. Usar citas normativas cuando
                     (OBLIGATORIO - "Next Steps" si es inglés)
 ═══════════════════════════════════════════════════════════════════════════════
 
-• [Acción recomendada 1 - específica y accionable]
-• [Acción recomendada 2 - específica y accionable]
-• [Acción recomendada 3 - específica y accionable]
-[Continuar con viñetas según corresponda]
+Esta sección debe consolidar TODOS los pasos a seguir mencionados en la reunión, organizados de manera clara y específica.
 
-NOTA: Esta sección es OBLIGATORIA. Si no hay próximos pasos definidos en la reunión, indicá "Próximos pasos a definir" o "Pendiente de acordar próximos pasos".
+• [Acción específica 1: detallá quién debe realizar la acción, qué debe hacer exactamente, cuándo debe hacerlo, y cualquier detalle relevante]
+• [Acción específica 2: incluye documentos a preparar, reuniones a coordinar, confirmaciones a realizar, etc.]
+• [Acción específica 3: sé concreto y accionable, evitando generalidades]
+• [Continuar con todas las acciones mencionadas en la reunión, desarrolladas en detalle]
+
+Si hay múltiples temas tratados, podés organizar los pasos por tema o sección para mayor claridad.
+
+NOTA: Esta sección es OBLIGATORIA y debe ser ESPECÍFICA. Si no hay próximos pasos definidos en la reunión, indicá "Próximos pasos a definir" o "Pendiente de acordar próximos pasos".
 
 
 ═══════════════════════════════════════════════════════════════════════════════
