@@ -10,6 +10,7 @@ import { extractTextFromPdf } from "./pdf-extract.js";
 import { generarMemoJuridico } from "./memos/generate-memo.js";
 import { generarMemoJuridicoDirect } from "./memos/generate-memo-direct.js";
 import { queryMemo } from "./memos/query-memo.js";
+import { chatMemo } from "./memos/chat-memo.js";
 
 // Log de versiones para diagnóstico
 import { readFileSync } from "fs";
@@ -268,6 +269,67 @@ async function start() {
     }
   });
 
+  // Extraer texto de PDF (para chat)
+  app.post("/api/memos/extract-text", async (req, rep) => {
+    try {
+      if (!req.isMultipart()) {
+        return rep.status(400).send({ error: "Se requiere multipart/form-data" });
+      }
+
+      let pdfBuffer: Buffer | null = null;
+
+      for await (const part of req.parts()) {
+        if (part.type === "file" && part.fieldname === "transcripcion" && part.filename) {
+          pdfBuffer = await part.toBuffer();
+          break;
+        }
+      }
+
+      if (!pdfBuffer) {
+        return rep.status(400).send({ error: "No se proporcionó archivo PDF" });
+      }
+
+      const text = await extractTextFromPdf(pdfBuffer);
+      return rep.send({ text });
+
+    } catch (error) {
+      app.log.error(error, "Error en /api/memos/extract-text");
+      return rep.status(500).send({
+        error: "Error al extraer texto del PDF",
+        message: error instanceof Error ? error.message : "Error desconocido"
+      });
+    }
+  });
+
+  // Chat conversacional sobre transcripciones (asistente jurídico)
+  app.post("/api/memos/chat", async (req, rep) => {
+    try {
+      const body = z.object({
+        transcriptText: z.string().optional(),
+        messages: z.array(z.object({
+          role: z.enum(["user", "assistant"]),
+          content: z.string()
+        })),
+        areaLegal: z.string().optional()
+      }).parse(req.body);
+
+      const openaiKey = process.env.OPENAI_API_KEY;
+      if (!openaiKey) {
+        return rep.status(500).send({ error: "OPENAI_API_KEY no configurada" });
+      }
+
+      const result = await chatMemo(openaiKey, body);
+      return rep.send(result);
+
+    } catch (error) {
+      app.log.error(error, "Error en /api/memos/chat");
+      return rep.status(500).send({
+        error: "Error interno en el chat",
+        message: error instanceof Error ? error.message : "Error desconocido"
+      });
+    }
+  });
+
   // Log de endpoints registrados
   app.log.info("Endpoints registrados:");
   app.log.info("  GET  /health");
@@ -275,7 +337,9 @@ async function start() {
   app.log.info("  POST /v1/ingest");
   app.log.info("  POST /v1/query");
   app.log.info("  POST /api/memos/generate");
+  app.log.info("  POST /api/memos/extract-text");
   app.log.info("  POST /api/memos/query");
+  app.log.info("  POST /api/memos/chat");
 
   await app.listen({ host: "0.0.0.0", port: Number(process.env.PORT) || 3000 });
   app.log.info(`Servidor escuchando en puerto ${process.env.PORT || 3000}`);

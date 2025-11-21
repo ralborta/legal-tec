@@ -47,7 +47,7 @@ export default function CentroGestionLegalPage() {
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-6">
                 <div className="lg:col-span-2 min-w-0"><BandejaLocal items={items} /></div>
-                <div className="lg:col-span-1">
+                <div className="lg:col-span-1 space-y-4">
                   <GenerarPanel
                     onGenerated={(out) => {
                       pushItem({
@@ -66,6 +66,7 @@ export default function CentroGestionLegalPage() {
                     setError={setError}
                     setLoading={setLoading}
                   />
+                  <ChatPanel />
                 </div>
               </div>
 
@@ -689,6 +690,12 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
             <span className="text-slate-600">Usar generador de memos (sin RAG)</span>
           </label>
         </div>
+        {file && (
+          <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm">
+            <div className="text-blue-900 font-medium mb-1">💡 Modo Chat disponible</div>
+            <div className="text-blue-700 text-xs">Con el archivo subido, también podés usar el modo chat para consultar paso a paso cómo proceder.</div>
+          </div>
+        )}
         <div className="flex items-center gap-3">
           <button 
             className="inline-flex items-center gap-2 rounded-lg bg-blue-600 text-white px-5 py-2.5 font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
@@ -785,6 +792,221 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function ChatPanel() {
+  const [file, setFile] = useState<File | null>(null);
+  const [transcriptText, setTranscriptText] = useState<string>("");
+  const [messages, setMessages] = useState<Array<{role: "user" | "assistant"; content: string}>>([]);
+  const [currentMessage, setCurrentMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [summary, setSummary] = useState<string | null>(null);
+  const [areaLegal, setAreaLegal] = useState<"civil_comercial"|"laboral"|"corporativo"|"compliance"|"marcas"|"consumidor"|"traducir">("civil_comercial");
+  const API = useMemo(() => getApiUrl(), []);
+
+  async function handleFileUpload(selectedFile: File) {
+    if (selectedFile.type !== "application/pdf") {
+      alert("Solo se aceptan archivos PDF");
+      return;
+    }
+    setFile(selectedFile);
+    setLoading(true);
+    try {
+      if (!API) throw new Error("Falta NEXT_PUBLIC_API_URL");
+      
+      // Extraer texto del PDF usando el backend
+      const formData = new FormData();
+      formData.append("transcripcion", selectedFile);
+      
+      const r = await fetch(`${API}/api/memos/extract-text`, {
+        method: "POST",
+        body: formData
+      });
+      
+      if (!r.ok) {
+        throw new Error(`Error al extraer texto: ${r.status}`);
+      }
+      
+      const data = await r.json();
+      setTranscriptText(data.text || "");
+      
+      // Iniciar conversación automáticamente después de extraer el texto
+      setTimeout(() => {
+        handleSendMessage("He subido una transcripción de reunión. Por favor, generá un resumen ejecutivo breve y luego preguntame cómo puedo ayudarte con el proceso legal.");
+      }, 100);
+    } catch (e: any) {
+      console.error("Error al extraer texto:", e);
+      alert(`Error al procesar el PDF: ${e.message}`);
+      setFile(null);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleSendMessage(messageText?: string) {
+    const textToSend = messageText || currentMessage;
+    if (!textToSend.trim() || !API) return;
+
+    const userMessage = { role: "user" as const, content: textToSend };
+    const newMessages = [...messages, userMessage];
+    setMessages(newMessages);
+    setCurrentMessage("");
+    setLoading(true);
+
+    try {
+      const r = await fetch(`${API}/api/memos/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          transcriptText: transcriptText,
+          messages: newMessages,
+          areaLegal: areaLegal
+        })
+      });
+
+      if (!r.ok) {
+        const errorText = await r.text();
+        throw new Error(`Error ${r.status}: ${errorText || "Error desconocido"}`);
+      }
+
+      const data = await r.json();
+      const assistantMessage = { role: "assistant" as const, content: data.message };
+      setMessages([...newMessages, assistantMessage]);
+      
+      if (data.summary && !summary) {
+        setSummary(data.summary);
+      }
+    } catch (e: any) {
+      const errorMessage = { role: "assistant" as const, content: `Error: ${e.message || "Error al procesar la consulta"}` };
+      setMessages([...newMessages, errorMessage]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="text-slate-900 font-semibold mb-1">💬 Chat con Asistente Jurídico</div>
+      <div className="text-slate-500 text-sm mb-4">Subí una transcripción y consultá cómo proceder paso a paso</div>
+
+      {!file && (
+        <div className="space-y-3">
+          <label className="block text-sm font-medium text-slate-700">Área legal</label>
+          <select className="select w-full" value={areaLegal} onChange={e=>setAreaLegal(e.target.value as any)}>
+            <option value="civil_comercial">Civil, Comercial y Societario</option>
+            <option value="laboral">Laboral</option>
+            <option value="corporativo">Corporativo</option>
+            <option value="compliance">Compliance</option>
+            <option value="marcas">Marcas y Propiedad Intelectual</option>
+            <option value="consumidor">Consumidor</option>
+          </select>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Subir transcripción (PDF)</label>
+            <div 
+              className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-slate-500 cursor-pointer hover:bg-slate-50 transition-colors"
+              onClick={() => document.getElementById("chat-pdf-upload")?.click()}
+            >
+              <Upload className="h-5 w-5 mx-auto mb-2 text-slate-400" />
+              <span>Arrastrá PDF o hacé click para subir</span>
+            </div>
+            <input
+              id="chat-pdf-upload"
+              type="file"
+              accept=".pdf"
+              className="hidden"
+              onChange={(e) => {
+                const selectedFile = e.target.files?.[0];
+                if (selectedFile) {
+                  handleFileUpload(selectedFile);
+                }
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {file && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+            <div className="flex items-center gap-2">
+              <FileText className="h-4 w-4 text-slate-600" />
+              <span className="text-sm text-slate-700 font-medium">{file.name}</span>
+            </div>
+            <button
+              className="text-xs text-rose-600 hover:text-rose-700"
+              onClick={() => {
+                setFile(null);
+                setTranscriptText("");
+                setMessages([]);
+                setSummary(null);
+              }}
+            >
+              ✕ Eliminar
+            </button>
+          </div>
+
+          {summary && (
+            <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
+              <div className="text-xs font-medium text-blue-900 mb-1">📋 Resumen Inicial</div>
+              <div className="text-sm text-blue-800 whitespace-pre-wrap">{summary}</div>
+            </div>
+          )}
+
+          <div className="space-y-3 max-h-[400px] overflow-y-auto border border-slate-200 rounded-lg p-3 bg-slate-50">
+            {messages.length === 0 ? (
+              <div className="text-sm text-slate-500 text-center py-4">
+                La conversación comenzará cuando subas un archivo...
+              </div>
+            ) : (
+              messages.map((msg, idx) => (
+                <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                  <div className={`max-w-[80%] rounded-lg p-3 ${
+                    msg.role === "user" 
+                      ? "bg-blue-600 text-white" 
+                      : "bg-white border border-slate-200 text-slate-900"
+                  }`}>
+                    <div className="text-xs font-medium mb-1 opacity-70">
+                      {msg.role === "user" ? "Vos" : "Asistente Jurídico"}
+                    </div>
+                    <div className="text-sm whitespace-pre-wrap">{msg.content}</div>
+                  </div>
+                </div>
+              ))
+            )}
+            {loading && (
+              <div className="flex justify-start">
+                <div className="bg-white border border-slate-200 rounded-lg p-3">
+                  <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-2">
+            <input
+              className="input flex-1"
+              placeholder="Ej: ¿Qué documentos debo presentar? / ¿Cómo debo manejar este proceso? / ¿Qué pasos sigo?"
+              value={currentMessage}
+              onChange={(e) => setCurrentMessage(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSendMessage()}
+              disabled={loading}
+            />
+            <button 
+              className="btn" 
+              onClick={() => handleSendMessage()} 
+              disabled={loading || !currentMessage.trim()}
+            >
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
