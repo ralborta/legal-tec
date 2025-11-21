@@ -9,6 +9,7 @@ import { queryDocument } from "./query-doc.js";
 import { extractTextFromPdf } from "./pdf-extract.js";
 import { generarMemoJuridico } from "./memos/generate-memo.js";
 import { generarMemoJuridicoDirect } from "./memos/generate-memo-direct.js";
+import { queryMemo } from "./memos/query-memo.js";
 
 // Log de versiones para diagnóstico
 import { readFileSync } from "fs";
@@ -235,6 +236,38 @@ async function start() {
     }
   });
 
+  // Consultar memo generado (chat sobre el memo)
+  app.post("/api/memos/query", async (req, rep) => {
+    try {
+      const body = z.object({
+        memoContent: z.string().min(10),
+        query: z.string().min(5),
+        titulo: z.string().optional(),
+        citas: z.array(z.object({
+          tipo: z.enum(["normativa", "jurisprudencia", "doctrina", "otra"]),
+          referencia: z.string(),
+          descripcion: z.string().optional(),
+          url: z.string().optional()
+        })).optional()
+      }).parse(req.body);
+
+      const openaiKey = process.env.OPENAI_API_KEY;
+      if (!openaiKey) {
+        return rep.status(500).send({ error: "OPENAI_API_KEY no configurada" });
+      }
+
+      const result = await queryMemo(openaiKey, body);
+      return rep.send(result);
+
+    } catch (error) {
+      app.log.error(error, "Error en /api/memos/query");
+      return rep.status(500).send({
+        error: "Error interno al consultar memo",
+        message: error instanceof Error ? error.message : "Error desconocido"
+      });
+    }
+  });
+
   // Log de endpoints registrados
   app.log.info("Endpoints registrados:");
   app.log.info("  GET  /health");
@@ -242,6 +275,7 @@ async function start() {
   app.log.info("  POST /v1/ingest");
   app.log.info("  POST /v1/query");
   app.log.info("  POST /api/memos/generate");
+  app.log.info("  POST /api/memos/query");
 
   await app.listen({ host: "0.0.0.0", port: Number(process.env.PORT) || 3000 });
   app.log.info(`Servidor escuchando en puerto ${process.env.PORT || 3000}`);

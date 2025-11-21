@@ -267,6 +267,7 @@ function DocCard({ row }: { row: any }) {
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
           <button className="icon-btn" title="Ver" onClick={() => { setOpen(v=>!v); setQueryMode(false); }}><Eye className="h-4 w-4" /></button>
+          <button className="icon-btn" title="Consultar con IA" onClick={() => { setQueryMode(v=>!v); setOpen(true); }}><Search className="h-4 w-4" /></button>
           <button className="icon-btn" title="Descargar Markdown" onClick={()=>downloadMD(row.asunto, row.markdown)}><Download className="h-4 w-4" /></button>
           <button className="icon-btn" title="Eliminar"><Trash2 className="h-4 w-4" /></button>
         </div>
@@ -274,7 +275,7 @@ function DocCard({ row }: { row: any }) {
       {open && (
         <div className="mt-4 -mx-4 sm:-mx-6 md:-mx-8 px-4 sm:px-6 md:px-8">
           {queryMode ? (
-            <QueryDocPanel documentId={row.id} />
+            <QueryDocPanel memoContent={row.markdown} titulo={row.asunto} citas={row.citations} />
           ) : (
             <div className="space-y-4">
               <div className="rounded-lg border border-slate-200 bg-white p-6 sm:p-8 md:p-10 max-h-[700px] overflow-auto markdown-content text-slate-700 w-full">
@@ -316,10 +317,11 @@ function DocCard({ row }: { row: any }) {
   );
 }
 
-function QueryDocPanel({ documentId }: { documentId: string }) {
+function QueryDocPanel({ memoContent, titulo, citas }: { memoContent: string; titulo: string; citas?: any[] }) {
   const [query, setQuery] = useState("");
   const [response, setResponse] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [conversation, setConversation] = useState<Array<{query: string; response: string}>>([]);
   const API = useMemo(() => getApiUrl(), []);
 
   async function handleQuery() {
@@ -327,14 +329,24 @@ function QueryDocPanel({ documentId }: { documentId: string }) {
     setLoading(true);
     setResponse(null);
     try {
-      const r = await fetch(`${API}/v1/query`, {
+      const r = await fetch(`${API}/api/memos/query`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ documentId, query })
+        body: JSON.stringify({ 
+          memoContent, 
+          query,
+          titulo,
+          citas: citas || []
+        })
       });
-      if (!r.ok) throw new Error(`Error ${r.status}`);
+      if (!r.ok) {
+        const errorText = await r.text();
+        throw new Error(`Error ${r.status}: ${errorText || "Error desconocido"}`);
+      }
       const data = await r.json();
       setResponse(data.response);
+      // Agregar a la conversación
+      setConversation(prev => [...prev, { query, response: data.response }]);
       setQuery("");
     } catch (e: any) {
       setResponse(`Error: ${e.message || "Error al consultar"}`);
@@ -346,27 +358,51 @@ function QueryDocPanel({ documentId }: { documentId: string }) {
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-4 space-y-4">
       <div>
-        <div className="text-sm font-medium text-slate-900 mb-1">Consulta sobre el documento</div>
-        <div className="text-xs text-slate-500">Tipo NotebookLM: pregunta o pide modificaciones</div>
+        <div className="text-sm font-medium text-slate-900 mb-1">💬 Chat sobre el Memo</div>
+        <div className="text-xs text-slate-500">Hacé preguntas o pedí modificaciones sobre el memo generado</div>
       </div>
+
+      {/* Historial de conversación */}
+      {conversation.length > 0 && (
+        <div className="space-y-3 max-h-[300px] overflow-y-auto border border-slate-200 rounded-lg p-3 bg-slate-50">
+          {conversation.map((item, idx) => (
+            <div key={idx} className="space-y-2">
+              <div className="text-xs font-medium text-blue-600">Tu pregunta:</div>
+              <div className="text-sm text-slate-700 bg-white p-2 rounded border border-slate-200">{item.query}</div>
+              <div className="text-xs font-medium text-emerald-600">Respuesta:</div>
+              <div className="text-sm text-slate-700 bg-white p-2 rounded border border-slate-200 whitespace-pre-wrap">{item.response}</div>
+            </div>
+          ))}
+        </div>
+      )}
       
       <div className="flex gap-2">
         <input
           className="input flex-1"
-          placeholder="Ej: Explica la conclusión / Modifica la sección de análisis / ¿Qué dice sobre el incumplimiento?"
+          placeholder="Ej: ¿Qué dice sobre los próximos pasos? / Explica la sección de riesgos / Modifica el análisis jurídico para ser más específico"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleQuery()}
           disabled={loading}
         />
         <button className="btn" onClick={handleQuery} disabled={loading || !query.trim()}>
-          <Send className="h-4 w-4" /> {loading ? "..." : "Enviar"}
+          {loading ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              ...
+            </>
+          ) : (
+            <>
+              <Send className="h-4 w-4" />
+              Enviar
+            </>
+          )}
         </button>
       </div>
 
-      {response && (
+      {response && conversation.length === 0 && (
         <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-          <div className="text-xs text-slate-500 mb-2">Respuesta:</div>
+          <div className="text-xs text-slate-500 mb-2 font-medium">Respuesta:</div>
           <div className="text-sm text-slate-700 whitespace-pre-wrap">{response}</div>
         </div>
       )}
