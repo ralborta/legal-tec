@@ -281,28 +281,28 @@ function DocCard({ row }: { row: any }) {
           {queryMode ? (
             <QueryDocPanel documentId={row.id} />
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              <div className="lg:col-span-2 rounded-xl border border-slate-700 bg-slate-900 p-3 max-h-[380px] overflow-auto markdown-content text-slate-200">
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+              <div className="lg:col-span-3 rounded-xl border border-slate-700 bg-slate-900 p-5 max-h-[600px] overflow-auto markdown-content text-slate-200">
                 <ReactMarkdown>{row.markdown}</ReactMarkdown>
               </div>
-              <div className="lg:col-span-1 rounded-xl border border-slate-700 bg-slate-800 p-3">
-                <div className="text-sm font-medium text-white mb-2">Citas</div>
+              <div className="lg:col-span-2 rounded-xl border border-purple-500/30 bg-gradient-to-br from-purple-900/40 via-purple-800/30 to-purple-900/40 backdrop-blur-sm p-4">
+                <div className="text-sm font-medium text-white mb-3">Citas</div>
                 {(row.citations && row.citations.length > 0) ? (
                   <ul className="space-y-2 text-sm">
                     {row.citations.map((c:any, i:number) => (
                       <li key={i} className="flex items-start gap-2">
                         <span className={`mt-1 h-2 w-2 rounded-full ${
-                          c.source === "normativa" ? "bg-blue-500" :
-                          c.source === "jurisprudencia" ? "bg-purple-500" :
-                          c.source === "doctrina" ? "bg-orange-500" :
-                          "bg-emerald-500"
+                          c.source === "normativa" ? "bg-blue-400" :
+                          c.source === "jurisprudencia" ? "bg-purple-300" :
+                          c.source === "doctrina" ? "bg-orange-400" :
+                          "bg-emerald-400"
                         }`} />
                         <div className="flex-1">
                           <div className="text-white font-medium">{c.title || "(sin título)"}</div>
-                          <div className="text-slate-400 text-xs mt-0.5">
+                          <div className="text-purple-200 text-xs mt-0.5">
                             <span className="capitalize">{c.source || "otra"}</span>
                             {c.url && (
-                              <> · <a className="underline hover:text-blue-400 text-blue-400" href={c.url} target="_blank" rel="noreferrer">ver fuente</a></>
+                              <> · <a className="underline hover:text-purple-200 text-purple-300" href={c.url} target="_blank" rel="noreferrer">ver fuente</a></>
                             )}
                           </div>
                         </div>
@@ -310,7 +310,7 @@ function DocCard({ row }: { row: any }) {
                     ))}
                   </ul>
                 ) : (
-                  <div className="text-xs text-slate-400 italic">No hay citas registradas</div>
+                  <div className="text-xs text-purple-200/70 italic">No hay citas registradas</div>
                 )}
               </div>
             </div>
