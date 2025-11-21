@@ -1,7 +1,7 @@
 "use client";
 import React, { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Search, FileText, Gavel, BookOpen, CheckCircle2, Clock3, Users, Settings, Upload, Send, Download, ExternalLink, Trash2, Filter, Plus, History, Sparkles, Loader2, Eye } from "lucide-react";
+import { Search, FileText, Gavel, BookOpen, CheckCircle2, Clock3, Users, Settings, Upload, Send, Download, ExternalLink, Trash2, Filter, Plus, History, Sparkles, Loader2, Eye, X, Zap } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
 /**
@@ -388,6 +388,103 @@ function downloadMD(filename: string, md: string) {
 }
 function sanitize(s: string) { return s.replace(/[^a-z0-9\-\_\ ]/gi, "_"); }
 
+function ProgressIndicator() {
+  const [progress, setProgress] = useState(0);
+  const [stage, setStage] = useState(0);
+  
+  const stages = [
+    "Analizando transcripción...",
+    "Procesando contenido jurídico...",
+    "Generando memo estructurado...",
+    "Finalizando documento..."
+  ];
+
+  React.useEffect(() => {
+    // Resetear cuando se monta
+    setProgress(0);
+    setStage(0);
+
+    const interval = setInterval(() => {
+      setProgress((prev) => {
+        if (prev >= 95) {
+          return prev; // Mantener cerca del 100% pero no llegar al 100% hasta que termine
+        }
+        return prev + Math.random() * 8 + 2;
+      });
+    }, 400);
+
+    const stageInterval = setInterval(() => {
+      setStage((prev) => (prev + 1) % stages.length);
+    }, 2500);
+
+    return () => {
+      clearInterval(interval);
+      clearInterval(stageInterval);
+    };
+  }, []);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="mt-4 rounded-xl border border-blue-500/30 bg-gradient-to-br from-blue-900/20 to-blue-800/10 p-5 backdrop-blur-sm"
+    >
+      <div className="flex items-center gap-3 mb-4">
+        <div className="relative">
+          <Loader2 className="h-6 w-6 text-blue-400 animate-spin" />
+          <div className="absolute inset-0 rounded-full border-2 border-blue-500/30 animate-ping"></div>
+        </div>
+        <div className="flex-1">
+          <div className="text-sm font-semibold text-blue-300 mb-1">Generando documento</div>
+          <div className="text-xs text-blue-400/80">{stages[stage]}</div>
+        </div>
+        <div className="text-sm font-bold text-blue-400">{Math.min(100, Math.round(progress))}%</div>
+      </div>
+      
+      {/* Barra de progreso animada */}
+      <div className="relative h-2 bg-slate-800 rounded-full overflow-hidden">
+        <motion.div
+          className="absolute inset-0 bg-gradient-to-r from-blue-500 via-blue-400 to-blue-500"
+          initial={{ width: "0%" }}
+          animate={{ width: `${Math.min(100, progress)}%` }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
+        />
+        <motion.div
+          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+          animate={{
+            x: ["-100%", "200%"],
+          }}
+          transition={{
+            duration: 1.5,
+            repeat: Infinity,
+            ease: "linear",
+          }}
+          style={{ width: "50%" }}
+        />
+      </div>
+      
+      {/* Puntos animados */}
+      <div className="flex gap-1 mt-3 justify-center">
+        {[0, 1, 2].map((i) => (
+          <motion.div
+            key={i}
+            className="w-2 h-2 rounded-full bg-blue-400"
+            animate={{
+              scale: [1, 1.3, 1],
+              opacity: [0.5, 1, 0.5],
+            }}
+            transition={{
+              duration: 1,
+              repeat: Infinity,
+              delay: i * 0.2,
+            }}
+          />
+        ))}
+      </div>
+    </motion.div>
+  );
+}
+
 function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out: any)=>void; setError: (e:string|null)=>void; setLoading: (b:boolean)=>void; }) {
   
   const [title, setTitle] = useState("");
@@ -397,7 +494,7 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
   const [file, setFile] = useState<File | null>(null);
   const [memoResult, setMemoResult] = useState<any | null>(null);
   const [useMemoEndpoint, setUseMemoEndpoint] = useState(false); // Toggle entre endpoints
-  const [loading, setLoadingLocal] = useState(false); // Estado local para loading
+  const [loadingLocal, setLoadingLocal] = useState(false); // Estado local para loading
   const API = useMemo(() => getApiUrl(), []);
 
   async function handleSubmit() {
@@ -561,18 +658,44 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
             <span className="text-slate-300">Usar generador de memos (sin RAG)</span>
           </label>
         </div>
-        <div className="flex items-center gap-2">
-          <button className="btn" onClick={handleSubmit} disabled={loading}>
-            <Send className="h-4 w-4" /> {loading ? "Generando..." : "Generar"}
+        <div className="flex items-center gap-3">
+          <button 
+            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white px-6 py-3 font-semibold hover:from-blue-700 hover:to-blue-600 transition-all shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-blue-600 disabled:hover:to-blue-500" 
+            onClick={handleSubmit} 
+            disabled={loadingLocal}
+          >
+            {loadingLocal ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin" />
+                Generando...
+              </>
+            ) : (
+              <>
+                <Zap className="h-5 w-5" />
+                Generar Documento
+              </>
+            )}
           </button>
-          <button className="btn-secondary" onClick={()=>{ 
-            setTitle(""); 
-            setInstructions(""); 
-            setFile(null);
-            setMemoResult(null);
-            setUseMemoEndpoint(false);
-          }}>Limpiar</button>
+          <button 
+            className="inline-flex items-center gap-2 rounded-xl border-2 border-slate-600 bg-slate-800 text-slate-300 px-5 py-3 font-medium hover:bg-slate-700 hover:border-slate-500 hover:text-white transition-all" 
+            onClick={()=>{ 
+              setTitle(""); 
+              setInstructions(""); 
+              setFile(null);
+              setMemoResult(null);
+              setUseMemoEndpoint(false);
+            }}
+            disabled={loadingLocal}
+          >
+            <X className="h-4 w-4" />
+            Limpiar
+          </button>
         </div>
+
+        {/* Indicador de progreso moderno */}
+        {loadingLocal && (
+          <ProgressIndicator />
+        )}
 
         {memoResult && (
           <div className="mt-4 rounded-xl border border-slate-700 bg-slate-900 p-4 space-y-3 max-h-[400px] overflow-auto">
