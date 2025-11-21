@@ -65,8 +65,8 @@ ${input.transcriptText}
 `;
   }
 
-  // Construir el historial de mensajes
-  const messages: Array<{role: "user" | "assistant"; content: string}> = [
+  // Construir el historial de mensajes para OpenAI (acepta "system", "user", "assistant")
+  const messages: Array<{role: "system" | "user" | "assistant"; content: string}> = [
     { role: "system", content: systemPrompt }
   ];
 
@@ -97,7 +97,7 @@ ${input.transcriptText}
   const chat = await openai.chat.completions.create({
     model: "gpt-4o-mini",
     temperature: 0.3,
-    messages: messages as any
+    messages: messages
   });
 
   const response = chat.choices[0].message?.content || "No se pudo generar una respuesta.";
