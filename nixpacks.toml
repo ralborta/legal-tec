@@ -1,6 +1,7 @@
 [phases.setup]
-# Forzar Node.js 20 explícitamente
-nodejs_version = "20"
+# Fijar snapshot de nixpkgs que incluye Node.js 22.13.1
+# Este snapshot resuelve el problema de Railway usando Node 18 por defecto
+nixpkgsArchive = "51ad838b03a05b1de6f9f2a0fffecee64a9788ee"
 
 [phases.install]
 cmds = ["rm -rf node_modules .npm", "npm ci --legacy-peer-deps"]
