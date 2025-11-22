@@ -1,7 +1,6 @@
 [phases.setup]
-# Node.js 22 se especifica en .nixpacks.toml con nodejs_version = "22"
-# Este archivo se mantiene para compatibilidad pero .nixpacks.toml tiene prioridad
-nixPkgs = ["nodejs"]
+# Forzar Node.js 20 explícitamente
+nodejs_version = "20"
 
 [phases.install]
 cmds = ["rm -rf node_modules .npm", "npm ci --legacy-peer-deps"]
