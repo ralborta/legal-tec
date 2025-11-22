@@ -1,5 +1,7 @@
 import OpenAI from "openai";
 import { getSystemPromptForArea, type LegalArea } from "./legal-areas.js";
+import type { MemoOutput } from "./types.js";
+import { sugerirDocumentosParaMemo } from "./suggestions.js";
 
 export type MemoInput = {
   tipoDocumento: string;
@@ -9,22 +11,8 @@ export type MemoInput = {
   areaLegal?: LegalArea; // Nueva: área legal especializada
 };
 
-export type MemoOutput = {
-  titulo: string;
-  tipo_documento: string;
-  resumen: string;
-  puntos_tratados: string[];
-  analisis_juridico: string;
-  proximos_pasos: string[];
-  riesgos: string[];
-  texto_formateado: string;
-  citas?: Array<{
-    tipo: "normativa" | "jurisprudencia" | "doctrina" | "otra";
-    referencia: string; // Ej: "Art. 765 CCyC", "Ley 26.994"
-    descripcion?: string; // Descripción breve
-    url?: string; // URL si está disponible
-  }>;
-};
+// Re-exportar MemoOutput desde types.ts para compatibilidad
+export type { MemoOutput };
 
 /**
  * Genera un memo jurídico argentino a partir de una transcripción y instrucciones
@@ -100,6 +88,14 @@ ${input.instrucciones}`;
     if (!Array.isArray(parsed.citas)) {
       parsed.citas = [];
     }
+
+    // Agregar área legal al memo (si no viene en la respuesta de OpenAI)
+    if (!parsed.areaLegal) {
+      parsed.areaLegal = areaLegal;
+    }
+
+    // Agregar documentos sugeridos basados en el contenido del memo
+    parsed.documentos_sugeridos = sugerirDocumentosParaMemo(parsed);
 
     return parsed;
   } catch (error) {

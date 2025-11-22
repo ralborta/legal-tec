@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Copy, Check, MessageSquare, FileText, AlertTriangle, ListChecks, TrendingUp, BookOpen, Send, Library } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import { MemoSuggestedDocuments } from "@/components/MemoSuggestedDocuments";
 
 /**
  * Vista tipo NotebookLM para cada memo generado
@@ -115,11 +116,11 @@ export default function MemoDetailPage() {
         </div>
       </header>
 
-      {/* Main Content - Two Columns */}
+      {/* Main Content - Three Columns */}
       <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Memo Content */}
-          <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+          <div className="lg:col-span-2 bg-white rounded-lg shadow-lg overflow-hidden">
             <div className="p-6 bg-gradient-to-r from-indigo-50 to-purple-50 flex items-center gap-4">
               <div className="bg-blue-500 p-3 rounded-lg text-white">
                 <FileText className="h-6 w-6" />
@@ -447,15 +448,25 @@ export default function MemoDetailPage() {
             </div>
           </div>
 
-          {/* Right Column - Chat */}
-          <div className="bg-white rounded-lg shadow-lg flex flex-col">
-            <MemoChatPanel 
-              transcriptText={transcriptText}
-              areaLegal={memo.areaLegal || memoData.areaLegal || "civil_comercial"}
-              memoTitle={memo.title || memo.asunto}
-              memoText={memo.markdown || memoData.texto_formateado || ""}
-              citas={memo.citations || memoData.citas || []}
+          {/* Right Column - Documentos Sugeridos + Chat */}
+          <div className="grid grid-rows-2 gap-8">
+            {/* Documentos Sugeridos */}
+            <MemoSuggestedDocuments
+              memoId={memoId}
+              documentos={memoData.documentos_sugeridos || []}
+              apiUrl={API}
             />
+            
+            {/* Chat */}
+            <div className="bg-white rounded-lg shadow-lg flex flex-col">
+              <MemoChatPanel 
+                transcriptText={transcriptText}
+                areaLegal={memo.areaLegal || memoData.areaLegal || "civil_comercial"}
+                memoTitle={memo.title || memo.asunto}
+                memoText={memo.markdown || memoData.texto_formateado || ""}
+                citas={memo.citations || memoData.citas || []}
+              />
+            </div>
           </div>
         </div>
       </main>

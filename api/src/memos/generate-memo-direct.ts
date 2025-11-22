@@ -4,6 +4,8 @@ import { join } from "path";
 import { tmpdir } from "os";
 import { getSystemPromptForArea, type LegalArea } from "./legal-areas.js";
 import { formatMemoProfesional } from "./format-memo.js";
+import type { MemoOutput } from "./types.js";
+import { sugerirDocumentosParaMemo } from "./suggestions.js";
 
 export type MemoInputDirect = {
   tipoDocumento: string;
@@ -14,22 +16,8 @@ export type MemoInputDirect = {
   pdfFilename?: string;
 };
 
-export type MemoOutput = {
-  titulo: string;
-  tipo_documento: string;
-  resumen: string;
-  puntos_tratados: string[];
-  analisis_juridico: string;
-  proximos_pasos: string[];
-  riesgos: string[];
-  texto_formateado: string;
-  citas?: Array<{
-    tipo: "normativa" | "jurisprudencia" | "doctrina" | "otra";
-    referencia: string;
-    descripcion?: string;
-    url?: string;
-  }>;
-};
+// Re-exportar MemoOutput desde types.ts para compatibilidad
+export type { MemoOutput };
 
 /**
  * Genera un memo jurídico argentino pasando el PDF directamente a OpenAI
@@ -170,6 +158,14 @@ ${input.pdfBuffer ? "Por favor, lee el PDF adjunto que contiene la transcripció
       parsed.riesgos = parsed.riesgos || [];
       parsed.citas = parsed.citas || [];
 
+      // Agregar área legal al memo (si no viene en la respuesta de OpenAI)
+      if (!parsed.areaLegal) {
+        parsed.areaLegal = areaLegal;
+      }
+
+      // Agregar documentos sugeridos basados en el contenido del memo
+      parsed.documentos_sugeridos = sugerirDocumentosParaMemo(parsed);
+
       return parsed;
     } else {
       // Sin PDF, usar Chat Completions normal
@@ -206,6 +202,14 @@ ${input.pdfBuffer ? "Por favor, lee el PDF adjunto que contiene la transcripció
       parsed.proximos_pasos = parsed.proximos_pasos || [];
       parsed.riesgos = parsed.riesgos || [];
       parsed.citas = parsed.citas || [];
+
+      // Agregar área legal al memo (si no viene en la respuesta de OpenAI)
+      if (!parsed.areaLegal) {
+        parsed.areaLegal = areaLegal;
+      }
+
+      // Agregar documentos sugeridos basados en el contenido del memo
+      parsed.documentos_sugeridos = sugerirDocumentosParaMemo(parsed);
 
       return parsed;
     }

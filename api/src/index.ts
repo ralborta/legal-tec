@@ -13,6 +13,8 @@ import { queryMemo } from "./memos/query-memo.js";
 import { chatMemo } from "./memos/chat-memo.js";
 import * as knowledgeBases from "./knowledge-bases.js";
 import { scrapeAndIngestUrls, scrapeUrl } from "./url-scraper.js";
+import { createReadStream, existsSync } from "fs";
+import { join } from "path";
 
 // Log de versiones para diagnóstico
 import { readFileSync } from "fs";
@@ -337,6 +339,68 @@ async function start() {
       app.log.error(error, "Error en /api/memos/chat");
       return rep.status(500).send({
         error: "Error interno en el chat",
+        message: error instanceof Error ? error.message : "Error desconocido"
+      });
+    }
+  });
+
+  // Descargar documento sugerido desde templates
+  app.get("/api/memos/:memoId/documents/:docId/download", async (req, rep) => {
+    try {
+      const { memoId, docId } = req.params as { memoId: string; docId: string };
+
+      // Mapeo de docId a templatePath
+      // TODO: En el futuro, esto podría venir de una BD o de un JSON de configuración
+      // Nota: Los paths deben coincidir exactamente con los nombres de archivo en api/templates/
+      const map: Record<string, string> = {
+        contrato_fideicomiso: "templates/CORPO/COMERCIAL/CONTRATO DE PRESTACION DE SERVICIOS - MANUEL GONZALEZ .docx",
+        borrador_demanda: "templates/CORPO/DICTAMENTES Y DIAGNOSTICOS/Dictamen Legal - En favor de B1 Simple..docx",
+        informe_legal: "templates/CORPO/DICTAMENTES Y DIAGNOSTICOS/INFORME LEGAL – Análisis de Contingencias, Escenarios y Estrategia Societaria (1).docx",
+        contrato_prestacion_servicios: "templates/CORPO/COMERCIAL/CONTRATO DE PRESTACION DE SERVICIOS - MANUEL GONZALEZ .docx",
+        contrato_mutuo: "templates/CORPO/COMERCIAL/MUTUO 24 9 2025.docx",
+        boleto_compraventa: "templates/CORPO/CONTRATOS-BOLETOS DESARROLLO INMOBILIARIO/Modelo BOLETO DE COMPRAVENTA (v.3.09.2024) (1).docx",
+        dictamen_laboral: "templates/CORPO/DICTAMENTES Y DIAGNOSTICOS/_Dictamen - Suspensión de empleados por falta de trabajo (1).docx",
+        dictamen_marca: "templates/CORPO/DICTAMENTES Y DIAGNOSTICOS/Dictamen de Marca - OLGUITA.docx",
+        acuerdo_accionistas: "templates/CORPO/SOCIETARIO/Acuerdo de accionistas HITCOWORK v1 (2).docx",
+      };
+
+      const relPath = map[docId];
+      if (!relPath) {
+        app.log.warn(`Documento no encontrado: ${docId}`);
+        return rep.status(404).send({ error: "Documento no encontrado" });
+      }
+
+      // Construir ruta absoluta al archivo
+      const filePath = join(process.cwd(), "api", relPath);
+
+      // Verificar que el archivo existe
+      if (!existsSync(filePath)) {
+        app.log.error(`Archivo template no existe: ${filePath}`);
+        return rep.status(404).send({ 
+          error: "Template no encontrado",
+          path: relPath 
+        });
+      }
+
+      // Crear stream del archivo
+      const stream = createReadStream(filePath);
+
+      // Configurar headers para descarga
+      rep.header(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+      );
+      rep.header(
+        "Content-Disposition",
+        `attachment; filename="${docId}.docx"`
+      );
+
+      return rep.send(stream);
+
+    } catch (error) {
+      app.log.error(error, "Error al descargar documento sugerido");
+      return rep.status(500).send({ 
+        error: "Error al descargar documento",
         message: error instanceof Error ? error.message : "Error desconocido"
       });
     }
