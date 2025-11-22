@@ -9,6 +9,13 @@ export type MemoChatInput = {
   transcriptText?: string; // Texto de la transcripción (extraído del PDF)
   messages: ChatMessage[]; // Historial de la conversación
   areaLegal?: string; // Área legal para contexto
+  memoText?: string; // Texto completo del memo (texto_formateado)
+  citas?: Array<{
+    tipo: string;
+    referencia: string;
+    descripcion?: string;
+    url?: string;
+  }>;
 };
 
 export type MemoChatOutput = {
@@ -28,29 +35,75 @@ export async function chatMemo(
 
   const isFirstMessage = input.messages.length === 1 && input.messages[0].role === "user";
   const hasTranscript = input.transcriptText && input.transcriptText.trim().length > 0;
+  const hasMemo = input.memoText && input.memoText.trim().length > 0;
+  const hasCitas = input.citas && input.citas.length > 0;
 
-  const systemPrompt = `Sos un abogado argentino senior que trabaja para WNS & Asociados, actuando como asistente jurídico conversacional.
+Contexto:
+- Ya se generó un MEMO detallado a partir de una reunión con el cliente.
+- También podés tener acceso al TEXTO de la transcripción original de la reunión.
+- Toda tu labor en este chat es ayudar al abogado a TRABAJAR sobre ese memo y esa reunión.
 
-Tu rol es:
-- Analizar transcripciones de reuniones y generar resúmenes iniciales
-- Responder preguntas del usuario sobre cómo proceder legalmente
-- Guiar al usuario sobre qué documentos presentar, qué pasos seguir, qué considerar
-- Actuar como consultor jurídico que ayuda a estructurar el trabajo legal
+REGLAS FUNDAMENTALES:
+- Siempre asumí que el usuario se refiere a ESTE memo y ESTA reunión, salvo que indique lo contrario.
+- Podés y debés usar toda la información contenida en:
+  - La transcripción (si está disponible)
+  - El texto completo del memo
+  - Las citas legales extraídas (normativa, jurisprudencia, doctrina)
 
-INSTRUCCIONES:
-- Si es el primer mensaje y hay transcripción, generá un resumen ejecutivo breve (2-3 párrafos)
-- Respondé las preguntas del usuario de forma clara, práctica y orientada a la acción
-- Basate en la transcripción cuando esté disponible, pero también usá tu conocimiento jurídico
-- Sé específico: mencioná documentos concretos, plazos, normativas relevantes cuando corresponda
-- Mantené un tono profesional pero accesible
-- Si el usuario pregunta sobre procedimientos, explicá paso a paso
-- Si pregunta sobre documentos, listá qué necesita y dónde presentarlos`;
+- NO digas nunca frases del estilo "no tengo acceso a archivos subidos" o "no puedo ver documentos".
+  En su lugar, considerá que el texto del memo y la transcripción ya están incluidos en el contexto.
 
+- Si el usuario pregunta por jurisprudencia, normativa o citas:
+  - Buscá la respuesta en la sección de ANÁLISIS JURÍDICO y en la lista de CITAS.
+  - Respondé indicando claramente las referencias (leyes, artículos, fallos, etc.).
+  - Si NO hay información en el memo/citas sobre eso, decí explícitamente: "En el memo no consta jurisprudencia/normativa específica sobre este punto."
+
+ROL PRINCIPAL EN EL CHAT:
+- Aclarar dudas sobre lo que se habló en la reunión.
+- Resumir puntos clave del memo.
+- Identificar y explicar riesgos.
+- Proponer planes de acción concretos.
+
+SIEMPRE QUE SEA POSIBLE, terminá tu respuesta con una sección:
+
+"Acciones sugeridas:"
+• [Acción concreta 1]
+• [Acción concreta 2]
+• [Acción concreta 3]
+
+Las acciones deben estar basadas en:
+- la sección "Próximos pasos" del memo
+- los "Pasos a seguir" dentro de cada punto tratado
+- los riesgos identificados
+
+ESTILO:
+- Profesional, claro y directo.
+- No des clases teóricas: enfocá tus respuestas en "qué hacer" y "cómo proceder".`;
+
+  // Construir el contexto completo: transcripción + memo + citas
   let contextPrompt = "";
 
   if (hasTranscript) {
-    contextPrompt = `TRANSCRIPCIÓN DE LA REUNIÓN:
+    contextPrompt += `TRANSCRIPCIÓN DE LA REUNIÓN:
 ${input.transcriptText}
+
+───────────────────────────────────────────────────────────────────────────────
+
+`;
+  }
+
+  if (hasMemo) {
+    contextPrompt += `MEMO GENERADO A PARTIR DE ESTA REUNIÓN:
+${input.memoText}
+
+───────────────────────────────────────────────────────────────────────────────
+
+`;
+  }
+
+  if (hasCitas) {
+    contextPrompt += `CITAS LEGALES DEL MEMO:
+${input.citas.map(c => `- [${c.tipo}] ${c.referencia}${c.descripcion ? ` – ${c.descripcion}` : ""}${c.url ? ` (${c.url})` : ""}`).join("\n")}
 
 ───────────────────────────────────────────────────────────────────────────────
 
@@ -70,27 +123,24 @@ ${input.transcriptText}
     { role: "system", content: systemPrompt }
   ];
 
-  // Si es el primer mensaje y hay transcripción, agregar contexto
-  if (isFirstMessage && hasTranscript) {
-    messages.push({
-      role: "user",
-      content: `${contextPrompt}He subido la transcripción de una reunión. Por favor, generá un resumen ejecutivo breve y luego preguntame cómo puedo ayudarte con el proceso legal.`
-    });
-  } else {
+  // Construir mensajes con contexto siempre presente
+  if (input.messages.length > 0) {
     // Agregar contexto al primer mensaje del usuario
-    if (hasTranscript && input.messages.length > 0) {
-      const firstUserMessage = input.messages[0];
+    const firstUserMessage = input.messages[0];
+    
+    // Si hay contexto (memo o transcripción), incluirlo siempre
+    if (contextPrompt.trim()) {
       messages.push({
         role: "user",
         content: `${contextPrompt}${firstUserMessage.content}`
       });
-      // Agregar el resto de los mensajes
-      for (let i = 1; i < input.messages.length; i++) {
-        messages.push(input.messages[i]);
-      }
     } else {
-      // Sin transcripción, solo los mensajes
-      messages.push(...input.messages);
+      messages.push(firstUserMessage);
+    }
+    
+    // Agregar el resto de los mensajes
+    for (let i = 1; i < input.messages.length; i++) {
+      messages.push(input.messages[i]);
     }
   }
 

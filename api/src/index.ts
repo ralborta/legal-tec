@@ -315,7 +315,14 @@ async function start() {
           role: z.enum(["user", "assistant"]),
           content: z.string()
         })),
-        areaLegal: z.string().optional()
+        areaLegal: z.string().optional(),
+        memoText: z.string().optional(),
+        citas: z.array(z.object({
+          tipo: z.string(),
+          referencia: z.string(),
+          descripcion: z.string().optional(),
+          url: z.string().optional()
+        })).optional()
       }).parse(req.body);
 
       const openaiKey = process.env.OPENAI_API_KEY;

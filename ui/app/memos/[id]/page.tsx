@@ -248,16 +248,44 @@ export default function MemoDetailPage() {
               {activeTab === "pasos" && (
                 <div>
                   {memoData.proximos_pasos && memoData.proximos_pasos.length > 0 ? (
-                    <ul className="space-y-3">
-                      {memoData.proximos_pasos.map((paso: string, i: number) => (
-                        <li key={i} className="flex items-start gap-3 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-4 border border-emerald-100 hover:shadow-md transition-shadow">
-                          <div className="mt-0.5 p-1.5 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 shrink-0">
-                            <TrendingUp className="h-3 w-3 text-white" />
+                    <>
+                      {/* Plan de acción sugerido destacado */}
+                      <div className="mb-6 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl p-5 border-2 border-emerald-200 shadow-md">
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="p-2 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600">
+                            <TrendingUp className="h-5 w-5 text-white" />
                           </div>
-                          <span className="text-slate-800 font-medium flex-1">{paso}</span>
-                        </li>
-                      ))}
-                    </ul>
+                          <h3 className="text-lg font-bold text-slate-800">Plan de acción sugerido</h3>
+                        </div>
+                        <ul className="space-y-3">
+                          {memoData.proximos_pasos.map((paso: string, i: number) => (
+                            <li key={i} className="flex items-start gap-3">
+                              <input
+                                type="checkbox"
+                                className="mt-1 h-4 w-4 rounded border-emerald-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                                id={`paso-${i}`}
+                              />
+                              <label htmlFor={`paso-${i}`} className="text-slate-800 font-medium flex-1 cursor-pointer leading-relaxed">
+                                {paso}
+                              </label>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      
+                      {/* Lista adicional con iconos (opcional, para referencia visual) */}
+                      <div className="space-y-3">
+                        <h4 className="text-sm font-semibold text-slate-600 mb-2">Detalle de próximos pasos:</h4>
+                        {memoData.proximos_pasos.map((paso: string, i: number) => (
+                          <div key={i} className="flex items-start gap-3 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-4 border border-emerald-100 hover:shadow-md transition-shadow">
+                            <div className="mt-0.5 p-1.5 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 shrink-0">
+                              <TrendingUp className="h-3 w-3 text-white" />
+                            </div>
+                            <span className="text-slate-800 font-medium flex-1">{paso}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </>
                   ) : (
                     <div className="text-center py-8 bg-slate-50 rounded-xl border border-slate-200">
                       <p className="text-slate-500 text-sm">No hay próximos pasos registrados.</p>
@@ -425,6 +453,8 @@ export default function MemoDetailPage() {
               transcriptText={transcriptText}
               areaLegal={memo.areaLegal || memoData.areaLegal || "civil_comercial"}
               memoTitle={memo.title || memo.asunto}
+              memoText={memo.markdown || memoData.texto_formateado || ""}
+              citas={memo.citations || memoData.citas || []}
             />
           </div>
         </div>
@@ -441,11 +471,15 @@ export default function MemoDetailPage() {
 function MemoChatPanel({ 
   transcriptText, 
   areaLegal, 
-  memoTitle 
+  memoTitle,
+  memoText,
+  citas
 }: { 
   transcriptText: string; 
   areaLegal: string; 
   memoTitle: string;
+  memoText: string;
+  citas: Array<any>;
 }) {
   const [messages, setMessages] = useState<Array<{role: "user" | "assistant"; content: string}>>([]);
   const [currentMessage, setCurrentMessage] = useState("");
@@ -462,13 +496,23 @@ function MemoChatPanel({
     setLoading(true);
 
     try {
+      // Normalizar citas al formato esperado por el backend
+      const citasNormalizadas = citas.map((c: any) => ({
+        tipo: c.tipo || c.source || "otra",
+        referencia: c.referencia || c.title || "(sin referencia)",
+        descripcion: c.descripcion,
+        url: c.url
+      }));
+
       const r = await fetch(`${API}/api/memos/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           transcriptText: transcriptText || "",
           messages: newMessages,
-          areaLegal: areaLegal
+          areaLegal: areaLegal,
+          memoText: memoText || "",
+          citas: citasNormalizadas
         })
       });
 
@@ -558,6 +602,72 @@ function MemoChatPanel({
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Sugerencias de consulta */}
+      {messages.length === 0 && (
+        <div className="px-6 pt-4 pb-2 border-t border-slate-200">
+          <p className="text-xs text-slate-500 mb-3 font-medium">Sugerencias de consulta:</p>
+          <div className="flex flex-wrap gap-2">
+            {[
+              "Resumí los riesgos clave",
+              "Armá un plan de acción por responsable",
+              "Generá un mail al cliente con las conclusiones",
+              "Indicá qué documentación adicional deberíamos pedir"
+            ].map((sugerencia, idx) => (
+              <button
+                key={idx}
+                onClick={async () => {
+                  if (!API || loading) return;
+                  const userMessage = { role: "user" as const, content: sugerencia };
+                  const newMessages = [userMessage];
+                  setMessages(newMessages);
+                  setLoading(true);
+
+                  try {
+                    // Normalizar citas al formato esperado por el backend
+                    const citasNormalizadas = citas.map((c: any) => ({
+                      tipo: c.tipo || c.source || "otra",
+                      referencia: c.referencia || c.title || "(sin referencia)",
+                      descripcion: c.descripcion,
+                      url: c.url
+                    }));
+
+                    const r = await fetch(`${API}/api/memos/chat`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        transcriptText: transcriptText || "",
+                        messages: newMessages,
+                        areaLegal: areaLegal,
+                        memoText: memoText || "",
+                        citas: citasNormalizadas
+                      })
+                    });
+
+                    if (!r.ok) {
+                      const errorText = await r.text();
+                      throw new Error(`Error ${r.status}: ${errorText || "Error desconocido"}`);
+                    }
+
+                    const data = await r.json();
+                    const assistantMessage = { role: "assistant" as const, content: data.message || data.response || "No se pudo generar una respuesta." };
+                    setMessages([...newMessages, assistantMessage]);
+                  } catch (e: any) {
+                    const errorMessage = { role: "assistant" as const, content: `Error: ${e.message || "Error al procesar la consulta"}` };
+                    setMessages([...newMessages, errorMessage]);
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                disabled={loading}
+                className="text-xs px-3 py-1.5 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 text-purple-700 rounded-full hover:bg-gradient-to-r hover:from-purple-100 hover:to-pink-100 transition-colors duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {sugerencia}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
