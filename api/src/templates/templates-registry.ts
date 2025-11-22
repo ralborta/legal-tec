@@ -20,7 +20,7 @@ export const LEGAL_TEMPLATES: LegalTemplate[] = [
     nombre: "Contrato de Prestación de Servicios",
     areaLegal: "civil_comercial",
     tipoDocumento: "contrato",
-    rutaRelativa: "templates/CORPO/COMERCIAL/CONTRATO DE PRESTACION DE SERVICIOS - MANUEL GONZALEZ .docx",
+    rutaRelativa: "CORPO/COMERCIAL/CONTRATO DE PRESTACION DE SERVICIOS - MANUEL GONZALEZ .docx",
     tags: ["servicios", "prestación", "contrato", "comercial"],
     descripcion: "Modelo base para contratos de servicios profesionales.",
   },
@@ -29,7 +29,7 @@ export const LEGAL_TEMPLATES: LegalTemplate[] = [
     nombre: "Contrato de Mutuo",
     areaLegal: "civil_comercial",
     tipoDocumento: "contrato",
-    rutaRelativa: "templates/CORPO/COMERCIAL/MUTUO 24 9 2025.docx",
+    rutaRelativa: "CORPO/COMERCIAL/MUTUO 24 9 2025.docx",
     tags: ["mutuo", "préstamo", "financiación", "dinero"],
     descripcion: "Modelo de contrato de mutuo para préstamos.",
   },
@@ -38,7 +38,7 @@ export const LEGAL_TEMPLATES: LegalTemplate[] = [
     nombre: "Contrato de Locación",
     areaLegal: "civil_comercial",
     tipoDocumento: "contrato",
-    rutaRelativa: "templates/CORPO/COMERCIAL/CONTRATO DE LOCACIÓN - LOCAL - SÖNNE.docx",
+    rutaRelativa: "CORPO/COMERCIAL/CONTRATO DE LOCACIÓN - LOCAL - SÖNNE.docx",
     tags: ["locación", "alquiler", "inmueble", "local"],
     descripcion: "Contrato de locación para locales comerciales.",
   },
@@ -47,7 +47,7 @@ export const LEGAL_TEMPLATES: LegalTemplate[] = [
     nombre: "Contrato de Leasing",
     areaLegal: "civil_comercial",
     tipoDocumento: "contrato",
-    rutaRelativa: "templates/CORPO/COMERCIAL/CONTRATO DE LEASING - INKTEC 14 10 2025.docx",
+    rutaRelativa: "CORPO/COMERCIAL/CONTRATO DE LEASING - INKTEC 14 10 2025.docx",
     tags: ["leasing", "arrendamiento", "equipamiento"],
     descripcion: "Contrato de leasing para equipos y bienes muebles.",
   },
@@ -56,7 +56,7 @@ export const LEGAL_TEMPLATES: LegalTemplate[] = [
     nombre: "Contrato de Licencia",
     areaLegal: "civil_comercial",
     tipoDocumento: "contrato",
-    rutaRelativa: "templates/CORPO/COMERCIAL/Contrato de Licencia - TrackIOT (29_09_25) (1).docx",
+    rutaRelativa: "CORPO/COMERCIAL/Contrato de Licencia - TrackIOT (29_09_25) (1).docx",
     tags: ["licencia", "software", "tecnología", "propiedad intelectual"],
     descripcion: "Contrato de licencia de software y tecnología.",
   },
@@ -65,7 +65,7 @@ export const LEGAL_TEMPLATES: LegalTemplate[] = [
     nombre: "Contrato de Obra",
     areaLegal: "civil_comercial",
     tipoDocumento: "contrato",
-    rutaRelativa: "templates/CORPO/COMERCIAL/Contrato de Obra- Jurojin _ Escritores de Artículos.docx",
+    rutaRelativa: "CORPO/COMERCIAL/Contrato de Obra- Jurojin _ Escritores de Artículos.docx",
     tags: ["obra", "construcción", "edificación", "trabajos"],
     descripcion: "Contrato para ejecución de obras y trabajos.",
   },
@@ -74,7 +74,7 @@ export const LEGAL_TEMPLATES: LegalTemplate[] = [
     nombre: "Contrato de Comodato",
     areaLegal: "civil_comercial",
     tipoDocumento: "contrato",
-    rutaRelativa: "templates/CORPO/COMERCIAL/Contrato de comodato - Double G. (1).docx",
+    rutaRelativa: "CORPO/COMERCIAL/Contrato de comodato - Double G. (1).docx",
     tags: ["comodato", "préstamo", "uso", "bienes"],
     descripcion: "Contrato de comodato para préstamo de uso.",
   },
@@ -85,7 +85,7 @@ export const LEGAL_TEMPLATES: LegalTemplate[] = [
     nombre: "Boleto de Compraventa",
     areaLegal: "civil_comercial",
     tipoDocumento: "boleto",
-    rutaRelativa: "templates/CORPO/CONTRATOS-BOLETOS DESARROLLO INMOBILIARIO/Modelo BOLETO DE COMPRAVENTA (v.3.09.2024) (1).docx",
+    rutaRelativa: "CORPO/CONTRATOS-BOLETOS DESARROLLO INMOBILIARIO/Modelo BOLETO DE COMPRAVENTA (v.3.09.2024) (1).docx",
     tags: ["boleto", "compraventa", "inmueble", "venta"],
     descripcion: "Modelo de boleto de compraventa para inmuebles.",
   },
@@ -94,7 +94,7 @@ export const LEGAL_TEMPLATES: LegalTemplate[] = [
     nombre: "Cesión de Boleto",
     areaLegal: "civil_comercial",
     tipoDocumento: "contrato",
-    rutaRelativa: "templates/CORPO/COMERCIAL/Cesión de Boleto _ 8B y 2A Est. de Israel.docx",
+    rutaRelativa: "CORPO/COMERCIAL/Cesión de Boleto _ 8B y 2A Est. de Israel.docx",
     tags: ["cesión", "boleto", "transferencia", "derechos"],
     descripcion: "Modelo de cesión de boleto de compraventa.",
   },
@@ -105,7 +105,7 @@ export const LEGAL_TEMPLATES: LegalTemplate[] = [
     nombre: "Dictamen Legal",
     areaLegal: "civil_comercial",
     tipoDocumento: "dictamen",
-    rutaRelativa: "templates/CORPO/DICTAMENTES Y DIAGNOSTICOS/Dictamen Legal - En favor de B1 Simple..docx",
+    rutaRelativa: "CORPO/DICTAMENTES Y DIAGNOSTICOS/Dictamen Legal - En favor de B1 Simple..docx",
     tags: ["dictamen", "legal", "opinión", "análisis"],
     descripcion: "Modelo de dictamen legal para análisis jurídico.",
   },
@@ -114,7 +114,7 @@ export const LEGAL_TEMPLATES: LegalTemplate[] = [
     nombre: "Dictamen de Marca",
     areaLegal: "marcas",
     tipoDocumento: "dictamen",
-    rutaRelativa: "templates/CORPO/DICTAMENTES Y DIAGNOSTICOS/Dictamen de Marca - OLGUITA.docx",
+    rutaRelativa: "CORPO/DICTAMENTES Y DIAGNOSTICOS/Dictamen de Marca - OLGUITA.docx",
     tags: ["marca", "propiedad intelectual", "registro", "trademark"],
     descripcion: "Dictamen sobre registro y protección de marcas.",
   },
@@ -123,7 +123,7 @@ export const LEGAL_TEMPLATES: LegalTemplate[] = [
     nombre: "Dictamen Laboral",
     areaLegal: "laboral",
     tipoDocumento: "dictamen",
-    rutaRelativa: "templates/CORPO/DICTAMENTES Y DIAGNOSTICOS/_Dictamen - Suspensión de empleados por falta de trabajo (1).docx",
+    rutaRelativa: "CORPO/DICTAMENTES Y DIAGNOSTICOS/_Dictamen - Suspensión de empleados por falta de trabajo (1).docx",
     tags: ["laboral", "empleado", "trabajador", "despido", "suspensión"],
     descripcion: "Dictamen sobre temas laborales y relaciones de trabajo.",
   },
@@ -132,7 +132,7 @@ export const LEGAL_TEMPLATES: LegalTemplate[] = [
     nombre: "Informe Legal",
     areaLegal: "civil_comercial",
     tipoDocumento: "informe",
-    rutaRelativa: "templates/CORPO/DICTAMENTES Y DIAGNOSTICOS/INFORME LEGAL – Análisis de Contingencias, Escenarios y Estrategia Societaria (1).docx",
+    rutaRelativa: "CORPO/DICTAMENTES Y DIAGNOSTICOS/INFORME LEGAL – Análisis de Contingencias, Escenarios y Estrategia Societaria (1).docx",
     tags: ["informe", "análisis", "contingencias", "societario"],
     descripcion: "Modelo de informe legal para análisis de contingencias.",
   },
@@ -141,7 +141,7 @@ export const LEGAL_TEMPLATES: LegalTemplate[] = [
     nombre: "Diagnóstico Legal",
     areaLegal: "civil_comercial",
     tipoDocumento: "informe",
-    rutaRelativa: "templates/CORPO/DICTAMENTES Y DIAGNOSTICOS/Diagnóstico Legal - SUPPLY SOLUTIONS (1).docx",
+    rutaRelativa: "CORPO/DICTAMENTES Y DIAGNOSTICOS/Diagnóstico Legal - SUPPLY SOLUTIONS (1).docx",
     tags: ["diagnóstico", "análisis", "evaluación", "situación"],
     descripcion: "Modelo de diagnóstico legal para evaluar situaciones jurídicas.",
   },
@@ -152,7 +152,7 @@ export const LEGAL_TEMPLATES: LegalTemplate[] = [
     nombre: "Acuerdo de Accionistas",
     areaLegal: "societario",
     tipoDocumento: "acuerdo",
-    rutaRelativa: "templates/CORPO/SOCIETARIO/Acuerdo de accionistas HITCOWORK v1 (2).docx",
+    rutaRelativa: "CORPO/SOCIETARIO/Acuerdo de accionistas HITCOWORK v1 (2).docx",
     tags: ["sociedad", "accionistas", "acuerdo", "societario"],
     descripcion: "Modelo de acuerdo entre accionistas de una sociedad.",
   },
@@ -160,9 +160,15 @@ export const LEGAL_TEMPLATES: LegalTemplate[] = [
 
 /**
  * Obtiene la ruta absoluta de un template
+ * Los templates están en api/templates/ desde la raíz del proyecto
  */
 export function getTemplateAbsolutePath(template: LegalTemplate): string {
-  return join(process.cwd(), template.rutaRelativa);
+  // En Railway, process.cwd() es la raíz del proyecto
+  // Los templates están en api/templates/...
+  const basePath = join(process.cwd(), "api", "templates");
+  // rutaRelativa ya incluye "CORPO/COMERCIAL/..." sin "api/templates/"
+  const relativePath = template.rutaRelativa.replace(/^templates\//, "").replace(/^api\/templates\//, "");
+  return join(basePath, relativePath);
 }
 
 /**

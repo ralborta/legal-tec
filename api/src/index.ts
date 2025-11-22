@@ -413,23 +413,39 @@ async function start() {
   app.get("/api/templates/:id/download", async (req, rep) => {
     try {
       const { id } = req.params as { id: string };
+      app.log.info(`[TEMPLATE DOWNLOAD] Request recibido para templateId: ${id}`);
+      
       const template = findTemplateById(id);
 
       if (!template) {
-        app.log.warn(`Template no encontrado: ${id}`);
+        app.log.warn(`[TEMPLATE DOWNLOAD] Template no encontrado en registro: ${id}`);
+        app.log.info(`[TEMPLATE DOWNLOAD] Templates disponibles: ${LEGAL_TEMPLATES.map(t => t.id).join(", ")}`);
         return rep.status(404).send({ error: "Template no encontrado" });
       }
 
       const filePath = getTemplateAbsolutePath(template);
+      app.log.info(`[TEMPLATE DOWNLOAD] Template encontrado: ${template.nombre}`);
+      app.log.info(`[TEMPLATE DOWNLOAD] Ruta relativa: ${template.rutaRelativa}`);
+      app.log.info(`[TEMPLATE DOWNLOAD] Ruta absoluta construida: ${filePath}`);
+      app.log.info(`[TEMPLATE DOWNLOAD] process.cwd(): ${process.cwd()}`);
 
       // Verificar que el archivo existe
       if (!existsSync(filePath)) {
-        app.log.error(`Archivo template no existe: ${filePath}`);
+        app.log.error(`[TEMPLATE DOWNLOAD] Archivo template no existe en: ${filePath}`);
+        // Intentar rutas alternativas para debugging
+        const altPath1 = join(process.cwd(), "api", "templates", template.rutaRelativa);
+        const altPath2 = join(__dirname, "..", "templates", template.rutaRelativa);
+        app.log.info(`[TEMPLATE DOWNLOAD] Ruta alternativa 1: ${altPath1} - Existe: ${existsSync(altPath1)}`);
+        app.log.info(`[TEMPLATE DOWNLOAD] Ruta alternativa 2: ${altPath2} - Existe: ${existsSync(altPath2)}`);
         return rep.status(404).send({ 
           error: "Archivo template no encontrado",
-          path: template.rutaRelativa 
+          path: template.rutaRelativa,
+          absolutePath: filePath,
+          cwd: process.cwd()
         });
       }
+
+      app.log.info(`[TEMPLATE DOWNLOAD] Archivo encontrado, iniciando descarga...`);
 
       // Crear stream del archivo
       const stream = createReadStream(filePath);
@@ -459,23 +475,30 @@ async function start() {
   app.get("/api/templates/:id/preview", async (req, rep) => {
     try {
       const { id } = req.params as { id: string };
+      app.log.info(`[TEMPLATE PREVIEW] Request recibido para templateId: ${id}`);
+      
       const template = findTemplateById(id);
 
       if (!template) {
-        app.log.warn(`Template no encontrado: ${id}`);
+        app.log.warn(`[TEMPLATE PREVIEW] Template no encontrado en registro: ${id}`);
         return rep.status(404).send({ error: "Template no encontrado" });
       }
 
       const filePath = getTemplateAbsolutePath(template);
+      app.log.info(`[TEMPLATE PREVIEW] Template encontrado: ${template.nombre}`);
+      app.log.info(`[TEMPLATE PREVIEW] Ruta absoluta: ${filePath}`);
 
       // Verificar que el archivo existe
       if (!existsSync(filePath)) {
-        app.log.error(`Archivo template no existe: ${filePath}`);
+        app.log.error(`[TEMPLATE PREVIEW] Archivo template no existe en: ${filePath}`);
         return rep.status(404).send({ 
           error: "Archivo template no encontrado",
-          path: template.rutaRelativa 
+          path: template.rutaRelativa,
+          absolutePath: filePath
         });
       }
+
+      app.log.info(`[TEMPLATE PREVIEW] Archivo encontrado, convirtiendo a HTML...`);
 
       // Leer el archivo y convertirlo a HTML
       const buffer = await readFile(filePath);
