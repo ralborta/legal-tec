@@ -107,10 +107,10 @@ export const MemoSuggestedDocuments: React.FC<Props> = ({ memoId, memoData, apiU
   const handleDownload = async (id: string, nombre: string) => {
     try {
       const baseUrl = apiUrl || "";
-      const url = `${baseUrl}/api/templates/${encodeURIComponent(id)}/download`;
-      console.log(`[TEMPLATE DOWNLOAD] Llamando a: ${url}`);
+      const downloadUrl = `${baseUrl}/api/templates/${encodeURIComponent(id)}/download`;
+      console.log(`[TEMPLATE DOWNLOAD] Llamando a: ${downloadUrl}`);
       
-      const resp = await fetch(url);
+      const resp = await fetch(downloadUrl);
       
       if (!resp.ok) {
         const errorText = await resp.text();
@@ -119,14 +119,14 @@ export const MemoSuggestedDocuments: React.FC<Props> = ({ memoId, memoData, apiU
       }
 
       const blob = await resp.blob();
-      const url = window.URL.createObjectURL(blob);
+      const blobUrl = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url;
+      a.href = blobUrl;
       a.download = `${nombre.replace(/\s+/g, "_")}.docx`;
       document.body.appendChild(a);
       a.click();
       a.remove();
-      window.URL.revokeObjectURL(url);
+      window.URL.revokeObjectURL(blobUrl);
     } catch (error) {
       console.error("Error al descargar documento:", error);
       alert(`No se pudo descargar el documento: ${error instanceof Error ? error.message : "Error desconocido"}`);
