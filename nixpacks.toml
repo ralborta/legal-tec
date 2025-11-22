@@ -1,7 +1,6 @@
 [phases.setup]
-# IMPORTANTE: Configurar NIXPACKS_NODE_VERSION=22 en Railway Variables
-# No especificar nodejs_22 aquí porque no existe en Nixpkgs
-# Railway detectará la variable NIXPACKS_NODE_VERSION automáticamente
+# Node.js 22 se especifica en .nixpacks.toml con nodejs_version = "22"
+# Este archivo se mantiene para compatibilidad pero .nixpacks.toml tiene prioridad
 nixPkgs = ["nodejs"]
 
 [phases.install]
