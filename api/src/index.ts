@@ -13,13 +13,11 @@ import { queryMemo } from "./memos/query-memo.js";
 import { chatMemo } from "./memos/chat-memo.js";
 import * as knowledgeBases from "./knowledge-bases.js";
 import { scrapeAndIngestUrls, scrapeUrl } from "./url-scraper.js";
-import { createReadStream, existsSync } from "fs";
-import { join } from "path";
-
-// Log de versiones para diagnóstico
-import { readFileSync } from "fs";
+import { createReadStream, existsSync, readFileSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
+
+// Log de versiones para diagnóstico
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
