@@ -428,20 +428,51 @@ async function start() {
       app.log.info(`[TEMPLATE DOWNLOAD] Ruta relativa: ${template.rutaRelativa}`);
       app.log.info(`[TEMPLATE DOWNLOAD] Ruta absoluta construida: ${filePath}`);
       app.log.info(`[TEMPLATE DOWNLOAD] process.cwd(): ${process.cwd()}`);
+      app.log.info(`[TEMPLATE DOWNLOAD] __dirname: ${__dirname}`);
 
       // Verificar que el archivo existe
       if (!existsSync(filePath)) {
         app.log.error(`[TEMPLATE DOWNLOAD] Archivo template no existe en: ${filePath}`);
-        // Intentar rutas alternativas para debugging
-        const altPath1 = join(process.cwd(), "api", "templates", template.rutaRelativa);
-        const altPath2 = join(__dirname, "..", "templates", template.rutaRelativa);
-        app.log.info(`[TEMPLATE DOWNLOAD] Ruta alternativa 1: ${altPath1} - Existe: ${existsSync(altPath1)}`);
-        app.log.info(`[TEMPLATE DOWNLOAD] Ruta alternativa 2: ${altPath2} - Existe: ${existsSync(altPath2)}`);
+        
+        // Intentar rutas alternativas para debugging y fallback
+        const cwd = process.cwd();
+        const altPaths = [
+          { name: "alt1", path: join(cwd, "api", "templates", template.rutaRelativa) },
+          { name: "alt2", path: join(cwd, "templates", template.rutaRelativa) },
+          { name: "alt3", path: join(__dirname, "..", "templates", template.rutaRelativa) },
+          { name: "alt4", path: join(__dirname, "..", "..", "api", "templates", template.rutaRelativa) },
+        ];
+        
+        let foundPath: string | null = null;
+        for (const alt of altPaths) {
+          const exists = existsSync(alt.path);
+          app.log.info(`[TEMPLATE DOWNLOAD] ${alt.name}: ${alt.path} - Existe: ${exists}`);
+          if (exists && !foundPath) {
+            foundPath = alt.path;
+          }
+        }
+        
+        // Si encontramos una ruta alternativa, usarla
+        if (foundPath) {
+          app.log.info(`[TEMPLATE DOWNLOAD] Usando ruta alternativa encontrada: ${foundPath}`);
+          const stream = createReadStream(foundPath);
+          rep.header(
+            "Content-Type",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          );
+          rep.header(
+            "Content-Disposition",
+            `attachment; filename="${encodeURIComponent(template.nombre)}.docx"`
+          );
+          return rep.send(stream);
+        }
+        
         return rep.status(404).send({ 
           error: "Archivo template no encontrado",
           path: template.rutaRelativa,
           absolutePath: filePath,
-          cwd: process.cwd()
+          cwd: process.cwd(),
+          triedPaths: altPaths.map(alt => ({ name: alt.name, path: alt.path, exists: existsSync(alt.path) }))
         });
       }
 
@@ -486,22 +517,46 @@ async function start() {
 
       const filePath = getTemplateAbsolutePath(template);
       app.log.info(`[TEMPLATE PREVIEW] Template encontrado: ${template.nombre}`);
+      app.log.info(`[TEMPLATE PREVIEW] Ruta relativa: ${template.rutaRelativa}`);
       app.log.info(`[TEMPLATE PREVIEW] Ruta absoluta: ${filePath}`);
+      app.log.info(`[TEMPLATE PREVIEW] process.cwd(): ${process.cwd()}`);
 
       // Verificar que el archivo existe
+      let finalPath = filePath;
       if (!existsSync(filePath)) {
         app.log.error(`[TEMPLATE PREVIEW] Archivo template no existe en: ${filePath}`);
-        return rep.status(404).send({ 
-          error: "Archivo template no encontrado",
-          path: template.rutaRelativa,
-          absolutePath: filePath
-        });
+        
+        // Intentar rutas alternativas
+        const cwd = process.cwd();
+        const altPaths = [
+          join(cwd, "api", "templates", template.rutaRelativa),
+          join(cwd, "templates", template.rutaRelativa),
+          join(__dirname, "..", "templates", template.rutaRelativa),
+          join(__dirname, "..", "..", "api", "templates", template.rutaRelativa),
+        ];
+        
+        for (const altPath of altPaths) {
+          if (existsSync(altPath)) {
+            app.log.info(`[TEMPLATE PREVIEW] Usando ruta alternativa: ${altPath}`);
+            finalPath = altPath;
+            break;
+          }
+        }
+        
+        if (!existsSync(finalPath)) {
+          return rep.status(404).send({ 
+            error: "Archivo template no encontrado",
+            path: template.rutaRelativa,
+            absolutePath: filePath,
+            cwd: process.cwd()
+          });
+        }
       }
 
-      app.log.info(`[TEMPLATE PREVIEW] Archivo encontrado, convirtiendo a HTML...`);
+      app.log.info(`[TEMPLATE PREVIEW] Archivo encontrado en: ${finalPath}, convirtiendo a HTML...`);
 
       // Leer el archivo y convertirlo a HTML
-      const buffer = await readFile(filePath);
+      const buffer = await readFile(finalPath);
       const { value: html } = await mammoth.convertToHtml({ buffer });
 
       return rep.send({ 

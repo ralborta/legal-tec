@@ -161,14 +161,33 @@ export const LEGAL_TEMPLATES: LegalTemplate[] = [
 /**
  * Obtiene la ruta absoluta de un template
  * Los templates están en api/templates/ desde la raíz del proyecto
+ * Maneja diferentes entornos: desarrollo local y Railway/Vercel
  */
 export function getTemplateAbsolutePath(template: LegalTemplate): string {
-  // En Railway, process.cwd() es la raíz del proyecto
-  // Los templates están en api/templates/...
-  const basePath = join(process.cwd(), "api", "templates");
-  // rutaRelativa ya incluye "CORPO/COMERCIAL/..." sin "api/templates/"
-  const relativePath = template.rutaRelativa.replace(/^templates\//, "").replace(/^api\/templates\//, "");
-  return join(basePath, relativePath);
+  const cwd = process.cwd();
+  
+  // En Railway, process.cwd() puede ser /app o la raíz del proyecto
+  // Intentar diferentes ubicaciones posibles
+  const possiblePaths = [
+    // Railway/Vercel: templates en /app/api/templates/
+    join(cwd, "api", "templates", template.rutaRelativa),
+    // Railway alternativo: templates en /app/templates/
+    join(cwd, "templates", template.rutaRelativa),
+    // Desarrollo local: templates en raíz/api/templates/
+    join(cwd, "api", "templates", template.rutaRelativa),
+    // Fallback: desde __dirname (si estamos en dist/)
+    join(cwd, "..", "api", "templates", template.rutaRelativa),
+  ];
+  
+  // Limpiar ruta relativa por si tiene prefijos incorrectos
+  const cleanRelativePath = template.rutaRelativa
+    .replace(/^templates\//, "")
+    .replace(/^api\/templates\//, "");
+  
+  const basePath = join(cwd, "api", "templates");
+  const finalPath = join(basePath, cleanRelativePath);
+  
+  return finalPath;
 }
 
 /**
