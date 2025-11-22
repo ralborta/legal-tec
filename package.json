@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "tsx api/src/index.ts",
     "seed": "tsx api/src/seed-run.ts",
+    "seed-urls": "tsx api/src/seed-urls.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js"
   },
@@ -16,6 +17,7 @@
     "@fastify/cors": "8.3.0",
     "@fastify/multipart": "8.3.1",
     "@llamaindex/postgres": "0.0.65",
+    "cheerio": "^1.0.0",
     "dotenv": "16.4.5",
     "fastify": "4.28.1",
     "form-data": "^4.0.5",

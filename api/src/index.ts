@@ -11,6 +11,8 @@ import { generarMemoJuridico } from "./memos/generate-memo.js";
 import { generarMemoJuridicoDirect } from "./memos/generate-memo-direct.js";
 import { queryMemo } from "./memos/query-memo.js";
 import { chatMemo } from "./memos/chat-memo.js";
+import * as knowledgeBases from "./knowledge-bases.js";
+import { scrapeAndIngestUrls, scrapeUrl } from "./url-scraper.js";
 
 // Log de versiones para diagnóstico
 import { readFileSync } from "fs";
@@ -86,7 +88,9 @@ async function start() {
       type: z.enum(["dictamen","contrato","memo","escrito"]),
       title: z.string().min(3),
       instructions: z.string().min(10),
-      k: z.number().optional()
+      k: z.number().optional(),
+      knowledgeBases: z.array(z.string()).optional(), // IDs de bases de conocimiento a incluir
+      excludeKnowledgeBases: z.array(z.string()).optional() // IDs de bases de conocimiento a excluir
     }).parse(req.body);
 
     const res = await generateDoc(process.env.DATABASE_URL!, process.env.OPENAI_API_KEY!, body);
@@ -98,10 +102,11 @@ async function start() {
     const body = z.object({
       items: z.array(z.object({
         text: z.string().min(20),
-        source: z.enum(["normativa","juris","interno"]),
+        source: z.string(), // Ahora acepta cualquier string, no solo enum
         title: z.string().optional(),
         url: z.string().optional(),
-        meta: z.record(z.any()).optional()
+        meta: z.record(z.any()).optional(),
+        knowledgeBase: z.string().optional() // ID de la base de conocimiento
       }))
     }).parse(req.body);
 
@@ -330,12 +335,108 @@ async function start() {
     }
   });
 
+  // Endpoints para gestión de bases de conocimiento
+  app.get("/api/knowledge-bases", async (req, rep) => {
+    const kbs = await knowledgeBases.listKnowledgeBases(process.env.DATABASE_URL!);
+    return rep.send({ knowledgeBases: kbs });
+  });
+
+  app.get("/api/knowledge-bases/:id", async (req, rep) => {
+    const { id } = req.params as { id: string };
+    const kb = await knowledgeBases.getKnowledgeBase(process.env.DATABASE_URL!, id);
+    if (!kb) {
+      return rep.status(404).send({ error: "Base de conocimiento no encontrada" });
+    }
+    const stats = await knowledgeBases.getKnowledgeBaseStats(process.env.DATABASE_URL!, id);
+    return rep.send({ ...kb, stats });
+  });
+
+  app.post("/api/knowledge-bases", async (req, rep) => {
+    const body = z.object({
+      id: z.string().min(1),
+      name: z.string().min(1),
+      description: z.string().optional(),
+      sourceType: z.string(),
+      enabled: z.boolean().optional(),
+      metadata: z.record(z.any()).optional()
+    }).parse(req.body);
+
+    const kb = await knowledgeBases.upsertKnowledgeBase(process.env.DATABASE_URL!, body);
+    return rep.send(kb);
+  });
+
+  app.patch("/api/knowledge-bases/:id/toggle", async (req, rep) => {
+    const { id } = req.params as { id: string };
+    const body = z.object({
+      enabled: z.boolean()
+    }).parse(req.body);
+
+    await knowledgeBases.toggleKnowledgeBase(process.env.DATABASE_URL!, id, body.enabled);
+    return rep.send({ ok: true });
+  });
+
+  // Endpoint para scrapear URLs y guardarlas en base de conocimiento
+  app.post("/api/scrape-urls", async (req, rep) => {
+    try {
+      const body = z.object({
+        urls: z.array(z.string().url()),
+        knowledgeBaseId: z.string().min(1),
+        sourceType: z.string().optional().default("normativa")
+      }).parse(req.body);
+
+      const result = await scrapeAndIngestUrls(
+        process.env.DATABASE_URL!,
+        process.env.OPENAI_API_KEY!,
+        body.urls,
+        body.knowledgeBaseId,
+        body.sourceType
+      );
+
+      return rep.send({
+        ok: true,
+        success: result.success,
+        failed: result.failed,
+        results: result.results
+      });
+    } catch (error) {
+      app.log.error(error, "Error en /api/scrape-urls");
+      return rep.status(500).send({
+        error: "Error al scrapear URLs",
+        message: error instanceof Error ? error.message : "Error desconocido"
+      });
+    }
+  });
+
+  // Endpoint para scrapear una sola URL (sin guardar, solo para probar)
+  app.post("/api/scrape-url", async (req, rep) => {
+    try {
+      const body = z.object({
+        url: z.string().url()
+      }).parse(req.body);
+
+      const result = await scrapeUrl(body.url);
+      return rep.send(result);
+    } catch (error) {
+      app.log.error(error, "Error en /api/scrape-url");
+      return rep.status(500).send({
+        error: "Error al scrapear URL",
+        message: error instanceof Error ? error.message : "Error desconocido"
+      });
+    }
+  });
+
   // Log de endpoints registrados
   app.log.info("Endpoints registrados:");
   app.log.info("  GET  /health");
   app.log.info("  POST /v1/generate");
   app.log.info("  POST /v1/ingest");
   app.log.info("  POST /v1/query");
+  app.log.info("  GET  /api/knowledge-bases");
+  app.log.info("  GET  /api/knowledge-bases/:id");
+  app.log.info("  POST /api/knowledge-bases");
+  app.log.info("  PATCH /api/knowledge-bases/:id/toggle");
+  app.log.info("  POST /api/scrape-urls");
+  app.log.info("  POST /api/scrape-url");
   app.log.info("  POST /api/memos/generate");
   app.log.info("  POST /api/memos/extract-text");
   app.log.info("  POST /api/memos/query");

@@ -5,24 +5,62 @@ import { PGVectorStore } from "@llamaindex/postgres";
 import OpenAI from "openai";
 import { TPL } from "./templates.js";
 
-type In = { type: "dictamen"|"contrato"|"memo"|"escrito"; title: string; instructions: string; k?: number };
+type In = { 
+  type: "dictamen"|"contrato"|"memo"|"escrito"; 
+  title: string; 
+  instructions: string; 
+  k?: number;
+  knowledgeBases?: string[]; // IDs de bases de conocimiento a incluir (opcional)
+  excludeKnowledgeBases?: string[]; // IDs de bases de conocimiento a excluir (opcional)
+};
 
 export async function generateDoc(dbUrl: string, openaiKey: string, input: In) {
   // En 0.11.21, el embedding se configura automáticamente en PGVectorStore
 
   const client = new Client({ connectionString: dbUrl }); await client.connect();
+  
+  // Si se especifican bases de conocimiento, filtrar los chunks antes de crear el índice
+  let filterQuery = "";
+  const filterParams: any[] = [];
+  
+  if (input.knowledgeBases && input.knowledgeBases.length > 0) {
+    filterQuery = `WHERE knowledge_base = ANY($1::text[])`;
+    filterParams.push(input.knowledgeBases);
+  } else if (input.excludeKnowledgeBases && input.excludeKnowledgeBases.length > 0) {
+    filterQuery = `WHERE knowledge_base IS NULL OR knowledge_base != ALL($1::text[])`;
+    filterParams.push(input.excludeKnowledgeBases);
+  }
+  
   const store = new PGVectorStore({ 
     clientConfig: { connectionString: dbUrl },
     schemaName: "public", 
-    tableName: "chunks"
+    tableName: "chunks",
+    // Nota: PGVectorStore no soporta filtros directamente, así que usaremos post-filtering
   });
+  
   const index = await VectorStoreIndex.fromVectorStore(store);
-  const retriever = index.asRetriever({ similarityTopK: input.k ?? 6 });
+  const retriever = index.asRetriever({ similarityTopK: (input.k ?? 6) * 2 }); // Buscar más para luego filtrar
 
   const q = `Instrucciones: ${input.instructions}
 Quiero normativa (artículos exactos + fuente/vigencia) y jurisprudencia (tribunal, año, holding, enlace si existe).
 Si no hay evidencia suficiente, marcá [REVISAR].`;
-  const results = await retriever.retrieve(q);
+  let results = await retriever.retrieve(q);
+  
+  // Filtrar resultados por base de conocimiento si se especificó
+  if (input.knowledgeBases && input.knowledgeBases.length > 0) {
+    results = results.filter(r => {
+      const kb = (r.node.metadata as any)?.knowledgeBase;
+      return kb && input.knowledgeBases!.includes(kb);
+    });
+  } else if (input.excludeKnowledgeBases && input.excludeKnowledgeBases.length > 0) {
+    results = results.filter(r => {
+      const kb = (r.node.metadata as any)?.knowledgeBase;
+      return !kb || !input.excludeKnowledgeBases!.includes(kb);
+    });
+  }
+  
+  // Limitar a k resultados después del filtrado
+  results = results.slice(0, input.k ?? 6);
 
   const context = results.map(r => {
     const text = (r.node as any).text || '';

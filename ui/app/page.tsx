@@ -567,7 +567,23 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
   const [memoResult, setMemoResult] = useState<any | null>(null);
   const [useMemoEndpoint, setUseMemoEndpoint] = useState(false); // Toggle entre endpoints
   const [loadingLocal, setLoadingLocal] = useState(false); // Estado local para loading
+  const [knowledgeBases, setKnowledgeBases] = useState<Array<{id: string; name: string; enabled: boolean}>>([]);
+  const [selectedKnowledgeBases, setSelectedKnowledgeBases] = useState<string[]>([]);
   const API = useMemo(() => getApiUrl(), []);
+
+  // Cargar bases de conocimiento disponibles
+  useEffect(() => {
+    if (!API) return;
+    fetch(`${API}/api/knowledge-bases`)
+      .then(r => r.json())
+      .then(data => {
+        const enabled = (data.knowledgeBases || []).filter((kb: any) => kb.enabled);
+        setKnowledgeBases(enabled);
+      })
+      .catch(err => {
+        console.warn("No se pudieron cargar las bases de conocimiento:", err);
+      });
+  }, [API]);
 
   async function handleSubmit() {
     setError(null); 
@@ -627,10 +643,15 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
                     setTitle(""); setInstructions(""); setFile(null);
       } else {
         // Endpoint original /v1/generate (RAG con corpus)
+        const requestBody: any = { type, title, instructions };
+        // Añadir filtros de bases de conocimiento si se seleccionaron
+        if (selectedKnowledgeBases.length > 0) {
+          requestBody.knowledgeBases = selectedKnowledgeBases;
+        }
         const r = await fetch(`${API}/v1/generate`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ type, title, instructions })
+          body: JSON.stringify(requestBody)
         });
         if (!r.ok) {
           const errorText = await r.text();
@@ -671,6 +692,47 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
           <option value="consumidor">Consumidor</option>
           <option value="traducir">Traducir</option>
         </select>
+        
+        {/* Selector de bases de conocimiento (solo para RAG, no para memos) */}
+        {!useMemoEndpoint && !file && knowledgeBases.length > 0 && (
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Bases de conocimiento (opcional)
+            </label>
+            <div className="text-xs text-slate-500 mb-2">
+              Seleccioná las bases a usar. Si no seleccionás ninguna, se usarán todas.
+            </div>
+            <div className="space-y-2 max-h-32 overflow-y-auto border border-slate-200 rounded-lg p-2">
+              {knowledgeBases.map((kb) => (
+                <label key={kb.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-slate-50 p-1 rounded">
+                  <input
+                    type="checkbox"
+                    checked={selectedKnowledgeBases.includes(kb.id)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedKnowledgeBases([...selectedKnowledgeBases, kb.id]);
+                      } else {
+                        setSelectedKnowledgeBases(selectedKnowledgeBases.filter(id => id !== kb.id));
+                      }
+                    }}
+                    className="rounded"
+                  />
+                  <span className="text-slate-700">{kb.name}</span>
+                </label>
+              ))}
+            </div>
+            {selectedKnowledgeBases.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setSelectedKnowledgeBases([])}
+                className="mt-1 text-xs text-blue-600 hover:text-blue-700"
+              >
+                Limpiar selección
+              </button>
+            )}
+          </div>
+        )}
+        
         <label className="block text-sm font-medium text-slate-700">Título</label>
         <input className="input w-full" placeholder="Ej.: Aplicación del art. 765 CCyC en mutuo USD" value={title} onChange={e=>setTitle(e.target.value)} />
         <label className="block text-sm font-medium text-slate-700">Instrucciones</label>
