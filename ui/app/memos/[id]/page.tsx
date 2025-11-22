@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Copy, Check, MessageSquare, FileText, AlertTriangle, ListChecks, TrendingUp, BookOpen } from "lucide-react";
+import { ArrowLeft, Copy, Check, MessageSquare, FileText, AlertTriangle, ListChecks, TrendingUp, BookOpen, Send } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
 /**
@@ -92,89 +92,124 @@ export default function MemoDetailPage() {
   const transcriptText = memo.transcriptText || memoData.transcriptText || "";
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20">
-      {/* Header con gradiente */}
-      <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 border-b border-blue-700/20 sticky top-0 z-10 shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => router.push("/")}
-              className="rounded-lg bg-white/20 backdrop-blur-sm border border-white/30 p-2 hover:bg-white/30 text-white transition-all hover:scale-105"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </button>
-            <div className="flex-1">
-              <h1 className="text-2xl font-bold text-white drop-shadow-sm">{memo.title || memo.asunto}</h1>
-              <div className="flex items-center gap-3 mt-2 text-sm text-white/90">
-                <span className="px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-sm text-xs font-medium">
-                  {memo.tipoDocumento || "Memo / Dictamen de reunión"}
-                </span>
-                <span className="px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-sm text-xs font-medium">
-                  {getAreaLegalLabel(memo.areaLegal || memoData.areaLegal || "civil_comercial")}
-                </span>
-                <span className="text-white/70">{formatFecha(memo.createdAt || new Date().toISOString())}</span>
-              </div>
+    <div className="min-h-screen bg-[#f4f7fe]">
+      {/* Header con gradiente mejorado */}
+      <header className="bg-gradient-to-r from-[hsl(260,100%,70%)] to-[hsl(280,100%,65%)] p-6 shadow-md">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => router.push("/")}
+                className="bg-white/20 hover:bg-white/30 p-2 rounded-full text-white transition-colors duration-300"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </button>
+              <h1 className="text-3xl font-bold text-white">{memo.title || memo.asunto}</h1>
             </div>
           </div>
+          <div className="flex flex-wrap items-center gap-3 mt-4 text-white/90 text-sm">
+            <span className="bg-white/20 px-3 py-1 rounded-full">{memo.tipoDocumento || "Memo / Dictamen de reunión"}</span>
+            <span className="bg-white/20 px-3 py-1 rounded-full">{getAreaLegalLabel(memo.areaLegal || memoData.areaLegal || "civil_comercial")}</span>
+            <span className="bg-white/20 px-3 py-1 rounded-full hidden sm:block">{formatFecha(memo.createdAt || new Date().toISOString())}</span>
+          </div>
         </div>
-      </div>
+      </header>
 
       {/* Main Content - Two Columns */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left Column - Memo Content */}
-          <div className="bg-white rounded-2xl border border-slate-200/50 shadow-xl p-6 backdrop-blur-sm">
-            <div className="flex items-center gap-3 mb-5 pb-4 border-b border-gradient-to-r from-blue-200 to-purple-200 bg-gradient-to-r from-blue-50/50 to-purple-50/50 -mx-6 px-6 rounded-t-2xl">
-              <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 text-white">
-                <FileText className="h-5 w-5" />
+          <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+            <div className="p-6 bg-gradient-to-r from-indigo-50 to-purple-50 flex items-center gap-4">
+              <div className="bg-blue-500 p-3 rounded-lg text-white">
+                <FileText className="h-6 w-6" />
               </div>
-              <h2 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Contenido del Memo
-              </h2>
+              <h2 className="text-xl font-bold text-slate-800">Contenido del Memo</h2>
             </div>
-
-            {/* Tabs con más color */}
-            <div className="flex flex-wrap gap-2 mb-6 pb-4 border-b border-slate-200/50">
-              {[
-                { id: "resumen", label: "Resumen", icon: FileText, color: "blue" },
-                { id: "puntos", label: "Puntos tratados", icon: ListChecks, color: "indigo" },
-                { id: "pasos", label: "Próximos pasos", icon: TrendingUp, color: "emerald" },
-                { id: "riesgos", label: "Riesgos", icon: AlertTriangle, color: "amber" },
-                { id: "citas", label: "Citas", icon: BookOpen, color: "purple" },
-                { id: "texto", label: "Texto completo", icon: Copy, color: "slate" }
-              ].map((tab) => {
-                const Icon = tab.icon;
-                const isActive = activeTab === tab.id;
-                const colorClasses = {
-                  blue: isActive ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30" : "text-blue-600 hover:bg-blue-50",
-                  indigo: isActive ? "bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-lg shadow-indigo-500/30" : "text-indigo-600 hover:bg-indigo-50",
-                  emerald: isActive ? "bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/30" : "text-emerald-600 hover:bg-emerald-50",
-                  amber: isActive ? "bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-lg shadow-amber-500/30" : "text-amber-600 hover:bg-amber-50",
-                  purple: isActive ? "bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg shadow-purple-500/30" : "text-purple-600 hover:bg-purple-50",
-                  slate: isActive ? "bg-gradient-to-r from-slate-500 to-slate-600 text-white shadow-lg shadow-slate-500/30" : "text-slate-600 hover:bg-slate-50"
-                };
-                return (
+            <div className="p-6">
+              {/* Tabs principales */}
+              <div className="border-b border-slate-200 mb-6">
+                <nav className="flex flex-wrap gap-x-6 gap-y-3 -mb-px">
                   <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id as any)}
-                    className={`flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-xl transition-all duration-200 transform hover:scale-105 ${
-                      colorClasses[tab.color as keyof typeof colorClasses]
+                    onClick={() => setActiveTab("resumen")}
+                    className={`flex items-center gap-2 py-3 px-1 border-b-2 font-semibold text-sm transition-colors duration-300 ${
+                      activeTab === "resumen"
+                        ? "border-blue-500 text-blue-500"
+                        : "border-transparent text-slate-500 hover:text-blue-500 hover:border-blue-500"
                     }`}
                   >
-                    <Icon className="h-4 w-4" />
-                    {tab.label}
+                    <FileText className="text-base" />
+                    Resumen
                   </button>
-                );
-              })}
-            </div>
+                  <button
+                    onClick={() => setActiveTab("puntos")}
+                    className={`flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm transition-colors duration-300 ${
+                      activeTab === "puntos"
+                        ? "border-blue-500 text-blue-500"
+                        : "border-transparent text-slate-500 hover:text-blue-500 hover:border-blue-500"
+                    }`}
+                  >
+                    <ListChecks className="text-base" />
+                    Puntos tratados
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("pasos")}
+                    className={`flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm transition-colors duration-300 ${
+                      activeTab === "pasos"
+                        ? "border-blue-500 text-blue-500"
+                        : "border-transparent text-slate-500 hover:text-blue-500 hover:border-blue-500"
+                    }`}
+                  >
+                    <TrendingUp className="text-base" />
+                    Próximos pasos
+                  </button>
+                </nav>
+              </div>
+
+              {/* Botones secundarios */}
+              <div className="flex flex-wrap gap-4 mb-6">
+                <button
+                  onClick={() => setActiveTab("riesgos")}
+                  className={`flex items-center gap-2 py-2 px-4 rounded-full text-sm font-medium transition-colors duration-300 ${
+                    activeTab === "riesgos"
+                      ? "bg-orange-100 text-orange-700"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  }`}
+                >
+                  <AlertTriangle className="text-orange-500 text-base" />
+                  Riesgos
+                </button>
+                <button
+                  onClick={() => setActiveTab("citas")}
+                  className={`flex items-center gap-2 py-2 px-4 rounded-full text-sm font-medium transition-colors duration-300 ${
+                    activeTab === "citas"
+                      ? "bg-purple-100 text-purple-700"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  }`}
+                >
+                  <BookOpen className="text-purple-500 text-base" />
+                  Citas
+                </button>
+                <button
+                  onClick={() => setActiveTab("texto")}
+                  className={`flex items-center gap-2 py-2 px-4 rounded-full text-sm font-medium transition-colors duration-300 ${
+                    activeTab === "texto"
+                      ? "bg-green-100 text-green-700"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  }`}
+                >
+                  <Copy className="text-green-500 text-base" />
+                  Texto completo
+                </button>
+              </div>
 
             {/* Tab Content */}
-            <div className="mt-4">
+            <div>
               {activeTab === "resumen" && (
-                <div className="prose prose-sm max-w-none">
-                  <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-5 border border-blue-100">
-                    <p className="text-slate-800 whitespace-pre-wrap leading-relaxed">{memoData.resumen || "No hay resumen disponible."}</p>
-                  </div>
+                <div className="bg-blue-50 p-5 rounded-lg">
+                  <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">
+                    {memoData.resumen || "No hay resumen disponible."}
+                  </p>
                 </div>
               )}
 
@@ -308,10 +343,11 @@ export default function MemoDetailPage() {
                 </div>
               )}
             </div>
+            </div>
           </div>
 
           {/* Right Column - Chat */}
-          <div className="bg-white rounded-2xl border border-slate-200/50 shadow-xl p-6 backdrop-blur-sm">
+          <div className="bg-white rounded-lg shadow-lg flex flex-col">
             <MemoChatPanel 
               transcriptText={transcriptText}
               areaLegal={memo.areaLegal || memoData.areaLegal || "civil_comercial"}
@@ -319,7 +355,7 @@ export default function MemoDetailPage() {
             />
           </div>
         </div>
-      </div>
+      </main>
 
       {/* Estilos auxiliares */}
       <style jsx global>{`
@@ -382,32 +418,30 @@ function MemoChatPanel({
   return (
     <div className="flex flex-col h-full">
       {/* Header del chat con gradiente */}
-      <div className="flex items-center gap-3 mb-5 pb-4 border-b border-gradient-to-r from-purple-200 to-pink-200 bg-gradient-to-r from-purple-50/50 to-pink-50/50 -mx-6 px-6 rounded-t-2xl">
-        <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500 to-pink-600 text-white shadow-lg">
-          <MessageSquare className="h-5 w-5" />
+      <div className="p-6 bg-gradient-to-r from-pink-50 to-fuchsia-50 flex items-center gap-4">
+        <div className="bg-pink-500 p-3 rounded-lg text-white">
+          <MessageSquare className="h-6 w-6" />
         </div>
-        <h2 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-          Chat sobre esta reunión
-        </h2>
+        <h2 className="text-xl font-bold text-slate-800">Chat sobre esta reunión</h2>
       </div>
 
       {/* Messages con diseño moderno */}
-      <div className="flex-1 overflow-y-auto space-y-4 mb-4 min-h-[400px] max-h-[600px] px-1">
-        {messages.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-purple-100 to-pink-100 mb-4">
-              <MessageSquare className="h-8 w-8 text-purple-600" />
-            </div>
-            <p className="text-slate-700 font-medium mb-1">Iniciá una conversación sobre este memo</p>
-            <p className="text-xs text-slate-500 max-w-xs mx-auto">
-              Preguntá qué hacer, qué riesgos hay o pedí que te prepare un texto para el cliente.
-            </p>
+      {messages.length === 0 ? (
+        <div className="flex-grow flex flex-col justify-center items-center p-6 text-center">
+          <div className="bg-purple-100 p-6 rounded-full mb-4">
+            <MessageSquare className="h-12 w-12 text-purple-500" />
           </div>
-        ) : (
-          messages.map((msg, i) => (
+          <h3 className="text-lg font-semibold text-slate-800">Iniciá una conversación sobre este memo</h3>
+          <p className="text-slate-500 mt-1 text-sm max-w-xs mx-auto">
+            Preguntá qué hacer, qué riesgos hay o pedí que te prepare un texto para el cliente.
+          </p>
+        </div>
+      ) : (
+        <div className="flex-1 overflow-y-auto space-y-4 p-6">
+          {messages.map((msg, i) => (
             <div
               key={i}
-              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} animate-in fade-in slide-in-from-bottom-2 duration-300`}
+              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
             >
               {msg.role === "assistant" && (
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-white text-xs font-bold mr-2 shrink-0 shadow-md">
@@ -433,52 +467,50 @@ function MemoChatPanel({
                 </div>
               )}
             </div>
-          ))
-        )}
-        {loading && (
-          <div className="flex justify-start animate-in fade-in slide-in-from-bottom-2">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-white text-xs font-bold mr-2 shrink-0 shadow-md">
-              IA
-            </div>
-            <div className="bg-gradient-to-br from-slate-50 to-purple-50/50 rounded-2xl rounded-tl-sm p-4 border border-purple-100 shadow-lg">
-              <div className="flex items-center gap-3 text-sm text-slate-700">
-                <div className="flex gap-1">
-                  <div className="h-2 w-2 rounded-full bg-purple-500 animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <div className="h-2 w-2 rounded-full bg-pink-500 animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <div className="h-2 w-2 rounded-full bg-purple-500 animate-bounce" style={{ animationDelay: '300ms' }} />
+          ))}
+          {loading && (
+            <div className="flex justify-start">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-white text-xs font-bold mr-2 shrink-0 shadow-md">
+                IA
+              </div>
+              <div className="bg-gradient-to-br from-slate-50 to-purple-50/50 rounded-2xl rounded-tl-sm p-4 border border-purple-100 shadow-lg">
+                <div className="flex items-center gap-3 text-sm text-slate-700">
+                  <div className="flex gap-1">
+                    <div className="h-2 w-2 rounded-full bg-purple-500 animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <div className="h-2 w-2 rounded-full bg-pink-500 animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <div className="h-2 w-2 rounded-full bg-purple-500 animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </div>
+                  <span className="font-medium">Pensando...</span>
                 </div>
-                <span className="font-medium">Pensando...</span>
               </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       {/* Input mejorado */}
-      <div className="border-t border-slate-200/50 pt-4">
-        <div className="flex gap-3">
-          <div className="flex-1 relative">
-            <textarea
-              className="w-full rounded-xl border-2 border-slate-200 bg-white text-slate-900 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 placeholder:text-slate-400 resize-none transition-all shadow-sm hover:shadow-md"
-              placeholder="Preguntá qué hacer, qué riesgos hay o pedí que te prepare un texto para el cliente…"
-              value={currentMessage}
-              onChange={(e) => setCurrentMessage(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSendMessage();
-                }
-              }}
-              rows={3}
-              disabled={loading}
-            />
-          </div>
+      <div className="p-6 border-t border-slate-200 mt-auto">
+        <div className="flex items-center gap-4">
+          <textarea
+            className="flex-grow bg-slate-100 border-transparent focus:border-[hsl(260,100%,70%)] focus:ring-[hsl(260,100%,70%)] rounded-lg text-slate-700 placeholder-slate-400 transition resize-none"
+            placeholder="Preguntá qué hacer..."
+            value={currentMessage}
+            onChange={(e) => setCurrentMessage(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSendMessage();
+              }
+            }}
+            rows={1}
+            disabled={loading}
+          />
           <button
             onClick={handleSendMessage}
             disabled={loading || !currentMessage.trim()}
-            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-purple-600 to-pink-600 text-white px-6 py-3 font-semibold hover:from-purple-700 hover:to-pink-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none"
+            className="bg-gradient-to-br from-[hsl(260,100%,70%)] to-pink-500 hover:shadow-lg hover:shadow-[hsl(260,100%,70%)]/30 text-white font-bold py-3 px-5 rounded-lg flex items-center gap-2 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
           >
-            <MessageSquare className="h-4 w-4" />
+            <Send className="h-5 w-5" />
             Enviar
           </button>
         </div>
