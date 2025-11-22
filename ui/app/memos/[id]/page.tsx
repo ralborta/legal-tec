@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Copy, Check, MessageSquare, FileText, AlertTriangle, ListChecks, TrendingUp, BookOpen, Send } from "lucide-react";
+import { ArrowLeft, Copy, Check, MessageSquare, FileText, AlertTriangle, ListChecks, TrendingUp, BookOpen, Send, Library } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
 /**
@@ -32,7 +32,7 @@ export default function MemoDetailPage() {
   const router = useRouter();
   const memoId = params.id as string;
   const [memo, setMemo] = useState<any | null>(null);
-  const [activeTab, setActiveTab] = useState<"resumen" | "puntos" | "pasos" | "riesgos" | "citas" | "texto">("resumen");
+  const [activeTab, setActiveTab] = useState<"resumen" | "puntos" | "pasos" | "fuentes" | "riesgos" | "citas" | "texto">("resumen");
   const [copied, setCopied] = useState(false);
   const API = useMemo(() => getApiUrl(), []);
 
@@ -163,6 +163,17 @@ export default function MemoDetailPage() {
                     <TrendingUp className="text-base" />
                     Próximos pasos
                   </button>
+                  <button
+                    onClick={() => setActiveTab("fuentes")}
+                    className={`flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm transition-colors duration-300 ${
+                      activeTab === "fuentes"
+                        ? "border-blue-500 text-blue-500"
+                        : "border-transparent text-slate-500 hover:text-blue-500 hover:border-blue-500"
+                    }`}
+                  >
+                    <Library className="text-base" />
+                    Fuentes
+                  </button>
                 </nav>
               </div>
 
@@ -252,6 +263,68 @@ export default function MemoDetailPage() {
                       <p className="text-slate-500 text-sm">No hay próximos pasos registrados.</p>
                     </div>
                   )}
+                </div>
+              )}
+
+              {activeTab === "fuentes" && (
+                <div>
+                  {(() => {
+                    const fuentes = (memo.citations && memo.citations.length > 0) 
+                      ? memo.citations 
+                      : (memoData.citas && memoData.citas.length > 0) 
+                        ? memoData.citas 
+                        : [];
+                    
+                    if (fuentes.length === 0) {
+                      return (
+                        <div className="text-center py-8 bg-slate-50 rounded-xl border border-slate-200">
+                          <p className="text-slate-500 text-sm">No hay fuentes consultadas registradas.</p>
+                        </div>
+                      );
+                    }
+                    
+                    return (
+                      <div className="space-y-3">
+                        {fuentes.map((fuente: any, i: number) => {
+                          // Normalizar formato de fuente
+                          const titulo = fuente.title || fuente.referencia || fuente.descripcion || "(sin título)";
+                          const tipo = fuente.source || fuente.tipo || "otra";
+                          const url = fuente.url;
+                          const descripcion = fuente.descripcion;
+                          
+                          return (
+                            <div key={i} className="border border-indigo-200 rounded-xl p-4 bg-gradient-to-br from-indigo-50 to-blue-50 hover:shadow-lg transition-all">
+                              <div className="font-bold text-slate-900 text-sm mb-2 flex items-center gap-2">
+                                <Library className="h-4 w-4 text-indigo-600" />
+                                {titulo}
+                              </div>
+                              {descripcion && (
+                                <div className="text-slate-700 text-xs mb-3 leading-relaxed">{descripcion}</div>
+                              )}
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className={`text-xs px-3 py-1 rounded-full font-semibold ${
+                                  tipo === "normativa" ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md" :
+                                  tipo === "jurisprudencia" ? "bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-md" :
+                                  tipo === "doctrina" ? "bg-gradient-to-r from-green-500 to-green-600 text-white shadow-md" :
+                                  "bg-gradient-to-r from-slate-500 to-slate-600 text-white shadow-md"
+                                }`}>
+                                  {tipo === "normativa" ? "Normativa" :
+                                   tipo === "jurisprudencia" ? "Jurisprudencia" :
+                                   tipo === "doctrina" ? "Doctrina" :
+                                   tipo.charAt(0).toUpperCase() + tipo.slice(1)}
+                                </span>
+                                {url && (
+                                  <a href={url} target="_blank" rel="noreferrer" className="text-xs text-indigo-600 hover:text-indigo-700 font-medium underline flex items-center gap-1">
+                                    Ver fuente
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
 
