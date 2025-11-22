@@ -1,7 +1,8 @@
 [phases.setup]
 # IMPORTANTE: Configurar NIXPACKS_NODE_VERSION=22 en Railway Variables
-# Railway con Nixpacks necesita variable explícita para Node 22
-nixPkgs = ["nodejs_22"]
+# No especificar nodejs_22 aquí porque no existe en Nixpkgs
+# Railway detectará la variable NIXPACKS_NODE_VERSION automáticamente
+nixPkgs = ["nodejs"]
 
 [phases.install]
 cmds = ["rm -rf node_modules .npm", "npm ci --legacy-peer-deps"]
