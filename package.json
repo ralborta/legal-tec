@@ -3,15 +3,16 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=20.6.1",
-    "npm": ">=9.8.1"
+    "node": "22",
+    "npm": ">=10.0.0"
   },
   "scripts": {
     "dev": "tsx api/src/index.ts",
     "seed": "tsx api/src/seed-run.ts",
     "seed-urls": "tsx api/src/seed-urls.ts",
     "build": "tsc -p tsconfig.json",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "postinstall": "node -v && npm -v"
   },
   "dependencies": {
     "@fastify/cors": "8.3.0",

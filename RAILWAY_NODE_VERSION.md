@@ -1,9 +1,8 @@
-# Configurar Node.js 20.18.1 en Railway
+# Configurar Node.js 22 en Railway
 
 ## ⚠️ IMPORTANTE: Configuración Manual Requerida
 
-Railway con Nixpacks no siempre detecta automáticamente `.nvmrc` o `.node-version`. 
-**Necesitás configurar manualmente la variable de entorno en Railway.**
+Railway con Nixpacks necesita que configures manualmente la variable de entorno `NIXPACKS_NODE_VERSION` para usar Node 22.
 
 ## 🔧 Pasos para Configurar
 
@@ -12,10 +11,10 @@ Railway con Nixpacks no siempre detecta automáticamente `.nvmrc` o `.node-versi
    - Andá a la pestaña **"Variables"**
 
 2. **Añadir Variable de Entorno**
-   - Click en **"New Variable"**
-   - **Nombre:** `NODE_VERSION`
-   - **Valor:** `20.18.1`
-   - Click en **"Add"**
+   - Click en **"New Variable"** (o editar si ya existe)
+   - **Nombre:** `NIXPACKS_NODE_VERSION`
+   - **Valor:** `22`
+   - Click en **"Add"** o **"Save"**
 
 3. **Redeploy**
    - Andá a la pestaña **"Deployments"**
@@ -25,17 +24,22 @@ Railway con Nixpacks no siempre detecta automáticamente `.nvmrc` o `.node-versi
 
 Después del deploy, verificá en los logs que aparezca:
 ```
-Node.js version: v20.18.1
+v22.x.x
 ```
 
-En lugar de:
+En el script `postinstall` verás algo como:
 ```
-Node.js version: v20.6.1
+v22.11.0
+10.x.x
 ```
 
 ## 📝 Notas
 
-- Los archivos `.nvmrc` y `.node-version` están en el repo como respaldo
-- `package.json` también especifica `"node": ">=20.18.1"`
-- Pero Railway necesita la variable de entorno `NODE_VERSION` para funcionar correctamente con Nixpacks
+- Node 22 cumple con los requisitos de `pdf-parse` y `pdfjs-dist` (>=22.3.0)
+- Los warnings `EBADENGINE` deberían desaparecer
+- El archivo `package.json` ya tiene `"engines": { "node": "22" }`
+- `nixpacks.toml` está configurado para `nodejs_22`
 
+## 🚨 Si el Deploy Falla
+
+Si ves `EBADENGINE` pero el deploy falla, buscá más abajo en los logs el primer `npm ERR!` real. Los `EBADENGINE` son solo warnings; el error real puede ser otro.
