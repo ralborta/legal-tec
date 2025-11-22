@@ -1,7 +1,8 @@
 "use client";
 import React, { useMemo, useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Search, FileText, Gavel, BookOpen, CheckCircle2, Clock3, Users, Settings, Upload, Send, Download, ExternalLink, Trash2, Filter, Plus, History, Sparkles, Loader2, Eye, X, Zap } from "lucide-react";
+import { Search, FileText, Gavel, BookOpen, CheckCircle2, Clock3, Users, Settings, Upload, Send, Download, ExternalLink, Trash2, Filter, Plus, History, Sparkles, Loader2, Eye, X, Zap, ArrowRight } from "lucide-react";
+import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 
 /**
@@ -36,7 +37,29 @@ export default function CentroGestionLegalPage() {
     areaLegal: string;
   } | null>(null);
 
-  const pushItem = (entry: any) => setItems((prev) => [entry, ...prev]);
+  const pushItem = (entry: any) => {
+    // Guardar en localStorage para persistencia entre sesiones
+    const newItems = [entry, ...items];
+    setItems(newItems);
+    try {
+      localStorage.setItem("legal-memos", JSON.stringify(newItems));
+    } catch (e) {
+      console.warn("No se pudo guardar en localStorage:", e);
+    }
+  };
+
+  // Cargar memos desde localStorage al montar
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("legal-memos");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setItems(parsed);
+      }
+    } catch (e) {
+      console.warn("No se pudieron cargar memos desde localStorage:", e);
+    }
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 antialiased">
@@ -57,17 +80,25 @@ export default function CentroGestionLegalPage() {
                   <GenerarPanel
                     onGenerated={(out) => {
                       const newItem = {
-                        id: out.documentId || crypto.randomUUID(),
-                        tipo: out.type.toUpperCase(),
+                        id: out.id || out.documentId || crypto.randomUUID(),
+                        type: out.type || "memo",
+                        tipo: (out.type || "memo").toUpperCase(),
+                        title: out.title,
                         asunto: out.title,
                         estado: "Listo para revisión",
                         prioridad: "Media",
-                        creado: new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' ' + 
+                        createdAt: out.createdAt || new Date().toISOString(),
+                        creado: out.createdAt ? new Date(out.createdAt).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' ' + 
+                                 new Date(out.createdAt).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) :
+                                 new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' ' + 
                                  new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
                         agente: "Orquestador",
                         markdown: out.markdown,
                         citations: out.citations as any[],
-                        memoData: out.memoData
+                        memoData: out.memoData,
+                        transcriptText: out.transcriptText,
+                        tipoDocumento: out.tipoDocumento || "Memo / Dictamen de reunión",
+                        areaLegal: out.areaLegal || out.memoData?.areaLegal || "civil_comercial"
                       };
                       pushItem(newItem);
                       // Pasar el memo al chat
@@ -207,6 +238,8 @@ function KPIGrid() {
 }
 
 function BandejaLocal({ items }: { items: any[] }) {
+  const memos = items.filter(item => item.type === "memo" || item.memoData);
+  
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex items-center justify-between mb-4">
@@ -225,15 +258,87 @@ function BandejaLocal({ items }: { items: any[] }) {
           <button className="icon-btn"><Filter className="h-4 w-4" /></button>
         </div>
       </div>
-      {items.length === 0 ? (
-        <div className="text-sm text-slate-500 py-8 text-center">Aún no hay documentos. Generá uno desde la derecha.</div>
+      {memos.length === 0 ? (
+        <div className="text-sm text-slate-500 py-8 text-center">
+          Aún no hay documentos generados. Creá un memo de reunión desde la derecha.
+        </div>
       ) : (
-        <div className="space-y-4">
-          {items.map((row) => (
-            <DocCard key={row.id} row={row} />
+        <div className="space-y-3">
+          {memos.map((row) => (
+            <MemoCard key={row.id} memo={row} />
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// Componente para mostrar memos en la bandeja
+function MemoCard({ memo }: { memo: any }) {
+  const router = useRouter();
+  
+  const formatFecha = (fecha: string) => {
+    try {
+      const date = new Date(fecha);
+      if (!isNaN(date.getTime())) {
+        return date.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' ' + 
+               date.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+      }
+    } catch {}
+    return fecha || new Date().toLocaleDateString('es-AR');
+  };
+
+  const getAreaLegalLabel = (area: string) => {
+    const labels: Record<string, string> = {
+      civil_comercial: "Civil, Comercial y Societario",
+      laboral: "Laboral",
+      corporativo: "Corporativo",
+      compliance: "Compliance",
+      marcas: "Marcas y Propiedad Intelectual",
+      consumidor: "Consumidor",
+      traducir: "Traducir"
+    };
+    return labels[area] || area;
+  };
+
+  return (
+    <div 
+      className="rounded-lg border border-slate-200 bg-white p-4 hover:shadow-md transition-all cursor-pointer hover:border-blue-300"
+      onClick={() => router.push(`/memos/${memo.id}`)}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+              {memo.tipoDocumento || "Memo / Dictamen de reunión"}
+            </span>
+            <span className="text-xs text-slate-500">
+              {getAreaLegalLabel(memo.areaLegal || memo.memoData?.areaLegal || "civil_comercial")}
+            </span>
+          </div>
+          <div className="text-slate-900 font-semibold mb-1">{memo.title || memo.asunto}</div>
+          {memo.memoData?.resumen && (
+            <div className="text-sm text-slate-600 line-clamp-2 mb-2">
+              {memo.memoData.resumen.substring(0, 150)}...
+            </div>
+          )}
+          <div className="text-slate-500 text-xs">
+            {formatFecha(memo.createdAt || memo.creado || new Date().toISOString())}
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <button 
+            className="icon-btn" 
+            title="Abrir memo"
+            onClick={(e) => {
+              e.stopPropagation();
+              router.push(`/memos/${memo.id}`);
+            }}
+          >
+            <ArrowRight className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -561,11 +666,13 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
   
   const [title, setTitle] = useState("");
   const [instructions, setInstructions] = useState("");
-  const [type, setType] = useState<"dictamen"|"contrato"|"memo"|"escrito">("dictamen");
+  const [type, setType] = useState<"dictamen"|"contrato"|"memo"|"escrito">("memo"); // Cambiar default a "memo"
   const [areaLegal, setAreaLegal] = useState<"civil_comercial"|"laboral"|"corporativo"|"compliance"|"marcas"|"consumidor"|"traducir">("civil_comercial");
   const [file, setFile] = useState<File | null>(null);
+  const [transcriptText, setTranscriptText] = useState(""); // Nuevo: texto de transcripción
+  const [showTranscriptText, setShowTranscriptText] = useState(false); // Controlar visibilidad del textarea
   const [memoResult, setMemoResult] = useState<any | null>(null);
-  const [useMemoEndpoint, setUseMemoEndpoint] = useState(false); // Toggle entre endpoints
+  const [generationMode, setGenerationMode] = useState<"memo" | "dictamen_rag">("memo"); // Radio buttons
   const [loadingLocal, setLoadingLocal] = useState(false); // Estado local para loading
   const [knowledgeBases, setKnowledgeBases] = useState<Array<{id: string; name: string; enabled: boolean}>>([]);
   const [selectedKnowledgeBases, setSelectedKnowledgeBases] = useState<string[]>([]);
@@ -594,14 +701,17 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
       if (!API) throw new Error("Falta NEXT_PUBLIC_API_URL");
 
       // Si hay archivo PDF o se quiere usar el endpoint de memos, usar /api/memos/generate
-      if (useMemoEndpoint || file) {
+      if (generationMode === "memo" || file || transcriptText) {
         const formData = new FormData();
         formData.append("tipoDocumento", type === "memo" ? "Memo de reunión" : type);
         formData.append("titulo", title);
         formData.append("instrucciones", instructions);
-        formData.append("areaLegal", areaLegal); // Agregar área legal
+        formData.append("areaLegal", areaLegal);
+        // Prioridad: PDF primero, luego texto
         if (file) {
           formData.append("transcripcion", file);
+        } else if (transcriptText.trim()) {
+          formData.append("transcriptText", transcriptText);
         }
 
         const r = await fetch(`${API}/api/memos/generate`, {
@@ -630,17 +740,24 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
                       url: c.url || undefined,
                       descripcion: c.descripcion || undefined
                     }));
+                    const memoId = crypto.randomUUID();
                     onGenerated({ 
-                      type, 
+                      id: memoId,
+                      type: "memo", 
                       title, 
                       markdown: data.texto_formateado, 
                       memoData: {
                         ...data,
-                        areaLegal: areaLegal // Asegurar que el área legal esté incluida
+                        areaLegal: areaLegal,
+                        transcriptText: transcriptText || (file ? "PDF subido" : "") // Guardar transcriptText para el chat
                       },
-                      citations: citations // Agregar citas al formato de la bandeja
+                      citations: citations,
+                      transcriptText: transcriptText || (file ? "PDF subido" : ""), // Guardar para usar en chat
+                      tipoDocumento: "Memo / Dictamen de reunión",
+                      areaLegal: areaLegal,
+                      createdAt: new Date().toISOString()
                     });
-                    setTitle(""); setInstructions(""); setFile(null);
+                    setTitle(""); setInstructions(""); setFile(null); setTranscriptText(""); setShowTranscriptText(false);
       } else {
         // Endpoint original /v1/generate (RAG con corpus)
         const requestBody: any = { type, title, instructions };
@@ -673,15 +790,20 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="text-slate-900 font-semibold mb-1">Generar Documento</div>
-      <div className="text-slate-500 text-sm mb-5">Orquesta agentes Normativo + Jurisprudencial</div>
+      <div className="text-slate-500 text-sm mb-5">Memo de reunión a partir de transcripciones</div>
       <div className="space-y-3">
-        <label className="block text-sm font-medium text-slate-700">Tipo de documento</label>
-        <select className="select w-full" value={type} onChange={e=>setType(e.target.value as any)}>
-          <option value="dictamen">Dictamen</option>
-          <option value="contrato">Contrato</option>
-          <option value="memo">Memo</option>
-          <option value="escrito">Escrito</option>
-        </select>
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Tipo de documento</label>
+          <select className="select w-full" value={type} onChange={e=>setType(e.target.value as any)}>
+            <option value="memo">Memo / Dictamen de reunión</option>
+            <option value="dictamen">Dictamen</option>
+            <option value="contrato">Contrato</option>
+            <option value="escrito">Escrito</option>
+          </select>
+          <p className="text-xs text-slate-500 mt-1">
+            Generá un memo de reunión a partir de una transcripción de Tactic/Meet. Incluye Puntos tratados y Próximos pasos.
+          </p>
+        </div>
         <label className="block text-sm font-medium text-slate-700">Área legal</label>
         <select className="select w-full" value={areaLegal} onChange={e=>setAreaLegal(e.target.value as any)}>
           <option value="civil_comercial">Civil, Comercial y Societario</option>
@@ -694,7 +816,7 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
         </select>
         
         {/* Selector de bases de conocimiento (solo para RAG, no para memos) */}
-        {!useMemoEndpoint && !file && knowledgeBases.length > 0 && (
+        {generationMode === "dictamen_rag" && !file && !transcriptText && knowledgeBases.length > 0 && (
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
               Bases de conocimiento (opcional)
@@ -738,7 +860,8 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
         <label className="block text-sm font-medium text-slate-700">Instrucciones</label>
         <textarea className="textarea w-full h-28" placeholder="Hechos, contexto, puntos a resolver, tono, jurisdicción…" value={instructions} onChange={e=>setInstructions(e.target.value)} />
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Transcripción (PDF opcional)</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Transcripción de la reunión</label>
+          <p className="text-xs text-slate-500 mb-2">Subí el PDF exportado desde Tactic o pegá el texto de la transcripción.</p>
           <div 
             className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-slate-500 cursor-pointer hover:bg-slate-50 transition-colors"
             onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add("bg-slate-50"); }}
@@ -749,7 +872,7 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
               const droppedFile = e.dataTransfer.files[0];
               if (droppedFile && droppedFile.type === "application/pdf") {
                 setFile(droppedFile);
-                setUseMemoEndpoint(true);
+                setGenerationMode("memo");
               } else {
                 setError("Solo se aceptan archivos PDF");
               }
@@ -780,21 +903,75 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
               const selectedFile = e.target.files?.[0];
               if (selectedFile) {
                 setFile(selectedFile);
-                setUseMemoEndpoint(true);
+                setGenerationMode("memo");
               }
             }}
           />
+          {/* Opción para pegar texto */}
+          <div className="mt-2">
+            {!showTranscriptText ? (
+              <button
+                type="button"
+                onClick={() => setShowTranscriptText(true)}
+                className="text-xs text-blue-600 hover:text-blue-700 underline"
+              >
+                Pegar texto
+              </button>
+            ) : (
+              <div className="space-y-2">
+                <label className="block text-xs font-medium text-slate-600">Texto de la transcripción</label>
+                <textarea
+                  className="textarea w-full h-32 text-sm"
+                  placeholder="Pegá aquí el texto de la transcripción..."
+                  value={transcriptText}
+                  onChange={(e) => setTranscriptText(e.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowTranscriptText(false);
+                    setTranscriptText("");
+                  }}
+                  className="text-xs text-slate-500 hover:text-slate-700"
+                >
+                  Ocultar
+                </button>
+              </div>
+            )}
+          </div>
         </div>
-        <div className="flex items-center gap-2 text-sm">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={useMemoEndpoint}
-              onChange={(e) => setUseMemoEndpoint(e.target.checked)}
-              className="rounded"
-            />
-            <span className="text-slate-600">Usar generador de memos (sin RAG)</span>
-          </label>
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-2">Modo de generación</label>
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="generationMode"
+                value="memo"
+                checked={generationMode === "memo"}
+                onChange={() => setGenerationMode("memo")}
+                className="rounded"
+              />
+              <span className="text-sm text-slate-700">Memo de reunión (sin fuentes externas)</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-not-allowed opacity-50">
+              <input
+                type="radio"
+                name="generationMode"
+                value="dictamen_rag"
+                checked={generationMode === "dictamen_rag"}
+                onChange={() => {}}
+                disabled
+                className="rounded"
+              />
+              <span className="text-sm text-slate-600">
+                Dictamen normativo con fuentes (próximamente)
+                <span className="ml-1 text-xs text-slate-500" title="Usará la base normativa y jurisprudencial interna (RAG). Disponible en una próxima etapa.">
+                  ⓘ
+                </span>
+              </span>
+            </label>
+          </div>
         </div>
         {file && (
           <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm">
@@ -826,8 +1003,10 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
               setTitle(""); 
               setInstructions(""); 
               setFile(null);
+              setTranscriptText("");
+              setShowTranscriptText(false);
               setMemoResult(null);
-              setUseMemoEndpoint(false);
+              setGenerationMode("memo");
             }}
             disabled={loadingLocal}
           >
