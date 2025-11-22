@@ -35,7 +35,12 @@ export const MemoSuggestedDocuments: React.FC<Props> = ({ memoId, memoData, apiU
     const fetchSuggestions = async () => {
       setLoadingSuggestions(true);
       try {
-        const res = await fetch(`${apiUrl}/api/templates/suggest`, {
+        const baseUrl = apiUrl || "";
+        const url = `${baseUrl}/api/templates/suggest`;
+        console.log(`[TEMPLATE SUGGEST] Llamando a: ${url}`);
+        console.log(`[TEMPLATE SUGGEST] apiUrl: ${apiUrl}`);
+        
+        const res = await fetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -73,9 +78,18 @@ export const MemoSuggestedDocuments: React.FC<Props> = ({ memoId, memoData, apiU
     setShowPreviewModal(true);
 
     try {
-      const res = await fetch(`${apiUrl}/api/templates/${id}/preview`);
+      // Construir URL correctamente
+      const baseUrl = apiUrl || "";
+      const url = `${baseUrl}/api/templates/${encodeURIComponent(id)}/preview`;
+      console.log(`[TEMPLATE PREVIEW] Llamando a: ${url}`);
+      console.log(`[TEMPLATE PREVIEW] apiUrl: ${apiUrl}`);
+      console.log(`[TEMPLATE PREVIEW] id: ${id}`);
+      
+      const res = await fetch(url);
       
       if (!res.ok) {
+        const errorText = await res.text();
+        console.error(`[TEMPLATE PREVIEW] Error ${res.status}:`, errorText);
         throw new Error(`Error ${res.status}: ${res.statusText}`);
       }
 
@@ -92,9 +106,15 @@ export const MemoSuggestedDocuments: React.FC<Props> = ({ memoId, memoData, apiU
 
   const handleDownload = async (id: string, nombre: string) => {
     try {
-      const resp = await fetch(`${apiUrl}/api/templates/${id}/download`);
+      const baseUrl = apiUrl || "";
+      const url = `${baseUrl}/api/templates/${encodeURIComponent(id)}/download`;
+      console.log(`[TEMPLATE DOWNLOAD] Llamando a: ${url}`);
+      
+      const resp = await fetch(url);
       
       if (!resp.ok) {
+        const errorText = await resp.text();
+        console.error(`[TEMPLATE DOWNLOAD] Error ${resp.status}:`, errorText);
         throw new Error(`Error ${resp.status}: ${resp.statusText}`);
       }
 
