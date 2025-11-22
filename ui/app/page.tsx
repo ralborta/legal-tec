@@ -62,21 +62,25 @@ export default function CentroGestionLegalPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 antialiased">
-      <div className="flex">
+    <div className="min-h-screen bg-gray-50 text-gray-800 antialiased font-display">
+      <div className="flex h-screen">
         <Sidebar />
-        <div className="flex-1 min-w-0 bg-white">
+        <div className="flex-1 min-w-0 flex flex-col bg-gray-50">
           <Topbar />
-          <main className="px-4 sm:px-6 lg:px-8 pb-10 bg-white">
-            <div className="pt-6">
-              <h1 className="text-2xl font-bold text-slate-900">Centro de Gestión</h1>
-              <p className="text-slate-600 mt-1">Operación de agentes jurídicos · WNS & Asociados</p>
+          <main className="flex-1 p-8 overflow-y-auto">
+            <div>
+              <div className="mb-8">
+                <h2 className="text-3xl font-bold text-gray-900">Centro de Gestión</h2>
+                <p className="text-gray-500 mt-1">Operación de agentes jurídicos · WNS & Asociados</p>
+              </div>
 
               <KPIGrid />
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-6">
-                <div className="lg:col-span-2 min-w-0"><BandejaLocal items={items} /></div>
-                <div className="lg:col-span-1 space-y-4">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-2 flex flex-col gap-8">
+                  <BandejaLocal items={items} />
+                </div>
+                <div className="lg:col-span-1">
                   <GenerarPanel
                     onGenerated={(out) => {
                       const newItem = {
@@ -126,18 +130,13 @@ export default function CentroGestionLegalPage() {
 
       {/* Estilos auxiliares */}
       <style jsx global>{`
-        .icon-btn { @apply rounded-lg border border-slate-200 bg-white p-2 hover:bg-slate-50 text-slate-600 transition-colors; }
-        .input { @apply rounded-lg border border-slate-300 bg-white text-slate-900 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 placeholder:text-slate-400; }
-        .select { @apply rounded-lg border border-slate-300 bg-white text-slate-900 px-3 py-2 text-sm; }
-        .textarea { @apply rounded-lg border border-slate-300 bg-white text-slate-900 px-3 py-2 text-sm placeholder:text-slate-400; }
-        .btn { @apply inline-flex items-center gap-2 rounded-lg bg-blue-600 text-white px-4 py-2 hover:bg-blue-700 transition-colors font-medium; }
-        .btn-secondary { @apply rounded-lg border border-slate-300 bg-white text-slate-700 px-4 py-2 text-sm hover:bg-slate-50 transition-colors; }
-        .markdown-content h1, .markdown-content h2, .markdown-content h3 { @apply text-slate-900 font-bold; }
-        .markdown-content p { @apply text-slate-700; }
-        .markdown-content ul, .markdown-content ol { @apply text-slate-700; }
-        .markdown-content code { @apply bg-slate-100 text-slate-800 px-1 rounded; }
-        .markdown-content pre { @apply bg-slate-50 border border-slate-200 p-3 rounded; }
-        .markdown-content a { @apply text-blue-600 hover:text-blue-700; }
+        .icon-btn { @apply rounded-lg border border-gray-200 bg-white p-2 hover:bg-gray-50 text-gray-600 transition-colors; }
+        .markdown-content h1, .markdown-content h2, .markdown-content h3 { @apply text-gray-900 font-bold; }
+        .markdown-content p { @apply text-gray-700; }
+        .markdown-content ul, .markdown-content ol { @apply text-gray-700; }
+        .markdown-content code { @apply bg-gray-100 text-gray-800 px-1 rounded; }
+        .markdown-content pre { @apply bg-gray-50 border border-gray-200 p-3 rounded; }
+        .markdown-content a { @apply text-[#C026D3] hover:text-[#A21CAF]; }
       `}</style>
     </div>
   );
@@ -145,44 +144,36 @@ export default function CentroGestionLegalPage() {
 
 function Sidebar() {
   return (
-    <aside className="hidden lg:flex w-72 shrink-0 border-r border-slate-200 bg-white">
-      <div className="flex h-full w-full flex-col">
-        <div className="flex items-center gap-3 px-4 h-16 border-b border-slate-200">
-          <div className="h-10 w-10 rounded-lg bg-blue-600 text-white grid place-items-center font-bold text-sm">IA</div>
-          <div className="leading-tight">
-            <p className="text-xs text-slate-500 font-medium">Centro de Gestión</p>
-            <p className="text-sm font-semibold text-slate-900">Legal Agents</p>
-          </div>
+    <aside className="hidden lg:flex w-64 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col p-4">
+      <div className="flex items-center space-x-3 p-2 mb-6">
+        <div className="w-10 h-10 bg-[#7E22CE] flex items-center justify-center rounded-lg">
+          <span className="text-xl font-bold text-white">IA</span>
         </div>
-        <div className="p-4 border-b border-slate-200">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <input className="w-full rounded-lg border border-slate-300 bg-white text-slate-900 pl-10 pr-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 placeholder:text-slate-400" placeholder="Buscar solicitud o documento" />
-          </div>
+        <div>
+          <h1 className="font-bold text-base text-gray-900">Centro de Gestión</h1>
+          <p className="text-sm text-gray-500">Legal Agents</p>
         </div>
-        <nav className="px-3 py-4 space-y-1 overflow-y-auto flex-1">
-          <SideLink icon={Sparkles} label="Bandeja" active />
-          <SideLink icon={Plus} label="Generar" />
-          <SideLink icon={History} label="Historial" />
-          <div className="pt-4 mt-4 border-t border-slate-200">
-            <div className="px-3 py-2 text-[10px] uppercase tracking-wider text-slate-500 font-semibold">FUENTES</div>
-            <SideLink className="ml-2" icon={BookOpen} label="Normativa" />
-            <SideLink className="ml-2" icon={Gavel} label="Jurisprudencia" />
-          </div>
-          <div className="pt-2">
-            <SideLink icon={CheckCircle2} label="Calidad" />
-            <SideLink icon={Settings} label="Configuración" />
-          </div>
-        </nav>
       </div>
+      <nav className="flex-grow flex flex-col space-y-2">
+        <SideLink icon={Sparkles} label="Bandeja" active />
+        <SideLink icon={Plus} label="Generar" />
+        <SideLink icon={History} label="Historial" />
+        <h2 className="text-xs font-bold uppercase text-gray-400 pt-6 pb-1 px-4">Fuentes</h2>
+        <SideLink icon={BookOpen} label="Normativa" />
+        <SideLink icon={Gavel} label="Jurisprudencia" />
+        <div className="mt-auto space-y-2">
+          <SideLink icon={CheckCircle2} label="Calidad" />
+          <SideLink icon={Settings} label="Configuración" />
+        </div>
+      </nav>
     </aside>
   );
 }
 
 function SideLink({ icon: Icon, label, active, className = "" }: any) {
   return (
-    <a className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${active ? "bg-purple-600 text-white font-medium" : "text-slate-700 hover:bg-slate-50"} ${className}`} href="#">
-      <Icon className={`h-4 w-4 ${active ? "text-white" : "text-slate-500"}`} />
+    <a className={`flex items-center space-x-3 px-4 py-2.5 rounded-lg transition-colors ${active ? "bg-[#C026D3] text-white font-medium" : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"} ${className}`} href="#">
+      <Icon className="text-xl" />
       <span>{label}</span>
     </a>
   );
@@ -190,47 +181,56 @@ function SideLink({ icon: Icon, label, active, className = "" }: any) {
 
 function Topbar() {
   return (
-    <header className="sticky top-0 z-10 bg-white border-b border-slate-200">
-      <div className="h-16 flex items-center justify-between px-6">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <div className="h-2 w-2 rounded-full bg-emerald-500"></div>
-            <span className="text-sm text-slate-700 font-medium">Estado: Operativo</span>
-          </div>
+    <header className="flex items-center justify-between p-6 border-b border-gray-200 bg-white">
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-gray-500">Estado:</span>
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+            <span className="w-2 h-2 mr-2 bg-green-500 rounded-full"></span>
+            Operativo
+          </span>
         </div>
-        <div className="flex-1 max-w-xl hidden md:block mx-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <input className="w-full rounded-lg border border-slate-300 bg-white text-slate-900 pl-10 pr-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 placeholder:text-slate-400" placeholder="Buscar por asunto, ID o cliente…" />
-          </div>
+      </div>
+      <div className="flex-1 max-w-lg mx-4">
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <input className="w-full bg-gray-100 border-transparent rounded-lg pl-12 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-[#C026D3] focus:border-transparent placeholder-gray-500" placeholder="Buscar por asunto, ID o cliente..." type="text"/>
         </div>
-        <div className="text-sm text-slate-600 font-medium">{new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })}</div>
+      </div>
+      <div className="text-right text-sm text-gray-500 font-medium">
+        {new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
       </div>
     </header>
   );
 }
 
 function KPIGrid() {
+  const iconColors: Record<string, string> = {
+    "Solicitudes en Cola": "text-orange-500",
+    "Docs Generados (7d)": "text-green-500",
+    "Exactitud de Citas": "text-blue-500",
+    "Latencia Media": "text-red-500",
+    "Fuentes Conectadas": "text-purple-500",
+    "Usuarios Activos": "text-cyan-500"
+  };
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 mt-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-8">
       {kpis.map((k, i) => {
+        const iconColor = iconColors[k.title] || "text-gray-500";
         return (
-          <motion.div 
-            key={k.title} 
-            initial={{ opacity: 0, y: 8 }} 
-            animate={{ opacity: 1, y: 0 }} 
-            transition={{ delay: i * 0.05 }} 
-            className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <div className="text-slate-600 text-sm font-medium">{k.title}</div>
-              <k.icon className={`h-5 w-5 ${k.color}`} />
+          <div key={k.title} className="bg-white p-5 rounded-xl border border-gray-200">
+            <div className="flex justify-between items-center mb-2">
+              <p className="text-sm font-medium text-gray-600">{k.title}</p>
+              <k.icon className={`h-5 w-5 ${iconColor}`} />
             </div>
-            <div className="flex items-baseline justify-between gap-2">
-              <div className="text-3xl font-bold text-slate-900">{k.value}</div>
-              <div className="text-xs text-slate-500 text-right whitespace-nowrap">{k.caption}</div>
-            </div>
-          </motion.div>
+            <p className="text-4xl font-bold text-gray-900 mb-3">{k.value}</p>
+            {k.caption && (
+              <p className={`text-xs ${k.caption.includes('+') ? 'text-green-600 font-semibold' : 'text-gray-500'}`}>
+                {k.caption}
+              </p>
+            )}
+          </div>
         );
       })}
     </div>
@@ -241,34 +241,27 @@ function BandejaLocal({ items }: { items: any[] }) {
   const memos = items.filter(item => item.type === "memo" || item.memoData);
   
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="flex items-center justify-between mb-4">
+    <div className="bg-white p-6 rounded-xl border border-gray-200 flex flex-col">
+      <div className="flex justify-between items-center mb-4">
         <div>
-          <div className="text-slate-900 font-semibold text-lg">Bandeja de Solicitudes</div>
-          <div className="text-slate-500 text-sm mt-0.5">Documentos generados en esta sesión</div>
+          <h3 className="font-bold text-lg text-gray-900">Bandeja de Solicitudes</h3>
+          <p className="text-sm text-gray-500">Documentos generados en esta sesión</p>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <input 
-              className="rounded-lg border border-slate-300 bg-white text-slate-900 pl-9 pr-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 placeholder:text-slate-400 w-48" 
-              placeholder="Filtrar..." 
-            />
-          </div>
-          <button className="icon-btn"><Filter className="h-4 w-4" /></button>
-        </div>
+        <button className="text-gray-500 hover:text-gray-800 p-2 rounded-md hover:bg-gray-100">
+          <Filter className="h-5 w-5" />
+        </button>
       </div>
-      {memos.length === 0 ? (
-        <div className="text-sm text-slate-500 py-8 text-center">
-          Aún no hay documentos generados. Creá un memo de reunión desde la derecha.
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {memos.map((row) => (
+      <div className="flex-grow flex flex-col gap-6">
+        {memos.length === 0 ? (
+          <div className="text-sm text-gray-500 py-8 text-center">
+            Aún no hay documentos generados. Creá un memo de reunión desde la derecha.
+          </div>
+        ) : (
+          memos.map((row) => (
             <MemoCard key={row.id} memo={row} />
-          ))}
-        </div>
-      )}
+          ))
+        )}
+      </div>
     </div>
   );
 }
@@ -303,42 +296,39 @@ function MemoCard({ memo }: { memo: any }) {
 
   return (
     <div 
-      className="rounded-lg border border-slate-200 bg-white p-4 hover:shadow-md transition-all cursor-pointer hover:border-blue-300"
+      className="border border-gray-200 rounded-lg p-4 flex flex-col flex-grow cursor-pointer hover:shadow-md transition-shadow"
       onClick={() => router.push(`/memos/${memo.id}`)}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-              {memo.tipoDocumento || "Memo / Dictamen de reunión"}
-            </span>
-            <span className="text-xs text-slate-500">
-              {getAreaLegalLabel(memo.areaLegal || memo.memoData?.areaLegal || "civil_comercial")}
-            </span>
-          </div>
-          <div className="text-slate-900 font-semibold mb-1">{memo.title || memo.asunto}</div>
-          {memo.memoData?.resumen && (
-            <div className="text-sm text-slate-600 line-clamp-2 mb-2">
-              {memo.memoData.resumen.substring(0, 150)}...
-            </div>
-          )}
-          <div className="text-slate-500 text-xs">
-            {formatFecha(memo.createdAt || memo.creado || new Date().toISOString())}
-          </div>
+      <div className="flex justify-between items-center border-b border-gray-200 pb-2 mb-2">
+        <div>
+          <h4 className="font-semibold text-gray-800">{memo.title || memo.asunto}</h4>
+          <p className="text-xs text-gray-400">
+            {memo.tipoDocumento || "MEMO"} · Listo para revisión · {formatFecha(memo.createdAt || memo.creado || new Date().toISOString())}
+          </p>
         </div>
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex items-center space-x-1 text-gray-500">
           <button 
-            className="icon-btn" 
-            title="Abrir memo"
+            className="p-1.5 rounded-md hover:bg-gray-100 hover:text-[#C026D3]"
             onClick={(e) => {
               e.stopPropagation();
               router.push(`/memos/${memo.id}`);
             }}
           >
-            <ArrowRight className="h-4 w-4" />
+            <Eye className="h-5 w-5" />
+          </button>
+          <button className="p-1.5 rounded-md hover:bg-gray-100 hover:text-[#C026D3]">
+            <Download className="h-5 w-5" />
+          </button>
+          <button className="p-1.5 rounded-md hover:bg-red-50 hover:text-red-600">
+            <Trash2 className="h-5 w-5" />
           </button>
         </div>
       </div>
+      {memo.memoData?.resumen && (
+        <div className="prose prose-sm max-w-none flex-grow overflow-y-auto pr-2 text-gray-600">
+          <p className="line-clamp-3">{memo.memoData.resumen}</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -788,32 +778,35 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
   }
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="text-slate-900 font-semibold mb-1">Generar Documento</div>
-      <div className="text-slate-500 text-sm mb-5">Memo de reunión a partir de transcripciones</div>
-      <div className="space-y-3">
+    <div className="bg-white p-6 rounded-xl border border-gray-200">
+      <h3 className="font-bold text-lg text-gray-900">Generar Documento</h3>
+      <p className="text-sm text-gray-500 mb-6">Orquesta agentes Normativo + Jurisprudencial</p>
+      <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Tipo de documento</label>
-          <select className="select w-full" value={type} onChange={e=>setType(e.target.value as any)}>
-            <option value="memo">Memo / Dictamen de reunión</option>
-            <option value="dictamen">Dictamen</option>
-            <option value="contrato">Contrato</option>
-            <option value="escrito">Escrito</option>
-          </select>
-          <p className="text-xs text-slate-500 mt-1">
-            Generá un memo de reunión a partir de una transcripción de Tactic/Meet. Incluye Puntos tratados y Próximos pasos.
-          </p>
+          <label className="text-sm font-medium text-gray-600">Tipo de documento</label>
+          <div className="relative mt-1">
+            <select className="w-full bg-gray-50 border-gray-300 rounded-md py-2 pl-3 pr-10 text-sm focus:ring-[#C026D3] focus:border-[#C026D3]" value={type} onChange={e=>setType(e.target.value as any)}>
+              <option value="memo">Memo</option>
+              <option value="dictamen">Dictamen</option>
+              <option value="contrato">Contrato</option>
+              <option value="escrito">Escrito</option>
+            </select>
+          </div>
         </div>
-        <label className="block text-sm font-medium text-slate-700">Área legal</label>
-        <select className="select w-full" value={areaLegal} onChange={e=>setAreaLegal(e.target.value as any)}>
-          <option value="civil_comercial">Civil, Comercial y Societario</option>
-          <option value="laboral">Laboral</option>
-          <option value="corporativo">Corporativo</option>
-          <option value="compliance">Compliance</option>
-          <option value="marcas">Marcas y Propiedad Intelectual</option>
-          <option value="consumidor">Consumidor</option>
-          <option value="traducir">Traducir</option>
-        </select>
+        <div>
+          <label className="text-sm font-medium text-gray-600">Área legal</label>
+          <div className="relative mt-1">
+            <select className="w-full bg-gray-50 border-gray-300 rounded-md py-2 pl-3 pr-10 text-sm focus:ring-[#C026D3] focus:border-[#C026D3]" value={areaLegal} onChange={e=>setAreaLegal(e.target.value as any)}>
+              <option value="civil_comercial">Civil, Comercial y Societario</option>
+              <option value="laboral">Laboral</option>
+              <option value="corporativo">Corporativo</option>
+              <option value="compliance">Compliance</option>
+              <option value="marcas">Marcas y Propiedad Intelectual</option>
+              <option value="consumidor">Consumidor</option>
+              <option value="traducir">Traducir</option>
+            </select>
+          </div>
+        </div>
         
         {/* Selector de bases de conocimiento (solo para RAG, no para memos) */}
         {generationMode === "dictamen_rag" && !file && !transcriptText && knowledgeBases.length > 0 && (
@@ -855,15 +848,18 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
           </div>
         )}
         
-        <label className="block text-sm font-medium text-slate-700">Título</label>
-        <input className="input w-full" placeholder="Ej.: Aplicación del art. 765 CCyC en mutuo USD" value={title} onChange={e=>setTitle(e.target.value)} />
-        <label className="block text-sm font-medium text-slate-700">Instrucciones</label>
-        <textarea className="textarea w-full h-28" placeholder="Hechos, contexto, puntos a resolver, tono, jurisdicción…" value={instructions} onChange={e=>setInstructions(e.target.value)} />
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Transcripción de la reunión</label>
-          <p className="text-xs text-slate-500 mb-2">Subí el PDF exportado desde Tactic o pegá el texto de la transcripción.</p>
+          <label className="text-sm font-medium text-gray-600">Título</label>
+          <input className="mt-1 w-full bg-gray-50 border-gray-300 rounded-md text-sm placeholder-gray-400 focus:ring-[#C026D3] focus:border-[#C026D3]" placeholder="Ej.: Aplicación del art. 765 CCyC en mutuo USD" value={title} onChange={e=>setTitle(e.target.value)} type="text"/>
+        </div>
+        <div>
+          <label className="text-sm font-medium text-gray-600">Instrucciones</label>
+          <textarea className="mt-1 w-full bg-gray-50 border-gray-300 rounded-md text-sm placeholder-gray-400 focus:ring-[#C026D3] focus:border-[#C026D3]" placeholder="Hechos, contexto, puntos a resolver, tono, jurisdicción..." rows={3} value={instructions} onChange={e=>setInstructions(e.target.value)} />
+        </div>
+        <div>
+          <label className="text-sm font-medium text-gray-600">Transcripción (PDF opcional)</label>
           <div 
-            className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-slate-500 cursor-pointer hover:bg-slate-50 transition-colors"
+            className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md bg-gray-50/50 hover:border-[#C026D3]/40 transition cursor-pointer"
             onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add("bg-slate-50"); }}
             onDragLeave={(e) => { e.currentTarget.classList.remove("bg-slate-50"); }}
             onDrop={(e) => {
@@ -879,20 +875,22 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
             }}
             onClick={() => document.getElementById("pdf-upload")?.click()}
           >
-            <Upload className="h-5 w-5 mx-auto mb-2 text-slate-400" />
-            {file ? (
-              <div className="text-sm text-slate-900">
-                <span className="font-medium">{file.name}</span>
-                <button 
-                  className="ml-2 text-rose-600 hover:text-rose-700"
-                  onClick={(e) => { e.stopPropagation(); setFile(null); }}
-                >
-                  ✕
-                </button>
-              </div>
-            ) : (
-              <span>Arrastrá PDFs o hacé click para subir</span>
-            )}
+            <div className="space-y-1 text-center">
+              <Upload className="h-10 w-10 mx-auto text-gray-400" />
+              {file ? (
+                <div className="text-sm text-gray-900">
+                  <span className="font-medium">{file.name}</span>
+                  <button 
+                    className="ml-2 text-rose-600 hover:text-rose-700"
+                    onClick={(e) => { e.stopPropagation(); setFile(null); }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500">Arrastrá PDFs o hacé click para subir</p>
+              )}
+            </div>
           </div>
           <input
             id="pdf-upload"
@@ -940,38 +938,9 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
             )}
           </div>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-2">Modo de generación</label>
-          <div className="space-y-2">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                name="generationMode"
-                value="memo"
-                checked={generationMode === "memo"}
-                onChange={() => setGenerationMode("memo")}
-                className="rounded"
-              />
-              <span className="text-sm text-slate-700">Memo de reunión (sin fuentes externas)</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-not-allowed opacity-50">
-              <input
-                type="radio"
-                name="generationMode"
-                value="dictamen_rag"
-                checked={generationMode === "dictamen_rag"}
-                onChange={() => {}}
-                disabled
-                className="rounded"
-              />
-              <span className="text-sm text-slate-600">
-                Dictamen normativo con fuentes (próximamente)
-                <span className="ml-1 text-xs text-slate-500" title="Usará la base normativa y jurisprudencial interna (RAG). Disponible en una próxima etapa.">
-                  ⓘ
-                </span>
-              </span>
-            </label>
-          </div>
+        <div className="flex items-center">
+          <input checked={generationMode === "memo"} className="h-4 w-4 rounded border-gray-300 text-[#C026D3] focus:ring-[#C026D3]" id="use-rag" type="checkbox" onChange={() => setGenerationMode("memo")} />
+          <label className="ml-2 block text-sm text-gray-800" htmlFor="use-rag">Usar generador de memos (sin RAG)</label>
         </div>
         {file && (
           <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm">
@@ -979,26 +948,10 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
             <div className="text-blue-700 text-xs">Con el archivo subido, también podés usar el modo chat para consultar paso a paso cómo proceder.</div>
           </div>
         )}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-end space-x-4 pt-4">
           <button 
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 text-white px-5 py-2.5 font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
-            onClick={handleSubmit} 
-            disabled={loadingLocal}
-          >
-            {loadingLocal ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Generando...
-              </>
-            ) : (
-              <>
-                <Send className="h-4 w-4" />
-                Generar
-              </>
-            )}
-          </button>
-          <button 
-            className="inline-flex items-center gap-2 rounded-lg border-2 border-slate-300 bg-white text-slate-700 px-5 py-3 font-medium hover:bg-slate-50 hover:border-slate-400 transition-all" 
+            className="flex items-center space-x-1.5 text-sm text-gray-500 hover:text-gray-800 font-medium" 
+            type="button"
             onClick={()=>{ 
               setTitle(""); 
               setInstructions(""); 
@@ -1010,18 +963,36 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
             }}
             disabled={loadingLocal}
           >
-            <X className="h-4 w-4" />
-            Limpiar
+            <X className="text-base" />
+            <span>Limpiar</span>
+          </button>
+          <button 
+            className="flex items-center space-x-2 bg-[#C026D3] text-white font-semibold py-2.5 px-5 rounded-lg hover:bg-[#A21CAF] transition-colors shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed" 
+            type="submit"
+            disabled={loadingLocal}
+          >
+            {loadingLocal ? (
+              <>
+                <Loader2 className="text-base animate-spin" />
+                <span>Generando...</span>
+              </>
+            ) : (
+              <>
+                <Send className="text-base" />
+                <span>Generar</span>
+              </>
+            )}
           </button>
         </div>
+      </form>
 
-        {/* Indicador de progreso moderno */}
-        {loadingLocal && (
-          <ProgressIndicator />
-        )}
+      {/* Indicador de progreso moderno */}
+      {loadingLocal && (
+        <ProgressIndicator />
+      )}
 
-        {memoResult && (
-          <div className="mt-4 rounded-lg border border-slate-200 bg-white p-4 space-y-3 max-h-[400px] overflow-auto">
+      {memoResult && (
+        <div className="mt-4 rounded-lg border border-gray-200 bg-white p-4 space-y-3 max-h-[400px] overflow-auto">
             <div className="text-sm font-medium text-slate-900">Resultado del Memo</div>
             <div className="text-xs text-slate-600 space-y-2">
               <div><strong>Resumen:</strong> {memoResult.resumen}</div>
@@ -1076,7 +1047,6 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
             </div>
           </div>
         )}
-      </div>
     </div>
   );
 }
