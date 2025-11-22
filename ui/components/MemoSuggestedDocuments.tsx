@@ -85,7 +85,26 @@ export const MemoSuggestedDocuments: React.FC<Props> = ({ memoId, memoData, apiU
       console.log(`[TEMPLATE PREVIEW] apiUrl: ${apiUrl}`);
       console.log(`[TEMPLATE PREVIEW] id: ${id}`);
       
-      const res = await fetch(url);
+      // Enviar datos del memo para que la IA rellene el template antes del preview
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          memoData: {
+            titulo: memoData.resumen || "",
+            tipo_documento: memoData.tipo_documento || "",
+            resumen: memoData.resumen || "",
+            puntos_tratados: memoData.puntos_tratados || [],
+            analisis_juridico: memoData.analisis_juridico || "",
+            proximos_pasos: memoData.proximos_pasos || [],
+            riesgos: memoData.riesgos || [],
+            texto_formateado: memoData.texto_formateado || "",
+            areaLegal: memoData.areaLegal,
+          }
+        }),
+      });
       
       if (!res.ok) {
         const errorText = await res.text();
