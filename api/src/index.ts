@@ -19,6 +19,8 @@ import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { LEGAL_TEMPLATES, findTemplateById, getTemplateAbsolutePath, type LegalTemplate } from "./templates/templates-registry.js";
 import mammoth from "mammoth";
+import { fillTemplateWithMemoData } from "./templates/fill-template.js";
+import type { MemoOutput } from "./memos/types.js";
 
 // Log de versiones para diagnóstico
 
@@ -409,79 +411,70 @@ async function start() {
     }
   });
 
-  // Descargar template por ID
-  app.get("/api/templates/:id/download", async (req, rep) => {
+  // Descargar template por ID (rellenado con datos del memo)
+  app.post("/api/templates/:id/download", async (req, rep) => {
     try {
       const { id } = req.params as { id: string };
+      const body = req.body as { memoData?: MemoOutput };
+      
       app.log.info(`[TEMPLATE DOWNLOAD] Request recibido para templateId: ${id}`);
+      app.log.info(`[TEMPLATE DOWNLOAD] Tiene datos del memo: ${!!body.memoData}`);
       
       const template = findTemplateById(id);
 
       if (!template) {
         app.log.warn(`[TEMPLATE DOWNLOAD] Template no encontrado en registro: ${id}`);
-        app.log.info(`[TEMPLATE DOWNLOAD] Templates disponibles: ${LEGAL_TEMPLATES.map(t => t.id).join(", ")}`);
         return rep.status(404).send({ error: "Template no encontrado" });
       }
 
       const filePath = getTemplateAbsolutePath(template);
-      app.log.info(`[TEMPLATE DOWNLOAD] Template encontrado: ${template.nombre}`);
-      app.log.info(`[TEMPLATE DOWNLOAD] Ruta relativa: ${template.rutaRelativa}`);
-      app.log.info(`[TEMPLATE DOWNLOAD] Ruta absoluta construida: ${filePath}`);
-      app.log.info(`[TEMPLATE DOWNLOAD] process.cwd(): ${process.cwd()}`);
-      app.log.info(`[TEMPLATE DOWNLOAD] __dirname: ${__dirname}`);
-
+      
       // Verificar que el archivo existe
       if (!existsSync(filePath)) {
         app.log.error(`[TEMPLATE DOWNLOAD] Archivo template no existe en: ${filePath}`);
-        
-        // Intentar rutas alternativas para debugging y fallback
-        const cwd = process.cwd();
-        const altPaths = [
-          { name: "alt1", path: join(cwd, "api", "templates", template.rutaRelativa) },
-          { name: "alt2", path: join(cwd, "templates", template.rutaRelativa) },
-          { name: "alt3", path: join(__dirname, "..", "templates", template.rutaRelativa) },
-          { name: "alt4", path: join(__dirname, "..", "..", "api", "templates", template.rutaRelativa) },
-        ];
-        
-        let foundPath: string | null = null;
-        for (const alt of altPaths) {
-          const exists = existsSync(alt.path);
-          app.log.info(`[TEMPLATE DOWNLOAD] ${alt.name}: ${alt.path} - Existe: ${exists}`);
-          if (exists && !foundPath) {
-            foundPath = alt.path;
-          }
-        }
-        
-        // Si encontramos una ruta alternativa, usarla
-        if (foundPath) {
-          app.log.info(`[TEMPLATE DOWNLOAD] Usando ruta alternativa encontrada: ${foundPath}`);
-          const stream = createReadStream(foundPath);
+        return rep.status(404).send({ 
+          error: "Archivo template no encontrado",
+          path: template.rutaRelativa,
+          absolutePath: filePath
+        });
+      }
+
+      const openaiKey = process.env.OPENAI_API_KEY;
+      if (!openaiKey) {
+        return rep.status(500).send({ error: "OPENAI_API_KEY no configurada" });
+      }
+
+      // Si hay datos del memo, rellenar el template
+      if (body.memoData) {
+        app.log.info(`[TEMPLATE DOWNLOAD] Rellenando template con datos del memo...`);
+        try {
+          const filledBuffer = await fillTemplateWithMemoData(
+            filePath,
+            body.memoData,
+            id,
+            openaiKey
+          );
+
           rep.header(
             "Content-Type",
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
           );
           rep.header(
             "Content-Disposition",
-            `attachment; filename="${encodeURIComponent(template.nombre)}.docx"`
+            `attachment; filename="${encodeURIComponent(template.nombre)}_rellenado.docx"`
           );
-          return rep.send(stream);
+
+          return rep.send(filledBuffer);
+        } catch (fillError) {
+          app.log.error(fillError, "Error al rellenar template, enviando template vacío");
+          // Si falla el rellenado, enviar template vacío como fallback
         }
-        
-        return rep.status(404).send({ 
-          error: "Archivo template no encontrado",
-          path: template.rutaRelativa,
-          absolutePath: filePath,
-          cwd: process.cwd(),
-          triedPaths: altPaths.map(alt => ({ name: alt.name, path: alt.path, exists: existsSync(alt.path) }))
-        });
       }
 
-      app.log.info(`[TEMPLATE DOWNLOAD] Archivo encontrado, iniciando descarga...`);
-
-      // Crear stream del archivo
+      // Si no hay datos del memo o falló el rellenado, enviar template vacío
+      app.log.info(`[TEMPLATE DOWNLOAD] Enviando template sin rellenar...`);
       const stream = createReadStream(filePath);
 
-      // Configurar headers para descarga
       rep.header(
         "Content-Type",
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -502,11 +495,14 @@ async function start() {
     }
   });
 
-  // Preview de template (convierte .docx a HTML)
-  app.get("/api/templates/:id/preview", async (req, rep) => {
+  // Preview de template (convierte .docx a HTML, opcionalmente rellenado con datos del memo)
+  app.post("/api/templates/:id/preview", async (req, rep) => {
     try {
       const { id } = req.params as { id: string };
+      const body = req.body as { memoData?: MemoOutput };
+      
       app.log.info(`[TEMPLATE PREVIEW] Request recibido para templateId: ${id}`);
+      app.log.info(`[TEMPLATE PREVIEW] Tiene datos del memo: ${!!body.memoData}`);
       
       const template = findTemplateById(id);
 
@@ -553,10 +549,33 @@ async function start() {
         }
       }
 
-      app.log.info(`[TEMPLATE PREVIEW] Archivo encontrado en: ${finalPath}, convirtiendo a HTML...`);
+      let buffer: Buffer;
+      const openaiKey = process.env.OPENAI_API_KEY;
 
-      // Leer el archivo y convertirlo a HTML
-      const buffer = await readFile(finalPath);
+      // Si hay datos del memo y tenemos OpenAI key, rellenar el template
+      if (body.memoData && openaiKey) {
+        app.log.info(`[TEMPLATE PREVIEW] Rellenando template con datos del memo...`);
+        try {
+          buffer = await fillTemplateWithMemoData(
+            finalPath,
+            body.memoData,
+            id,
+            openaiKey
+          );
+          app.log.info(`[TEMPLATE PREVIEW] Template rellenado exitosamente`);
+        } catch (fillError) {
+          app.log.error(fillError, "Error al rellenar template, usando template vacío");
+          // Si falla el rellenado, usar template vacío
+          buffer = await readFile(finalPath);
+        }
+      } else {
+        // Sin datos del memo, usar template vacío
+        app.log.info(`[TEMPLATE PREVIEW] Usando template sin rellenar...`);
+        buffer = await readFile(finalPath);
+      }
+
+      // Convertir a HTML para preview
+      app.log.info(`[TEMPLATE PREVIEW] Convirtiendo a HTML...`);
       const { value: html } = await mammoth.convertToHtml({ buffer });
 
       return rep.send({ 

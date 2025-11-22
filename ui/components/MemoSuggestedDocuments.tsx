@@ -109,8 +109,28 @@ export const MemoSuggestedDocuments: React.FC<Props> = ({ memoId, memoData, apiU
       const baseUrl = apiUrl || "";
       const downloadUrl = `${baseUrl}/api/templates/${encodeURIComponent(id)}/download`;
       console.log(`[TEMPLATE DOWNLOAD] Llamando a: ${downloadUrl}`);
+      console.log(`[TEMPLATE DOWNLOAD] Enviando datos del memo para rellenar template...`);
       
-      const resp = await fetch(downloadUrl);
+      // Enviar datos del memo para que la IA rellene el template
+      const resp = await fetch(downloadUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          memoData: {
+            titulo: memoData.resumen || "",
+            tipo_documento: memoData.tipo_documento || "",
+            resumen: memoData.resumen || "",
+            puntos_tratados: memoData.puntos_tratados || [],
+            analisis_juridico: memoData.analisis_juridico || "",
+            proximos_pasos: memoData.proximos_pasos || [],
+            riesgos: memoData.riesgos || [],
+            texto_formateado: memoData.texto_formateado || "",
+            areaLegal: memoData.areaLegal,
+          }
+        }),
+      });
       
       if (!resp.ok) {
         const errorText = await resp.text();
@@ -122,7 +142,7 @@ export const MemoSuggestedDocuments: React.FC<Props> = ({ memoId, memoData, apiU
       const blobUrl = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = blobUrl;
-      a.download = `${nombre.replace(/\s+/g, "_")}.docx`;
+      a.download = `${nombre.replace(/\s+/g, "_")}_rellenado.docx`;
       document.body.appendChild(a);
       a.click();
       a.remove();
