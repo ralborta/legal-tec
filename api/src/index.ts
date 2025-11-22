@@ -14,8 +14,11 @@ import { chatMemo } from "./memos/chat-memo.js";
 import * as knowledgeBases from "./knowledge-bases.js";
 import { scrapeAndIngestUrls, scrapeUrl } from "./url-scraper.js";
 import { createReadStream, existsSync, readFileSync } from "fs";
+import { readFile } from "fs/promises";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
+import { LEGAL_TEMPLATES, findTemplateById, getTemplateAbsolutePath, type LegalTemplate } from "./templates/templates-registry.js";
+import mammoth from "mammoth";
 
 // Log de versiones para diagnóstico
 
@@ -342,41 +345,89 @@ async function start() {
     }
   });
 
-  // Descargar documento sugerido desde templates
-  app.get("/api/memos/:memoId/documents/:docId/download", async (req, rep) => {
+  // Sugerir templates según el contenido del memo
+  app.post("/api/templates/suggest", async (req, rep) => {
     try {
-      const { memoId, docId } = req.params as { memoId: string; docId: string };
-
-      // Mapeo de docId a templatePath
-      // TODO: En el futuro, esto podría venir de una BD o de un JSON de configuración
-      // Nota: Los paths deben coincidir exactamente con los nombres de archivo en api/templates/
-      const map: Record<string, string> = {
-        contrato_fideicomiso: "templates/CORPO/COMERCIAL/CONTRATO DE PRESTACION DE SERVICIOS - MANUEL GONZALEZ .docx",
-        borrador_demanda: "templates/CORPO/DICTAMENTES Y DIAGNOSTICOS/Dictamen Legal - En favor de B1 Simple..docx",
-        informe_legal: "templates/CORPO/DICTAMENTES Y DIAGNOSTICOS/INFORME LEGAL – Análisis de Contingencias, Escenarios y Estrategia Societaria (1).docx",
-        contrato_prestacion_servicios: "templates/CORPO/COMERCIAL/CONTRATO DE PRESTACION DE SERVICIOS - MANUEL GONZALEZ .docx",
-        contrato_mutuo: "templates/CORPO/COMERCIAL/MUTUO 24 9 2025.docx",
-        boleto_compraventa: "templates/CORPO/CONTRATOS-BOLETOS DESARROLLO INMOBILIARIO/Modelo BOLETO DE COMPRAVENTA (v.3.09.2024) (1).docx",
-        dictamen_laboral: "templates/CORPO/DICTAMENTES Y DIAGNOSTICOS/_Dictamen - Suspensión de empleados por falta de trabajo (1).docx",
-        dictamen_marca: "templates/CORPO/DICTAMENTES Y DIAGNOSTICOS/Dictamen de Marca - OLGUITA.docx",
-        acuerdo_accionistas: "templates/CORPO/SOCIETARIO/Acuerdo de accionistas HITCOWORK v1 (2).docx",
+      const body = req.body as {
+        areaLegal?: string;
+        tipoDocumento?: string;
+        resumen?: string;
+        puntos_tratados?: string[];
+        analisis_juridico?: string;
       };
 
-      const relPath = map[docId];
-      if (!relPath) {
-        app.log.warn(`Documento no encontrado: ${docId}`);
-        return rep.status(404).send({ error: "Documento no encontrado" });
+      const area = (body.areaLegal || "civil_comercial") as LegalTemplate["areaLegal"];
+      const tipo = (body.tipoDocumento || "dictamen") as LegalTemplate["tipoDocumento"];
+      const texto = 
+        (body.resumen || "") + 
+        " " + 
+        (body.analisis_juridico || "") + 
+        " " + 
+        (body.puntos_tratados || []).join(" ");
+
+      // 1) Filtrar por área legal
+      let candidatos = LEGAL_TEMPLATES.filter(t => t.areaLegal === area);
+
+      // Si no hay candidatos para esa área, buscar en civil_comercial como fallback
+      if (candidatos.length === 0) {
+        candidatos = LEGAL_TEMPLATES.filter(t => t.areaLegal === "civil_comercial");
       }
 
-      // Construir ruta absoluta al archivo
-      const filePath = join(process.cwd(), "api", relPath);
+      // 2) Priorizar por tipoDocumento
+      candidatos = candidatos.sort((a, b) => {
+        const puntaje = (t: LegalTemplate) => (t.tipoDocumento === tipo ? 2 : 0);
+        return puntaje(b) - puntaje(a);
+      });
+
+      // 3) Scoring por tags (muy simple por ahora)
+      const textoLower = texto.toLowerCase();
+      candidatos = candidatos.sort((a, b) => {
+        const score = (t: LegalTemplate) =>
+          (t.tags || []).reduce(
+            (acc, tag) => (textoLower.includes(tag.toLowerCase()) ? acc + 1 : acc),
+            0
+          );
+        return score(b) - score(a);
+      });
+
+      // Tomar los 3 mejores
+      const sugeridos = candidatos.slice(0, 3).map(t => ({
+        id: t.id,
+        nombre: t.nombre,
+        descripcion: t.descripcion,
+        tipoDocumento: t.tipoDocumento,
+      }));
+
+      return rep.send({ sugeridos });
+
+    } catch (error) {
+      app.log.error(error, "Error en /api/templates/suggest");
+      return rep.status(500).send({ 
+        error: "Error al sugerir templates",
+        message: error instanceof Error ? error.message : "Error desconocido"
+      });
+    }
+  });
+
+  // Descargar template por ID
+  app.get("/api/templates/:id/download", async (req, rep) => {
+    try {
+      const { id } = req.params as { id: string };
+      const template = findTemplateById(id);
+
+      if (!template) {
+        app.log.warn(`Template no encontrado: ${id}`);
+        return rep.status(404).send({ error: "Template no encontrado" });
+      }
+
+      const filePath = getTemplateAbsolutePath(template);
 
       // Verificar que el archivo existe
       if (!existsSync(filePath)) {
         app.log.error(`Archivo template no existe: ${filePath}`);
         return rep.status(404).send({ 
-          error: "Template no encontrado",
-          path: relPath 
+          error: "Archivo template no encontrado",
+          path: template.rutaRelativa 
         });
       }
 
@@ -390,7 +441,86 @@ async function start() {
       );
       rep.header(
         "Content-Disposition",
-        `attachment; filename="${docId}.docx"`
+        `attachment; filename="${encodeURIComponent(template.nombre)}.docx"`
+      );
+
+      return rep.send(stream);
+
+    } catch (error) {
+      app.log.error(error, "Error al descargar template");
+      return rep.status(500).send({ 
+        error: "Error al descargar template",
+        message: error instanceof Error ? error.message : "Error desconocido"
+      });
+    }
+  });
+
+  // Preview de template (convierte .docx a HTML)
+  app.get("/api/templates/:id/preview", async (req, rep) => {
+    try {
+      const { id } = req.params as { id: string };
+      const template = findTemplateById(id);
+
+      if (!template) {
+        app.log.warn(`Template no encontrado: ${id}`);
+        return rep.status(404).send({ error: "Template no encontrado" });
+      }
+
+      const filePath = getTemplateAbsolutePath(template);
+
+      // Verificar que el archivo existe
+      if (!existsSync(filePath)) {
+        app.log.error(`Archivo template no existe: ${filePath}`);
+        return rep.status(404).send({ 
+          error: "Archivo template no encontrado",
+          path: template.rutaRelativa 
+        });
+      }
+
+      // Leer el archivo y convertirlo a HTML
+      const buffer = await readFile(filePath);
+      const { value: html } = await mammoth.convertToHtml({ buffer });
+
+      return rep.send({ 
+        html, 
+        nombre: template.nombre,
+        descripcion: template.descripcion 
+      });
+
+    } catch (error) {
+      app.log.error(error, "Error al generar preview del template");
+      return rep.status(500).send({ 
+        error: "Error al generar preview",
+        message: error instanceof Error ? error.message : "Error desconocido"
+      });
+    }
+  });
+
+  // Endpoint legacy para compatibilidad (mantener por ahora)
+  app.get("/api/memos/:memoId/documents/:docId/download", async (req, rep) => {
+    try {
+      const { docId } = req.params as { memoId: string; docId: string };
+      const template = findTemplateById(docId);
+
+      if (!template) {
+        return rep.status(404).send({ error: "Documento no encontrado" });
+      }
+
+      const filePath = getTemplateAbsolutePath(template);
+
+      if (!existsSync(filePath)) {
+        return rep.status(404).send({ error: "Template no encontrado" });
+      }
+
+      const stream = createReadStream(filePath);
+
+      rep.header(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+      );
+      rep.header(
+        "Content-Disposition",
+        `attachment; filename="${encodeURIComponent(template.nombre)}.docx"`
       );
 
       return rep.send(stream);

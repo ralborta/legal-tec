@@ -453,7 +453,7 @@ export default function MemoDetailPage() {
             {/* Documentos Sugeridos */}
             <MemoSuggestedDocuments
               memoId={memoId}
-              documentos={memoData.documentos_sugeridos || []}
+              memoData={memoData}
               apiUrl={API}
             />
             
