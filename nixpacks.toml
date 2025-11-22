@@ -1,5 +1,6 @@
 [phases.setup]
-# Railway detecta .nvmrc, .node-version o variable NODE_VERSION
+# IMPORTANTE: Configurar NODE_VERSION=20.18.1 en Railway Variables
+# Railway no siempre detecta .nvmrc/.node-version con Nixpacks
 nixPkgs = ["nodejs_20"]
 
 [phases.install]
