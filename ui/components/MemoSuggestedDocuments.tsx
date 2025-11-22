@@ -17,6 +17,9 @@ interface Props {
     resumen?: string;
     puntos_tratados?: string[];
     analisis_juridico?: string;
+    proximos_pasos?: string[];
+    riesgos?: string[];
+    texto_formateado?: string;
   };
   apiUrl: string;
 }
