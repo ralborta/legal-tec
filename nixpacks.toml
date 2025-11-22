@@ -1,4 +1,6 @@
 [phases.setup]
+# Node.js version se especifica en .nvmrc (20.18.1)
+# Railway/Nixpacks lo detecta automáticamente
 nixPkgs = ["nodejs_20"]
 
 [phases.install]
