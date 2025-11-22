@@ -38,6 +38,8 @@ export async function chatMemo(
   const hasMemo = input.memoText && input.memoText.trim().length > 0;
   const hasCitas = input.citas && input.citas.length > 0;
 
+  const systemPrompt = `Sos un abogado argentino senior de WNS & Asociados, actuando como asistente jurídico conversacional.
+
 Contexto:
 - Ya se generó un MEMO detallado a partir de una reunión con el cliente.
 - También podés tener acceso al TEXTO de la transcripción original de la reunión.
@@ -101,7 +103,7 @@ ${input.memoText}
 `;
   }
 
-  if (hasCitas) {
+  if (hasCitas && input.citas) {
     contextPrompt += `CITAS LEGALES DEL MEMO:
 ${input.citas.map(c => `- [${c.tipo}] ${c.referencia}${c.descripcion ? ` – ${c.descripcion}` : ""}${c.url ? ` (${c.url})` : ""}`).join("\n")}
 
