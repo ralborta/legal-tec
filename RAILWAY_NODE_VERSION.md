@@ -1,45 +1,69 @@
-# Configurar Node.js 22 en Railway
+# Configurar Node.js 20 en Railway
 
-## ⚠️ IMPORTANTE: Configuración Manual Requerida
+## ✅ Solución Aplicada: Node 20 (Soportado Establemente)
 
-Railway con Nixpacks necesita que configures manualmente la variable de entorno `NIXPACKS_NODE_VERSION` para usar Node 22.
+**Cambiamos a Node 20** porque Railway/Nixpacks lo soporta mejor que Node 22, y cumple con los requisitos de `pdf-parse` y `pdfjs-dist` (>=20.16.0).
 
-## 🔧 Pasos para Configurar
+## 🔧 Configuración en Railway
 
-1. **Ir al Dashboard de Railway**
-   - Abrí tu proyecto en Railway
-   - Andá a la pestaña **"Variables"**
+### Paso 1: Variable de Entorno
 
-2. **Añadir Variable de Entorno**
-   - Click en **"New Variable"** (o editar si ya existe)
+1. **Railway Dashboard** → tu servicio (no el proyecto completo)
+2. Pestaña **"Variables"**
+3. Crear o editar variable:
    - **Nombre:** `NIXPACKS_NODE_VERSION`
-   - **Valor:** `22`
-   - Click en **"Add"** o **"Save"**
+   - **Valor:** `20` (solo el número, sin `v`, sin `>=`)
+4. Guardar
 
-3. **Redeploy**
-   - Andá a la pestaña **"Deployments"**
-   - Click en **"Redeploy"** o esperá el deploy automático
+### Paso 2: Rebuild con Cache Limpia
 
-## ✅ Verificación
+1. Pestaña **"Deployments"**
+2. Click en **"Clear cache & redeploy"** o **"Rebuild"**
+3. Esto asegura que no use la imagen vieja con Node 18
 
-Después del deploy, verificá en los logs que aparezca:
+## ✅ Verificación en los Logs
+
+Después del deploy, buscá el output de `postinstall`:
+
+**✅ CORRECTO:**
 ```
-v22.x.x
+v20.x.x    ← Debe ser 20, NO 18
+9.x.x o 10.x.x  ← Versión de npm
 ```
 
-En el script `postinstall` verás algo como:
+**❌ INCORRECTO (si sigue apareciendo):**
 ```
-v22.11.0
-10.x.x
+v18.17.1   ← Railway NO tomó la configuración
+9.6.7
 ```
 
-## 📝 Notas
+## 📝 Estado Actual del Código
 
-- Node 22 cumple con los requisitos de `pdf-parse` y `pdfjs-dist` (>=22.3.0)
-- Los warnings `EBADENGINE` deberían desaparecer
-- El archivo `package.json` ya tiene `"engines": { "node": "22" }`
-- `nixpacks.toml` está configurado para `nodejs_22`
+- ✅ `.nixpacks.toml` con `nodejs_version = "20"`
+- ✅ `.nvmrc` con `20`
+- ✅ `.node-version` con `20`
+- ✅ `package.json` con `"engines": { "node": "20", "npm": ">=9.0.0" }`
+- ✅ Script `postinstall` para verificar versión
+- ✅ `.npmrc` con `engine-strict=false` (los warnings no rompen el build)
 
-## 🚨 Si el Deploy Falla
+## 🎯 Por Qué Node 20
 
-Si ves `EBADENGINE` pero el deploy falla, buscá más abajo en los logs el primer `npm ERR!` real. Los `EBADENGINE` son solo warnings; el error real puede ser otro.
+- ✅ Railway/Nixpacks lo soporta de forma estable
+- ✅ Cumple con requisitos de `pdf-parse` y `pdfjs-dist` (>=20.16.0)
+- ✅ Más estable que Node 22 en Railway actualmente
+- ✅ Los warnings `EBADENGINE` deberían desaparecer o reducirse
+
+## 🚨 Si Sigue Apareciendo Node 18
+
+Si después del cambio a Node 20 **sigue apareciendo `v18.17.1`** en los logs:
+
+1. Verificá en **Settings → Deployment method** que diga **"Nixpacks"** o **"Auto"**
+2. Si dice **"Dockerfile"**, entonces necesitamos cambiar el `FROM` en el Dockerfile
+3. Verificá que la variable `NIXPACKS_NODE_VERSION=20` esté en el **servicio correcto**
+
+## 📋 Resumen de Cambios
+
+- Todo configurado para Node 20
+- Variable `NIXPACKS_NODE_VERSION=20` debe estar en Railway
+- Rebuild con cache limpia necesario
+- Verificar logs para confirmar que usa Node 20
