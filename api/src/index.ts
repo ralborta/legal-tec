@@ -361,7 +361,16 @@ async function start() {
       metadata: z.record(z.any()).optional()
     }).parse(req.body);
 
-    const kb = await knowledgeBases.upsertKnowledgeBase(process.env.DATABASE_URL!, body);
+    const kbData: Omit<knowledgeBases.KnowledgeBase, "createdAt" | "updatedAt"> = {
+      id: body.id,
+      name: body.name,
+      description: body.description,
+      sourceType: body.sourceType,
+      enabled: body.enabled ?? true,  // Default true si no se especifica
+      metadata: body.metadata ?? {}
+    };
+
+    const kb = await knowledgeBases.upsertKnowledgeBase(process.env.DATABASE_URL!, kbData);
     return rep.send(kb);
   });
 
