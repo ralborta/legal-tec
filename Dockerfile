@@ -24,6 +24,8 @@ WORKDIR /app
 # Copiamos sólo lo necesario del build
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/dist ./dist
+# Copiamos los templates .docx que necesita la aplicación
+COPY --from=builder /app/api/templates ./api/templates
 
 # Instalamos solo dependencias de producción
 RUN npm ci --omit=dev --legacy-peer-deps
@@ -33,4 +35,6 @@ EXPOSE 3000
 
 # Comando de arranque
 CMD ["node", "dist/index.js"]
+
+
 
