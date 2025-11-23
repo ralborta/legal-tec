@@ -370,3 +370,89 @@ CITAS (campo "citas" en el JSON) - MUY IMPORTANTE:
 - No incluyas explicaciones fuera del JSON.`;
 }
 
+/**
+ * Detecta automáticamente el área legal basándose en el contenido
+ * Usa IA para analizar título, instrucciones y transcripción
+ */
+export async function detectarAreaLegal(
+  openaiKey: string,
+  titulo: string,
+  instrucciones: string,
+  transcriptText?: string
+): Promise<LegalArea> {
+  const OpenAI = (await import("openai")).default;
+  const openai = new OpenAI({ apiKey: openaiKey });
+
+  const areasDisponibles: LegalArea[] = [
+    "civil_comercial",
+    "laboral",
+    "corporativo",
+    "compliance",
+    "marcas",
+    "consumidor",
+    "traducir"
+  ];
+
+  const textoCompleto = `
+Título: ${titulo}
+Instrucciones: ${instrucciones}
+${transcriptText ? `Transcripción: ${transcriptText.substring(0, 2000)}` : ""}
+`.trim();
+
+  const prompt = `Eres un experto en derecho argentino. Analiza el siguiente contenido y determina a qué área legal pertenece.
+
+CONTENIDO:
+${textoCompleto}
+
+ÁREAS LEGALES DISPONIBLES:
+- civil_comercial: Derecho civil, comercial, societario, contratos, obligaciones
+- laboral: Derecho laboral, relaciones de trabajo, empleados, despidos
+- corporativo: Derecho corporativo, gobernanza, compliance corporativo
+- compliance: Cumplimiento normativo, regulaciones, auditorías
+- marcas: Propiedad intelectual, marcas, patentes, registros
+- consumidor: Derecho del consumidor, protección al consumidor
+- traducir: Traducción de documentos legales
+
+INSTRUCCIONES:
+- Analiza el contenido y determina el área legal más apropiada
+- Si el contenido es principalmente sobre contratos, sociedades, obligaciones civiles o comerciales → civil_comercial
+- Si es sobre empleados, trabajadores, relaciones laborales → laboral
+- Si es sobre gobernanza corporativa, compliance, regulaciones empresariales → corporativo o compliance
+- Si es sobre marcas, patentes, propiedad intelectual → marcas
+- Si es sobre consumidores, protección al consumidor → consumidor
+- Si es una solicitud de traducción → traducir
+- Si no está claro o es mixto, elige civil_comercial como predeterminado
+
+Responde SOLO con el código del área legal (ejemplo: "civil_comercial"), sin texto adicional.`;
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      temperature: 0.1, // Baja temperatura para mayor consistencia
+      messages: [
+        {
+          role: "system",
+          content: "Eres un experto en clasificación de áreas legales. Responde SOLO con el código del área legal."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ]
+    });
+
+    const content = response.choices[0]?.message?.content?.trim().toLowerCase();
+    
+    // Validar que la respuesta sea un área legal válida
+    if (content && areasDisponibles.includes(content as LegalArea)) {
+      return content as LegalArea;
+    }
+
+    // Fallback a civil_comercial si la respuesta no es válida
+    return "civil_comercial";
+  } catch (error) {
+    console.error("Error al detectar área legal, usando civil_comercial por defecto:", error);
+    return "civil_comercial";
+  }
+}
+

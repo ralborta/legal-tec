@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { getSystemPromptForArea, type LegalArea } from "./legal-areas.js";
+import { getSystemPromptForArea, detectarAreaLegal, type LegalArea } from "./legal-areas.js";
 import type { MemoOutput } from "./types.js";
 import { sugerirDocumentosParaMemo } from "./suggestions.js";
 
@@ -23,8 +23,24 @@ export async function generarMemoJuridico(
 ): Promise<MemoOutput> {
   const openai = new OpenAI({ apiKey: openaiKey });
 
+  // Detectar área legal automáticamente si no se proporciona
+  let areaLegal: LegalArea = input.areaLegal || "civil_comercial";
+  if (!input.areaLegal) {
+    try {
+      areaLegal = await detectarAreaLegal(
+        openaiKey,
+        input.titulo,
+        input.instrucciones,
+        input.transcriptText
+      );
+      console.log(`[MEMO GENERATE] Área legal detectada automáticamente: ${areaLegal}`);
+    } catch (error) {
+      console.warn("Error al detectar área legal, usando civil_comercial por defecto:", error);
+      areaLegal = "civil_comercial";
+    }
+  }
+
   // Usar prompt especializado según el área legal
-  const areaLegal = input.areaLegal || "civil_comercial";
   const systemPrompt = getSystemPromptForArea(areaLegal, input.tipoDocumento);
 
   const transcriptSection = input.transcriptText.trim()

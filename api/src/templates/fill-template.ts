@@ -118,6 +118,17 @@ async function extractTemplateDataFromMemo(
     return `- ${v}: ${descriptions[v] || `Valor para ${v}`}`;
   }).join("\n");
 
+  // Formatear citas si existen
+  const citasFormateadas = memo.citas && memo.citas.length > 0
+    ? memo.citas.map((c: any) => {
+        const tipo = c.tipo || "otra";
+        const ref = c.referencia || "";
+        const desc = c.descripcion ? ` – ${c.descripcion}` : "";
+        const url = c.url ? ` (${c.url})` : "";
+        return `- [${tipo}] ${ref}${desc}${url}`;
+      }).join("\n")
+    : "";
+
   const prompt = `Eres un asistente jurídico experto. Analiza el siguiente memo jurídico y extrae la información necesaria para rellenar un template de documento legal.
 
 MEMO:
@@ -129,6 +140,9 @@ Puntos Tratados: ${memo.puntos_tratados?.join(", ") || ""}
 Próximos Pasos: ${memo.proximos_pasos?.join(", ") || ""}
 Riesgos: ${memo.riesgos?.join(", ") || ""}
 Texto Formateado: ${memo.texto_formateado?.substring(0, 1000) || ""}
+
+CITAS Y FUENTES LEGALES DEL MEMO:
+${citasFormateadas || "No hay citas disponibles"}
 
 Template ID: ${templateId}
 
@@ -144,7 +158,8 @@ INSTRUCCIONES:
 3. Si una variable no está disponible en el memo, usa un valor por defecto apropiado o string vacío
 4. Para montos, incluye el símbolo de moneda si está mencionado (ej: "$100.000" o "USD 50.000")
 5. Para fechas, si no hay fecha específica en el memo, usa la fecha actual
-6. Asegúrate de que los valores sean coherentes y profesionales
+6. Si el template tiene una variable para citas (citas, fuentes, bibliografia, referencias), incluye las citas formateadas del memo
+7. Asegúrate de que los valores sean coherentes y profesionales
 
 Responde SOLO con un JSON válido con las claves de las variables listadas arriba.`;
 
@@ -225,9 +240,26 @@ Responde SOLO con un JSON válido con las claves de las variables listadas arrib
     // Asegurar que todas las variables del template estén presentes
     templateVariables.forEach(v => {
       if (!(v in extractedData)) {
-        extractedData[v] = "";
+        // Si es una variable de citas y hay citas en el memo, incluirlas
+        if ((v.includes('cita') || v.includes('fuente') || v.includes('bibliografia') || v.includes('referencia')) && citasFormateadas) {
+          extractedData[v] = citasFormateadas;
+        } else {
+          extractedData[v] = "";
+        }
       }
     });
+
+    // Si hay citas y el template tiene alguna variable relacionada, asegurar que estén incluidas
+    if (citasFormateadas) {
+      const citasVars = templateVariables.filter(v => 
+        v.includes('cita') || v.includes('fuente') || v.includes('bibliografia') || v.includes('referencia')
+      );
+      citasVars.forEach(v => {
+        if (!extractedData[v] || extractedData[v] === "") {
+          extractedData[v] = citasFormateadas;
+        }
+      });
+    }
 
     console.log(`[TEMPLATE FILL] Datos extraídos para ${templateVariables.length} variables`);
     return extractedData;
@@ -258,6 +290,15 @@ Responde SOLO con un JSON válido con las claves de las variables listadas arrib
         fallbackData[v] = memo.riesgos?.join(", ") || "";
       } else if (v.includes('paso')) {
         fallbackData[v] = memo.proximos_pasos?.join(", ") || "";
+      } else if ((v.includes('cita') || v.includes('fuente') || v.includes('bibliografia') || v.includes('referencia')) && memo.citas && memo.citas.length > 0) {
+        // Incluir citas formateadas en el fallback
+        fallbackData[v] = memo.citas.map((c: any) => {
+          const tipo = c.tipo || "otra";
+          const ref = c.referencia || "";
+          const desc = c.descripcion ? ` – ${c.descripcion}` : "";
+          const url = c.url ? ` (${c.url})` : "";
+          return `- [${tipo}] ${ref}${desc}${url}`;
+        }).join("\n");
       } else {
         fallbackData[v] = "";
       }

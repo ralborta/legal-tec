@@ -201,12 +201,13 @@ async function start() {
       // Si hay PDF, usar la versión directa (pasa PDF a OpenAI sin extraer texto)
       if (pdfBuffer) {
         app.log.info("Usando generación directa con PDF (sin extraer texto)");
-        const areaLegal = fields.areaLegal || fields.area_legal || "civil_comercial";
+        // Área legal es opcional - si no se proporciona, se detecta automáticamente
+        const areaLegal = fields.areaLegal || fields.area_legal;
         memoOutput = await generarMemoJuridicoDirect(openaiKey, {
           tipoDocumento,
           titulo,
           instrucciones,
-          areaLegal: areaLegal as any,
+          areaLegal: areaLegal as any, // undefined si no se proporciona, se detectará automáticamente
           pdfBuffer,
           pdfFilename: pdfFilename || "transcripcion.pdf"
         });
@@ -226,13 +227,14 @@ async function start() {
           });
         }
         
-        const areaLegal = fields.areaLegal || fields.area_legal || "civil_comercial";
+        // Área legal es opcional - si no se proporciona, se detecta automáticamente
+        const areaLegal = fields.areaLegal || fields.area_legal;
         memoOutput = await generarMemoJuridico(openaiKey, {
           tipoDocumento,
           titulo,
           instrucciones,
           transcriptText,
-          areaLegal: areaLegal as any
+          areaLegal: areaLegal as any // undefined si no se proporciona, se detectará automáticamente
         });
       }
 
