@@ -347,7 +347,7 @@ async function start() {
     }
   });
 
-  // Sugerir templates según el contenido del memo
+  // Sugerir templates según el contenido del memo (con validación por IA)
   app.post("/api/templates/suggest", async (req, rep) => {
     try {
       const body = req.body as {
@@ -391,6 +391,90 @@ async function start() {
           );
         return score(b) - score(a);
       });
+
+      // 4) Validar con IA que los templates sean apropiados (si hay OpenAI key)
+      const openaiKey = process.env.OPENAI_API_KEY;
+      if (openaiKey && texto.trim().length > 50) {
+        try {
+          const OpenAI = (await import("openai")).default;
+          const openai = new OpenAI({ apiKey: openaiKey });
+          
+          // Tomar los 5 mejores candidatos para validar
+          const topCandidates = candidatos.slice(0, 5);
+          
+          const validationPrompt = `Eres un asistente jurídico experto. Analiza el siguiente memo y evalúa qué templates de documentos son más apropiados.
+
+MEMO:
+Área Legal: ${area}
+Tipo de Documento: ${tipo}
+Resumen: ${body.resumen || ""}
+Análisis Jurídico: ${body.analisis_juridico?.substring(0, 500) || ""}
+Puntos Tratados: ${body.puntos_tratados?.join(", ") || ""}
+
+TEMPLATES CANDIDATOS:
+${topCandidates.map((t, i) => `${i + 1}. ${t.nombre} (${t.tipoDocumento}) - ${t.descripcion || ""} - Tags: ${t.tags?.join(", ") || ""}`).join("\n")}
+
+Evalúa cada template del 1 al 5 en términos de relevancia para este memo específico.
+Responde SOLO con un JSON válido con esta estructura:
+{
+  "scores": {
+    "1": <número del 1 al 5>,
+    "2": <número del 1 al 5>,
+    "3": <número del 1 al 5>,
+    "4": <número del 1 al 5>,
+    "5": <número del 1 al 5>
+  },
+  "reasoning": "Breve explicación de por qué estos templates son apropiados o no"
+}`;
+
+          const validationResponse = await openai.chat.completions.create({
+            model: "gpt-4o-mini",
+            temperature: 0.3,
+            messages: [
+              {
+                role: "system",
+                content: "Eres un asistente jurídico que evalúa la relevancia de templates de documentos legales. Responde SOLO con JSON válido."
+              },
+              {
+                role: "user",
+                content: validationPrompt
+              }
+            ],
+            response_format: { type: "json_object" }
+          });
+
+          const validationContent = validationResponse.choices[0]?.message?.content;
+          if (validationContent) {
+            try {
+              const validationData = JSON.parse(validationContent);
+              if (validationData.scores) {
+                // Reordenar candidatos según los scores de IA
+                const scoredCandidates = topCandidates.map((t, i) => ({
+                  template: t,
+                  score: validationData.scores[String(i + 1)] || 0,
+                  originalIndex: i
+                }));
+                
+                scoredCandidates.sort((a, b) => b.score - a.score);
+                
+                app.log.info(`[TEMPLATE SUGGEST] Validación IA completada. Reasoning: ${validationData.reasoning || "N/A"}`);
+                
+                // Reconstruir lista de candidatos con los validados primero
+                const validatedIds = new Set(scoredCandidates.map(sc => sc.template.id));
+                candidatos = [
+                  ...scoredCandidates.map(sc => sc.template),
+                  ...candidatos.filter(t => !validatedIds.has(t.id))
+                ];
+              }
+            } catch (parseError) {
+              app.log.warn("Error al parsear validación de IA, usando scoring original:", parseError);
+            }
+          }
+        } catch (aiError) {
+          app.log.warn("Error en validación por IA, usando scoring original:", aiError);
+          // Continuar con el scoring original si falla la IA
+        }
+      }
 
       // Tomar los 3 mejores
       const sugeridos = candidatos.slice(0, 3).map(t => ({
@@ -455,14 +539,12 @@ async function start() {
             openaiKey
           );
 
-          rep.header(
-            "Content-Type",
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-          );
-          rep.header(
-            "Content-Disposition",
-            `attachment; filename="${encodeURIComponent(template.nombre)}_rellenado.docx"`
-          );
+          const filename = `${template.nombre.replace(/\s+/g, "_")}_rellenado.docx`;
+          
+          rep.header("Content-Type", "application/octet-stream");
+          rep.header("Content-Disposition", `attachment; filename="${filename}"; filename*=UTF-8''${encodeURIComponent(filename)}`);
+          rep.header("X-Content-Type-Options", "nosniff");
+          rep.header("Cache-Control", "no-cache");
 
           return rep.send(filledBuffer);
         } catch (fillError) {
@@ -475,14 +557,12 @@ async function start() {
       app.log.info(`[TEMPLATE DOWNLOAD] Enviando template sin rellenar...`);
       const stream = createReadStream(filePath);
 
-      rep.header(
-        "Content-Type",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-      );
-      rep.header(
-        "Content-Disposition",
-        `attachment; filename="${encodeURIComponent(template.nombre)}.docx"`
-      );
+      const filename = `${template.nombre.replace(/\s+/g, "_")}.docx`;
+      
+      rep.header("Content-Type", "application/octet-stream");
+      rep.header("Content-Disposition", `attachment; filename="${filename}"; filename*=UTF-8''${encodeURIComponent(filename)}`);
+      rep.header("X-Content-Type-Options", "nosniff");
+      rep.header("Cache-Control", "no-cache");
 
       return rep.send(stream);
 
@@ -611,14 +691,12 @@ async function start() {
 
       const stream = createReadStream(filePath);
 
-      rep.header(
-        "Content-Type",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-      );
-      rep.header(
-        "Content-Disposition",
-        `attachment; filename="${encodeURIComponent(template.nombre)}.docx"`
-      );
+      const filename = `${template.nombre.replace(/\s+/g, "_")}.docx`;
+      
+      rep.header("Content-Type", "application/octet-stream");
+      rep.header("Content-Disposition", `attachment; filename="${filename}"; filename*=UTF-8''${encodeURIComponent(filename)}`);
+      rep.header("X-Content-Type-Options", "nosniff");
+      rep.header("Cache-Control", "no-cache");
 
       return rep.send(stream);
 

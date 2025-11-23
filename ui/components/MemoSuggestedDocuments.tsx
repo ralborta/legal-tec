@@ -161,14 +161,26 @@ export const MemoSuggestedDocuments: React.FC<Props> = ({ memoId, memoData, apiU
       }
 
       const blob = await resp.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
+      const filename = `${nombre.replace(/\s+/g, "_")}_rellenado.docx`;
+      
+      // Crear un blob con el tipo correcto para asegurar la descarga
+      const downloadBlob = new Blob([blob], { 
+        type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" 
+      });
+      
+      const blobUrl = window.URL.createObjectURL(downloadBlob);
       const a = document.createElement("a");
       a.href = blobUrl;
-      a.download = `${nombre.replace(/\s+/g, "_")}_rellenado.docx`;
+      a.download = filename;
+      a.style.display = "none";
       document.body.appendChild(a);
       a.click();
-      a.remove();
-      window.URL.revokeObjectURL(blobUrl);
+      
+      // Limpiar después de un pequeño delay para asegurar que la descarga se inicie
+      setTimeout(() => {
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(blobUrl);
+      }, 100);
     } catch (error) {
       console.error("Error al descargar documento:", error);
       alert(`No se pudo descargar el documento: ${error instanceof Error ? error.message : "Error desconocido"}`);

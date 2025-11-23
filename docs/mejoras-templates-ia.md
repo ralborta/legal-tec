@@ -1,13 +1,25 @@
-import { readFile } from "fs/promises";
-import Docxtemplater from "docxtemplater";
-import PizZip from "pizzip";
-import mammoth from "mammoth";
-import type { MemoOutput } from "../memos/types.js";
-import OpenAI from "openai";
+# Mejoras Implementadas en el Sistema de Templates con IA
 
-/**
- * Analiza un template .docx y extrae las variables que necesita
- */
+## 📋 Resumen de Cambios
+
+Se han implementado mejoras significativas en el sistema de selección y rellenado de templates para resolver los problemas identificados:
+
+1. ✅ **Análisis del template antes de rellenar** - El sistema ahora analiza el template primero
+2. ✅ **Extracción inteligente de variables** - Solo extrae las variables que el template realmente necesita
+3. ✅ **Validación con IA de templates sugeridos** - La IA valida que los templates sean apropiados
+4. ✅ **Manejo mejorado de fechas y datos** - Normalización y validación de fechas y otros datos
+
+---
+
+## 🔍 Cambio 1: Análisis del Template Antes de Rellenar
+
+### Antes:
+- El sistema asumía un conjunto fijo de variables
+- No analizaba qué variables realmente necesitaba el template
+- Podía extraer datos innecesarios o faltar datos requeridos
+
+### Ahora:
+```11:50:api/src/templates/fill-template.ts
 async function extractTemplateVariables(
   templateBuffer: Buffer
 ): Promise<string[]> {
@@ -48,11 +60,24 @@ async function extractTemplateVariables(
     ];
   }
 }
+```
 
-/**
- * Extrae información estructurada del memo usando IA para rellenar templates
- * Ahora analiza el template primero para saber qué variables necesita
- */
+**Beneficios:**
+- Solo extrae las variables que el template realmente necesita
+- Reduce tiempo de procesamiento
+- Evita errores por variables faltantes o innecesarias
+
+---
+
+## 🎯 Cambio 2: Extracción Inteligente de Datos
+
+### Antes:
+- Prompt genérico con variables fijas
+- No consideraba el contexto del template
+- Podía generar datos en formato incorrecto
+
+### Ahora:
+```56:149:api/src/templates/fill-template.ts
 async function extractTemplateDataFromMemo(
   openaiKey: string,
   memo: MemoOutput,
@@ -147,45 +172,24 @@ INSTRUCCIONES:
 6. Asegúrate de que los valores sean coherentes y profesionales
 
 Responde SOLO con un JSON válido con las claves de las variables listadas arriba.`;
+```
 
-  try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      temperature: 0.2,
-      messages: [
-        {
-          role: "system",
-          content: "Eres un asistente jurídico que extrae información estructurada de memos para rellenar templates de documentos legales. Responde SOLO con JSON válido. Asegúrate de incluir TODAS las variables solicitadas, incluso si están vacías."
-        },
-        {
-          role: "user",
-          content: prompt
-        }
-      ],
-      response_format: { type: "json_object" }
-    });
+**Beneficios:**
+- Prompt específico basado en las variables del template
+- Incluye contexto del template para mejor comprensión
+- Instrucciones claras sobre formato de fechas y datos
 
-    const content = response.choices[0]?.message?.content;
-    if (!content) {
-      throw new Error("OpenAI no devolvió contenido");
-    }
+---
 
-    // Limpiar JSON si viene con markdown
-    let jsonText = content.trim();
-    if (jsonText.startsWith("```json")) {
-      jsonText = jsonText.replace(/^```json\s*/, "").replace(/\s*```$/, "");
-    } else if (jsonText.startsWith("```")) {
-      jsonText = jsonText.replace(/^```\s*/, "").replace(/\s*```$/, "");
-    }
+## 📅 Cambio 3: Manejo Mejorado de Fechas y Datos
 
-    const firstBrace = jsonText.indexOf("{");
-    const lastBrace = jsonText.lastIndexOf("}");
-    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-      jsonText = jsonText.substring(firstBrace, lastBrace + 1);
-    }
+### Antes:
+- Fechas podían venir en formatos inconsistentes
+- No se validaba el formato
+- Variables faltantes causaban errores
 
-    const extractedData = JSON.parse(jsonText);
-    
+### Ahora:
+```189:230:api/src/templates/fill-template.ts
     // Normalizar fechas - asegurar que todas las variables de fecha tengan formato correcto
     const fechaActual = new Date().toLocaleDateString('es-AR', {
       day: '2-digit',
@@ -228,77 +232,131 @@ Responde SOLO con un JSON válido con las claves de las variables listadas arrib
         extractedData[v] = "";
       }
     });
+```
 
-    console.log(`[TEMPLATE FILL] Datos extraídos para ${templateVariables.length} variables`);
-    return extractedData;
-  } catch (error) {
-    console.error("Error al extraer datos del memo:", error);
-    // Retornar datos básicos como fallback con todas las variables necesarias
-    const fechaActual = new Date().toLocaleDateString('es-AR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
-    
-    const fallbackData: Record<string, any> = {};
-    templateVariables.forEach(v => {
-      if (v.includes('fecha') || v.includes('date')) {
-        fallbackData[v] = fechaActual;
-      } else if (v.includes('titulo')) {
-        fallbackData[v] = memo.titulo || "";
-      } else if (v.includes('partes')) {
-        fallbackData[v] = "Partes mencionadas en el memo";
-      } else if (v.includes('objeto')) {
-        fallbackData[v] = memo.resumen || "";
-      } else if (v.includes('resumen')) {
-        fallbackData[v] = memo.resumen || "";
-      } else if (v.includes('analisis')) {
-        fallbackData[v] = memo.analisis_juridico?.substring(0, 500) || "";
-      } else if (v.includes('riesgo')) {
-        fallbackData[v] = memo.riesgos?.join(", ") || "";
-      } else if (v.includes('paso')) {
-        fallbackData[v] = memo.proximos_pasos?.join(", ") || "";
-      } else {
-        fallbackData[v] = "";
+**Beneficios:**
+- Normalización automática de fechas a formato DD/MM/YYYY
+- Validación de formato
+- Fallback inteligente para fechas faltantes
+- Garantiza que todas las variables estén presentes
+
+---
+
+## 🤖 Cambio 4: Validación con IA de Templates Sugeridos
+
+### Antes:
+- Solo scoring basado en palabras clave exactas
+- No validaba si el template era realmente apropiado
+- Podía sugerir templates irrelevantes
+
+### Ahora:
+```350:412:api/src/index.ts
+  // Sugerir templates según el contenido del memo (con validación por IA)
+  app.post("/api/templates/suggest", async (req, rep) => {
+    try {
+      // ... código de filtrado inicial ...
+      
+      // 4) Validar con IA que los templates sean apropiados (si hay OpenAI key)
+      const openaiKey = process.env.OPENAI_API_KEY;
+      if (openaiKey && texto.trim().length > 50) {
+        try {
+          const OpenAI = (await import("openai")).default;
+          const openai = new OpenAI({ apiKey: openaiKey });
+          
+          // Tomar los 5 mejores candidatos para validar
+          const topCandidates = candidatos.slice(0, 5);
+          
+          const validationPrompt = `Eres un asistente jurídico experto. Analiza el siguiente memo y evalúa qué templates de documentos son más apropiados.
+
+MEMO:
+Área Legal: ${area}
+Tipo de Documento: ${tipo}
+Resumen: ${body.resumen || ""}
+Análisis Jurídico: ${body.analisis_juridico?.substring(0, 500) || ""}
+Puntos Tratados: ${body.puntos_tratados?.join(", ") || ""}
+
+TEMPLATES CANDIDATOS:
+${topCandidates.map((t, i) => `${i + 1}. ${t.nombre} (${t.tipoDocumento}) - ${t.descripcion || ""} - Tags: ${t.tags?.join(", ") || ""}`).join("\n")}
+
+Evalúa cada template del 1 al 5 en términos de relevancia para este memo específico.
+Responde SOLO con un JSON válido con esta estructura:
+{
+  "scores": {
+    "1": <número del 1 al 5>,
+    "2": <número del 1 al 5>,
+    "3": <número del 1 al 5>,
+    "4": <número del 1 al 5>,
+    "5": <número del 1 al 5>
+  },
+  "reasoning": "Breve explicación de por qué estos templates son apropiados o no"
+}`;
+
+          const validationResponse = await openai.chat.completions.create({
+            model: "gpt-4o-mini",
+            temperature: 0.3,
+            messages: [
+              {
+                role: "system",
+                content: "Eres un asistente jurídico que evalúa la relevancia de templates de documentos legales. Responde SOLO con JSON válido."
+              },
+              {
+                role: "user",
+                content: validationPrompt
+              }
+            ],
+            response_format: { type: "json_object" }
+          });
+
+          const validationContent = validationResponse.choices[0]?.message?.content;
+          if (validationContent) {
+            try {
+              const validationData = JSON.parse(validationContent);
+              if (validationData.scores) {
+                // Reordenar candidatos según los scores de IA
+                const scoredCandidates = topCandidates.map((t, i) => ({
+                  template: t,
+                  score: validationData.scores[String(i + 1)] || 0,
+                  originalIndex: i
+                }));
+                
+                scoredCandidates.sort((a, b) => b.score - a.score);
+                
+                app.log.info(`[TEMPLATE SUGGEST] Validación IA completada. Reasoning: ${validationData.reasoning || "N/A"}`);
+                
+                // Reconstruir lista de candidatos con los validados primero
+                const validatedIds = new Set(scoredCandidates.map(sc => sc.template.id));
+                candidatos = [
+                  ...scoredCandidates.map(sc => sc.template),
+                  ...candidatos.filter(t => !validatedIds.has(t.id))
+                ];
+              }
+            } catch (parseError) {
+              app.log.warn("Error al parsear validación de IA, usando scoring original:", parseError);
+            }
+          }
+        } catch (aiError) {
+          app.log.warn("Error en validación por IA, usando scoring original:", aiError);
+          // Continuar con el scoring original si falla la IA
+        }
       }
-    });
-    
-    return fallbackData;
-  }
-}
+```
 
-/**
- * Rellena un template .docx con datos del memo
- * Ahora analiza el template primero para entender qué variables necesita
- */
-export async function fillTemplateWithMemoData(
-  templatePath: string,
-  memo: MemoOutput,
-  templateId: string,
-  openaiKey: string
-): Promise<Buffer> {
-  // Leer el template
-  const templateBuffer = await readFile(templatePath);
+**Beneficios:**
+- Validación semántica de relevancia
+- Reordenamiento inteligente basado en contexto
+- Mejora la calidad de las sugerencias
+- Fallback al sistema original si falla la IA
 
-  // Extraer datos del memo usando IA (ahora analiza el template primero)
-  const templateData = await extractTemplateDataFromMemo(openaiKey, memo, templateId, templateBuffer);
+---
 
-  // Procesar el template con docxtemplater
-  const zip = new PizZip(templateBuffer);
-  const doc = new Docxtemplater(zip, {
-    paragraphLoop: true,
-    linebreaks: true,
-    nullGetter: (part) => {
-      // Manejar variables faltantes de forma más elegante
-      console.warn(`[TEMPLATE FILL] Variable faltante: ${part.module}`);
-      return "";
-    },
-  });
+## 🔧 Mejoras en Manejo de Errores
 
-  // Rellenar el template con los datos extraídos
-  // Los templates deben usar sintaxis {{variable}} para los placeholders
-  doc.setData(templateData);
+### Antes:
+- Errores silenciosos
+- Fallback básico sin contexto
 
+### Ahora:
+```302:340:api/src/templates/fill-template.ts
   try {
     doc.render();
     console.log(`[TEMPLATE FILL] Template rellenado exitosamente con ${Object.keys(templateData).length} variables`);
@@ -338,13 +396,36 @@ export async function fillTemplateWithMemoData(
     doc.setData(minimalData);
     doc.render();
   }
+```
 
-  // Generar el buffer del documento rellenado
-  const buf = doc.getZip().generate({
-    type: "nodebuffer",
-    compression: "DEFLATE",
-  });
+**Beneficios:**
+- Logging detallado de errores
+- Identificación de variables problemáticas
+- Fallback inteligente basado en variables del template
 
-  return buf;
-}
+---
+
+## 📊 Resultados Esperados
+
+### Antes:
+- ❌ Fechas en formato inconsistente
+- ❌ Variables faltantes o innecesarias
+- ❌ Templates sugeridos no siempre apropiados
+- ❌ Errores silenciosos
+
+### Ahora:
+- ✅ Fechas siempre en formato DD/MM/YYYY
+- ✅ Solo variables necesarias extraídas
+- ✅ Templates validados por IA para relevancia
+- ✅ Manejo robusto de errores con logging detallado
+- ✅ Análisis del template antes de rellenar
+
+---
+
+## 🚀 Próximos Pasos Sugeridos
+
+1. **Monitoreo**: Revisar logs para verificar que las mejoras funcionan correctamente
+2. **Ajustes**: Ajustar las descripciones de variables según feedback
+3. **Optimización**: Cachear análisis de templates para mejorar performance
+4. **Testing**: Probar con diferentes tipos de templates y memos
 
