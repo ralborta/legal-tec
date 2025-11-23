@@ -467,11 +467,11 @@ Responde SOLO con un JSON válido con esta estructura:
                 ];
               }
             } catch (parseError) {
-              app.log.warn("Error al parsear validación de IA, usando scoring original:", parseError);
+              app.log.warn(`Error al parsear validación de IA, usando scoring original: ${parseError instanceof Error ? parseError.message : String(parseError)}`);
             }
           }
         } catch (aiError) {
-          app.log.warn("Error en validación por IA, usando scoring original:", aiError);
+          app.log.warn(`Error en validación por IA, usando scoring original: ${aiError instanceof Error ? aiError.message : String(aiError)}`);
           // Continuar con el scoring original si falla la IA
         }
       }
