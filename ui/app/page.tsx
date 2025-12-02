@@ -30,6 +30,7 @@ export default function CentroGestionLegalPage() {
   const [items, setItems] = useState<Array<any>>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeView, setActiveView] = useState<"bandeja" | "analizar">("bandeja");
   const [lastGeneratedMemo, setLastGeneratedMemo] = useState<{
     content: string;
     resumen: string;
@@ -64,25 +65,39 @@ export default function CentroGestionLegalPage() {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 antialiased font-display">
       <div className="flex h-screen">
-        <Sidebar />
+        <Sidebar activeView={activeView} setActiveView={setActiveView} />
         <div className="flex-1 min-w-0 flex flex-col bg-gray-50">
           <Topbar />
           <main className="flex-1 p-8 overflow-y-auto">
             <div>
               <div className="mb-8">
-                <h2 className="text-3xl font-bold text-gray-900">Centro de Gestión</h2>
-                <p className="text-gray-500 mt-1">Operación de agentes jurídicos · WNS & Asociados</p>
+                <h2 className="text-3xl font-bold text-gray-900">
+                  {activeView === "bandeja" ? "Centro de Gestión" : "Analizar Documentos Legales"}
+                </h2>
+                <p className="text-gray-500 mt-1">
+                  {activeView === "bandeja" 
+                    ? "Operación de agentes jurídicos · WNS & Asociados"
+                    : "Análisis automatizado de contratos y documentos legales"}
+                </p>
               </div>
 
-              <KPIGrid />
-
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2 flex flex-col gap-8">
-                  <BandejaLocal items={items} />
-                </div>
-                <div className="lg:col-span-1">
-                  <GenerarPanel
-                    onGenerated={(out) => {
+              {activeView === "bandeja" ? (
+                <>
+                  <KPIGrid />
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div className="lg:col-span-2 flex flex-col gap-8">
+                      <BandejaLocal items={items} />
+                    </div>
+                    <div className="lg:col-span-1">
+                      <GenerarPanel
+                        onGenerated={(out) => {
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  <div className="lg:col-span-2 flex flex-col gap-8">
+                    <BandejaLocal items={items} />
+                  </div>
+                  <div className="lg:col-span-1">
+                    <GenerarPanel
+                      onGenerated={(out) => {
                       const newItem = {
                         id: out.id || out.documentId || crypto.randomUUID(),
                         type: out.type || "memo",
@@ -116,9 +131,13 @@ export default function CentroGestionLegalPage() {
                     setError={setError}
                     setLoading={setLoading}
                   />
-                  <ChatPanel memoContent={lastGeneratedMemo} />
-                </div>
-              </div>
+                      <ChatPanel memoContent={lastGeneratedMemo} />
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <AnalizarDocumentosPanel />
+              )}
 
               {error && (
                 <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 p-3 text-sm">{error}</div>
@@ -142,7 +161,7 @@ export default function CentroGestionLegalPage() {
   );
 }
 
-function Sidebar() {
+function Sidebar({ activeView, setActiveView }: { activeView: string; setActiveView: (view: "bandeja" | "analizar") => void }) {
   return (
     <aside className="hidden lg:flex w-64 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col p-4">
       <div className="flex items-center space-x-3 p-2 mb-6">
@@ -155,7 +174,8 @@ function Sidebar() {
         </div>
       </div>
       <nav className="flex-grow flex flex-col space-y-2">
-        <SideLink icon={Sparkles} label="Bandeja" active />
+        <SideLink icon={Sparkles} label="Bandeja" active={activeView === "bandeja"} onClick={() => setActiveView("bandeja")} />
+        <SideLink icon={FileText} label="Analizar Documentos" active={activeView === "analizar"} onClick={() => setActiveView("analizar")} />
         <SideLink icon={Plus} label="Generar" />
         <SideLink icon={History} label="Historial" />
         <h2 className="text-xs font-bold uppercase text-gray-400 pt-6 pb-1 px-4">Fuentes</h2>
@@ -170,9 +190,16 @@ function Sidebar() {
   );
 }
 
-function SideLink({ icon: Icon, label, active, className = "" }: any) {
+function SideLink({ icon: Icon, label, active, className = "", onClick }: any) {
   return (
-    <a className={`flex items-center space-x-3 px-4 py-2.5 rounded-lg transition-colors ${active ? "bg-[#C026D3] text-white font-medium" : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"} ${className}`} href="#">
+    <a 
+      className={`flex items-center space-x-3 px-4 py-2.5 rounded-lg transition-colors cursor-pointer ${active ? "bg-[#C026D3] text-white font-medium" : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"} ${className}`} 
+      href="#"
+      onClick={(e) => {
+        e.preventDefault();
+        if (onClick) onClick();
+      }}
+    >
       <Icon className="text-xl" />
       <span>{label}</span>
     </a>
@@ -554,6 +581,518 @@ function downloadMD(filename: string, md: string) {
   URL.revokeObjectURL(url);
 }
 function sanitize(s: string) { return s.replace(/[^a-z0-9\-\_\ ]/gi, "_"); }
+
+// Componente para analizar documentos legales
+function AnalizarDocumentosPanel() {
+  const [file, setFile] = useState<File | null>(null);
+  const [documentId, setDocumentId] = useState<string | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<any | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [polling, setPolling] = useState(false);
+  const API = useMemo(() => getApiUrl(), []);
+
+  const handleUpload = async () => {
+    if (!file) {
+      setError("Por favor selecciona un archivo PDF");
+      return;
+    }
+
+    setError(null);
+    setAnalyzing(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch(`${API}/legal/upload`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error al subir archivo: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      setDocumentId(data.documentId);
+
+      // Iniciar análisis
+      const analyzeResponse = await fetch(`${API}/legal/analyze/${data.documentId}`, {
+        method: "POST",
+      });
+
+      if (!analyzeResponse.ok) {
+        throw new Error("Error al iniciar análisis");
+      }
+
+      // Iniciar polling para obtener resultados
+      setPolling(true);
+      pollForResults(data.documentId);
+    } catch (err: any) {
+      setError(err.message || "Error al procesar documento");
+      setAnalyzing(false);
+    }
+  };
+
+  const pollForResults = async (docId: string) => {
+    const maxAttempts = 30;
+    let attempts = 0;
+
+    const poll = async () => {
+      try {
+        const response = await fetch(`${API}/legal/result/${docId}`);
+        
+        if (!response.ok) {
+          throw new Error("Error al obtener resultados");
+        }
+
+        const result = await response.json();
+
+        if (result.analysis) {
+          setAnalysisResult(result);
+          setAnalyzing(false);
+          setPolling(false);
+        } else if (attempts < maxAttempts) {
+          attempts++;
+          setTimeout(poll, 3000); // Poll cada 3 segundos
+        } else {
+          setError("El análisis está tomando más tiempo del esperado. Intenta más tarde.");
+          setAnalyzing(false);
+          setPolling(false);
+        }
+      } catch (err: any) {
+        setError(err.message || "Error al obtener resultados");
+        setAnalyzing(false);
+        setPolling(false);
+      }
+    };
+
+    poll();
+  };
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="bg-white p-6 rounded-xl border border-gray-200">
+        <h3 className="font-bold text-lg text-gray-900 mb-2">Subir Documento Legal</h3>
+        <p className="text-sm text-gray-500 mb-6">
+          Analiza contratos, acuerdos y documentos legales con IA
+        </p>
+
+        <div className="space-y-4">
+          <div
+            className="flex justify-center px-6 pt-8 pb-8 border-2 border-gray-300 border-dashed rounded-lg bg-gray-50/50 hover:border-[#C026D3]/40 transition cursor-pointer"
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.currentTarget.classList.add("bg-slate-50");
+            }}
+            onDragLeave={(e) => {
+              e.currentTarget.classList.remove("bg-slate-50");
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              e.currentTarget.classList.remove("bg-slate-50");
+              const droppedFile = e.dataTransfer.files[0];
+              if (droppedFile && droppedFile.type === "application/pdf") {
+                setFile(droppedFile);
+              } else {
+                setError("Solo se aceptan archivos PDF");
+              }
+            }}
+            onClick={() => document.getElementById("legal-doc-upload")?.click()}
+          >
+            <div className="space-y-2 text-center">
+              <Upload className="h-12 w-12 mx-auto text-gray-400" />
+              {file ? (
+                <div className="text-sm text-gray-900">
+                  <span className="font-medium">{file.name}</span>
+                  <button
+                    className="ml-2 text-rose-600 hover:text-rose-700"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setFile(null);
+                      setDocumentId(null);
+                      setAnalysisResult(null);
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500">Arrastrá PDFs o hacé click para subir</p>
+              )}
+            </div>
+          </div>
+          <input
+            id="legal-doc-upload"
+            type="file"
+            accept="application/pdf"
+            className="hidden"
+            onChange={(e) => {
+              const selectedFile = e.target.files?.[0];
+              if (selectedFile) {
+                setFile(selectedFile);
+                setError(null);
+              }
+            }}
+          />
+
+          <button
+            className="w-full bg-gradient-to-r from-[#C026D3] to-[#A21CAF] text-white py-3 px-6 rounded-lg font-medium hover:from-[#A21CAF] hover:to-[#7E1A8A] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            onClick={handleUpload}
+            disabled={!file || analyzing}
+          >
+            {analyzing ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin" />
+                {polling ? "Analizando documento..." : "Subiendo..."}
+              </>
+            ) : (
+              <>
+                <Zap className="h-5 w-5" />
+                Analizar Documento
+              </>
+            )}
+          </button>
+
+          {documentId && (
+            <div className="text-xs text-gray-500 text-center">
+              ID: {documentId}
+            </div>
+          )}
+
+          {error && (
+            <div className="rounded-lg border border-rose-200 bg-rose-50 text-rose-700 p-3 text-sm">
+              {error}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="bg-white p-6 rounded-xl border border-gray-200">
+        <h3 className="font-bold text-lg text-gray-900 mb-2">Resultado del Análisis</h3>
+        <p className="text-sm text-gray-500 mb-6">
+          {analysisResult ? "Análisis completado" : "Esperando análisis..."}
+        </p>
+
+        {analysisResult?.analysis ? (
+          <div className="space-y-4 max-h-[600px] overflow-y-auto">
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-2">Tipo de Documento</h4>
+              <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg">
+                {analysisResult.analysis.type}
+              </p>
+            </div>
+
+            {analysisResult.analysis.checklist?.items && (
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-2">Checklist de Análisis</h4>
+                <div className="space-y-2">
+                  {analysisResult.analysis.checklist.items.map((item: any, i: number) => (
+                    <div key={i} className="border border-gray-200 rounded-lg p-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-medium text-sm text-gray-900">{item.key}</span>
+                        <span className={`text-xs px-2 py-1 rounded ${
+                          item.found === "yes" ? "bg-green-100 text-green-800" :
+                          item.found === "no" ? "bg-red-100 text-red-800" :
+                          "bg-yellow-100 text-yellow-800"
+                        }`}>
+                          {item.found}
+                        </span>
+                      </div>
+                      <div className={`text-xs px-2 py-1 rounded inline-block mt-1 ${
+                        item.risk === "high" ? "bg-red-100 text-red-800" :
+                        item.risk === "medium" ? "bg-yellow-100 text-yellow-800" :
+                        "bg-green-100 text-green-800"
+                      }`}>
+                        Riesgo: {item.risk}
+                      </div>
+                      {item.comment && (
+                        <p className="text-xs text-gray-600 mt-2">{item.comment}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {analysisResult.analysis.report && (
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-2">Reporte Completo</h4>
+                <div className="text-sm text-gray-700 bg-gray-50 p-4 rounded-lg whitespace-pre-wrap">
+                  {analysisResult.analysis.report}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : analyzing ? (
+          <div className="flex flex-col items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-[#C026D3] mb-4" />
+            <p className="text-sm text-gray-500">Procesando documento...</p>
+            <p className="text-xs text-gray-400 mt-2">Esto puede tomar unos momentos</p>
+          </div>
+        ) : (
+          <div className="text-sm text-gray-500 py-12 text-center">
+            Sube un documento para comenzar el análisis
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Componente para analizar documentos legales
+function AnalizarDocumentosPanel() {
+  const [file, setFile] = useState<File | null>(null);
+  const [documentId, setDocumentId] = useState<string | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<any | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [polling, setPolling] = useState(false);
+  const API = useMemo(() => getApiUrl(), []);
+
+  const handleUpload = async () => {
+    if (!file) {
+      setError("Por favor selecciona un archivo PDF");
+      return;
+    }
+
+    setError(null);
+    setAnalyzing(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch(`${API}/legal/upload`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error al subir archivo: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      setDocumentId(data.documentId);
+
+      // Iniciar análisis
+      const analyzeResponse = await fetch(`${API}/legal/analyze/${data.documentId}`, {
+        method: "POST",
+      });
+
+      if (!analyzeResponse.ok) {
+        throw new Error("Error al iniciar análisis");
+      }
+
+      // Iniciar polling para obtener resultados
+      setPolling(true);
+      pollForResults(data.documentId);
+    } catch (err: any) {
+      setError(err.message || "Error al procesar documento");
+      setAnalyzing(false);
+    }
+  };
+
+  const pollForResults = async (docId: string) => {
+    const maxAttempts = 30;
+    let attempts = 0;
+
+    const poll = async () => {
+      try {
+        const response = await fetch(`${API}/legal/result/${docId}`);
+        
+        if (!response.ok) {
+          throw new Error("Error al obtener resultados");
+        }
+
+        const result = await response.json();
+
+        if (result.analysis) {
+          setAnalysisResult(result);
+          setAnalyzing(false);
+          setPolling(false);
+        } else if (attempts < maxAttempts) {
+          attempts++;
+          setTimeout(poll, 3000); // Poll cada 3 segundos
+        } else {
+          setError("El análisis está tomando más tiempo del esperado. Intenta más tarde.");
+          setAnalyzing(false);
+          setPolling(false);
+        }
+      } catch (err: any) {
+        setError(err.message || "Error al obtener resultados");
+        setAnalyzing(false);
+        setPolling(false);
+      }
+    };
+
+    poll();
+  };
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="bg-white p-6 rounded-xl border border-gray-200">
+        <h3 className="font-bold text-lg text-gray-900 mb-2">Subir Documento Legal</h3>
+        <p className="text-sm text-gray-500 mb-6">
+          Analiza contratos, acuerdos y documentos legales con IA
+        </p>
+
+        <div className="space-y-4">
+          <div
+            className="flex justify-center px-6 pt-8 pb-8 border-2 border-gray-300 border-dashed rounded-lg bg-gray-50/50 hover:border-[#C026D3]/40 transition cursor-pointer"
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.currentTarget.classList.add("bg-slate-50");
+            }}
+            onDragLeave={(e) => {
+              e.currentTarget.classList.remove("bg-slate-50");
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              e.currentTarget.classList.remove("bg-slate-50");
+              const droppedFile = e.dataTransfer.files[0];
+              if (droppedFile && droppedFile.type === "application/pdf") {
+                setFile(droppedFile);
+              } else {
+                setError("Solo se aceptan archivos PDF");
+              }
+            }}
+            onClick={() => document.getElementById("legal-doc-upload")?.click()}
+          >
+            <div className="space-y-2 text-center">
+              <Upload className="h-12 w-12 mx-auto text-gray-400" />
+              {file ? (
+                <div className="text-sm text-gray-900">
+                  <span className="font-medium">{file.name}</span>
+                  <button
+                    className="ml-2 text-rose-600 hover:text-rose-700"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setFile(null);
+                      setDocumentId(null);
+                      setAnalysisResult(null);
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500">Arrastrá PDFs o hacé click para subir</p>
+              )}
+            </div>
+          </div>
+          <input
+            id="legal-doc-upload"
+            type="file"
+            accept="application/pdf"
+            className="hidden"
+            onChange={(e) => {
+              const selectedFile = e.target.files?.[0];
+              if (selectedFile) {
+                setFile(selectedFile);
+                setError(null);
+              }
+            }}
+          />
+
+          <button
+            className="w-full bg-gradient-to-r from-[#C026D3] to-[#A21CAF] text-white py-3 px-6 rounded-lg font-medium hover:from-[#A21CAF] hover:to-[#7E1A8A] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            onClick={handleUpload}
+            disabled={!file || analyzing}
+          >
+            {analyzing ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin" />
+                {polling ? "Analizando documento..." : "Subiendo..."}
+              </>
+            ) : (
+              <>
+                <Zap className="h-5 w-5" />
+                Analizar Documento
+              </>
+            )}
+          </button>
+
+          {documentId && (
+            <div className="text-xs text-gray-500 text-center">
+              ID: {documentId}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="bg-white p-6 rounded-xl border border-gray-200">
+        <h3 className="font-bold text-lg text-gray-900 mb-2">Resultado del Análisis</h3>
+        <p className="text-sm text-gray-500 mb-6">
+          {analysisResult ? "Análisis completado" : "Esperando análisis..."}
+        </p>
+
+        {analysisResult?.analysis ? (
+          <div className="space-y-4 max-h-[600px] overflow-y-auto">
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-2">Tipo de Documento</h4>
+              <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg">
+                {analysisResult.analysis.type}
+              </p>
+            </div>
+
+            {analysisResult.analysis.checklist?.items && (
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-2">Checklist de Análisis</h4>
+                <div className="space-y-2">
+                  {analysisResult.analysis.checklist.items.map((item: any, i: number) => (
+                    <div key={i} className="border border-gray-200 rounded-lg p-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-medium text-sm text-gray-900">{item.key}</span>
+                        <span className={`text-xs px-2 py-1 rounded ${
+                          item.found === "yes" ? "bg-green-100 text-green-800" :
+                          item.found === "no" ? "bg-red-100 text-red-800" :
+                          "bg-yellow-100 text-yellow-800"
+                        }`}>
+                          {item.found}
+                        </span>
+                      </div>
+                      <div className={`text-xs px-2 py-1 rounded inline-block mt-1 ${
+                        item.risk === "high" ? "bg-red-100 text-red-800" :
+                        item.risk === "medium" ? "bg-yellow-100 text-yellow-800" :
+                        "bg-green-100 text-green-800"
+                      }`}>
+                        Riesgo: {item.risk}
+                      </div>
+                      {item.comment && (
+                        <p className="text-xs text-gray-600 mt-2">{item.comment}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {analysisResult.analysis.report && (
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-2">Reporte Completo</h4>
+                <div className="text-sm text-gray-700 bg-gray-50 p-4 rounded-lg whitespace-pre-wrap">
+                  {analysisResult.analysis.report}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : analyzing ? (
+          <div className="flex flex-col items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-[#C026D3] mb-4" />
+            <p className="text-sm text-gray-500">Procesando documento...</p>
+            <p className="text-xs text-gray-400 mt-2">Esto puede tomar unos momentos</p>
+          </div>
+        ) : (
+          <div className="text-sm text-gray-500 py-12 text-center">
+            Sube un documento para comenzar el análisis
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function ProgressIndicator() {
   const [progress, setProgress] = useState(0);
