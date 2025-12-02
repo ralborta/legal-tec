@@ -34,6 +34,9 @@ Format: Professional legal report in Spanish, structured with clear sections.
 Return ONLY the report text, no JSON, no markdown headers.`;
 
 export async function generateReport(input: ReportInput): Promise<string> {
+  const startTime = Date.now();
+  const timeout = 90000; // 90 segundos timeout
+  
   try {
     const checklistText = input.checklist?.items
       ? input.checklist.items
@@ -47,33 +50,43 @@ export async function generateReport(input: ReportInput): Promise<string> {
     const translatedText = input.translated
       .map((c) => `${c.clause_number}. ${c.title_es}\n${c.body_es}`)
       .join("\n\n")
-      .substring(0, 8000);
+      .substring(0, 6000); // Reducir tamaño
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      temperature: 0.3,
-      messages: [
-        {
-          role: "system",
-          content: "You are a legal report generator. Return ONLY the report text in Spanish, professional format.",
-        },
-        {
-          role: "user",
-          content: `${prompt}
+    const response = await Promise.race([
+      openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        temperature: 0.3,
+        max_tokens: 2000, // Limitar tokens de respuesta
+        timeout: timeout,
+        messages: [
+          {
+            role: "system",
+            content: "You are a legal report generator. Return ONLY the report text in Spanish, professional format.",
+          },
+          {
+            role: "user",
+            content: `${prompt}
 
 TIPO DE DOCUMENTO: ${input.type}
 
 TEXTO ORIGINAL (primeros caracteres):
-${input.original.substring(0, 3000)}
+${input.original.substring(0, 2000)}
 
 CLÁUSULAS TRADUCIDAS:
 ${translatedText}
 
 CHECKLIST DE ANÁLISIS:
 ${checklistText}`,
-        },
-      ],
-    });
+          },
+        ],
+      }),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Report generation timeout after 90s")), timeout)
+      )
+    ]) as any;
+    
+    const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+    console.log(`[REPORT] Completed in ${duration}s`);
 
     const report = response.choices[0]?.message?.content || "No se pudo generar el reporte.";
     return report;

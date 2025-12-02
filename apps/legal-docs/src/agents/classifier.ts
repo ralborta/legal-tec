@@ -39,21 +39,34 @@ export async function classifierAgent(
       .join("\n\n")
       .substring(0, 6000);
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      temperature: 0.1,
-      messages: [
-        {
-          role: "system",
-          content: "You are a legal document classifier. Return ONLY valid JSON, no additional text.",
-        },
-        {
-          role: "user",
-          content: `${prompt}\n\nDOCUMENT:\n${documentText}`,
-        },
-      ],
-      response_format: { type: "json_object" },
-    });
+    const startTime = Date.now();
+    const timeout = 30000; // 30 segundos timeout (clasificación es rápida)
+    
+    const response = await Promise.race([
+      openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        temperature: 0.1,
+        max_tokens: 500, // Clasificación es corta
+        timeout: timeout,
+        messages: [
+          {
+            role: "system",
+            content: "You are a legal document classifier. Return ONLY valid JSON, no additional text.",
+          },
+          {
+            role: "user",
+            content: `${prompt}\n\nDOCUMENT:\n${documentText}`,
+          },
+        ],
+        response_format: { type: "json_object" },
+      }),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Classification timeout after 30s")), timeout)
+      )
+    ]) as any;
+    
+    const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+    console.log(`[CLASSIFIER] Completed in ${duration}s`);
 
     const content = response.choices[0]?.message?.content;
     if (!content) {

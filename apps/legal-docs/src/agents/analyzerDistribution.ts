@@ -44,28 +44,41 @@ Return a JSON object:
 export async function runDistributionAnalyzer(
   translatedClauses: Array<{ clause_number: string; title_es: string; body_es: string }>
 ): Promise<{ items: DistributionChecklistItem[] }> {
+  const startTime = Date.now();
+  const timeout = 90000; // 90 segundos timeout (más tiempo para análisis complejo)
+  
   try {
     // Construir texto del documento
     const documentText = translatedClauses
       .map((c) => `${c.clause_number}. ${c.title_es}\n${c.body_es}`)
       .join("\n\n")
-      .substring(0, 12000);
+      .substring(0, 10000); // Reducir tamaño para evitar timeouts
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      temperature: 0.2,
-      messages: [
-        {
-          role: "system",
-          content: "You are a legal analyst specialized in distribution contracts. Return ONLY valid JSON, no additional text.",
-        },
-        {
-          role: "user",
-          content: `${prompt}\n\nCONTRACT CLAUSES:\n${documentText}`,
-        },
-      ],
-      response_format: { type: "json_object" },
-    });
+    const response = await Promise.race([
+      openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        temperature: 0.2,
+        max_tokens: 3000, // Limitar tokens de respuesta
+        timeout: timeout,
+        messages: [
+          {
+            role: "system",
+            content: "You are a legal analyst specialized in distribution contracts. Return ONLY valid JSON, no additional text.",
+          },
+          {
+            role: "user",
+            content: `${prompt}\n\nCONTRACT CLAUSES:\n${documentText}`,
+          },
+        ],
+        response_format: { type: "json_object" },
+      }),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Distribution analysis timeout after 90s")), timeout)
+      )
+    ]) as any;
+    
+    const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+    console.log(`[DISTRIBUTION ANALYZER] Completed in ${duration}s`);
 
     const content = response.choices[0]?.message?.content;
     if (!content) {

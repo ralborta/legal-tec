@@ -17,13 +17,22 @@ async function updateAnalysisStatus(documentId: string, status: string, progress
 
 export async function runFullAnalysis(documentId: string) {
   const startTime = Date.now();
-  const doc = await legalDb.getDocument(documentId);
-  if (!doc) {
-    throw new Error("Document not found");
-  }
+  const MAX_PIPELINE_TIME = 180000; // 3 minutos máximo para todo el pipeline
+  
+  // Timeout global para todo el pipeline
+  const pipelineTimeout = setTimeout(() => {
+    console.error(`[PIPELINE] TIMEOUT: Analysis exceeded ${MAX_PIPELINE_TIME}ms for document ${documentId}`);
+    throw new Error(`Pipeline timeout: analysis took more than ${MAX_PIPELINE_TIME / 1000}s`);
+  }, MAX_PIPELINE_TIME);
+  
+  try {
+    const doc = await legalDb.getDocument(documentId);
+    if (!doc) {
+      throw new Error("Document not found");
+    }
 
-  console.log(`[PIPELINE] Starting analysis for document ${documentId}`);
-  await updateAnalysisStatus(documentId, "ocr", 10);
+    console.log(`[PIPELINE] Starting analysis for document ${documentId}`);
+    await updateAnalysisStatus(documentId, "ocr", 10);
 
   // 1. OCR / Extraer texto
   const fileBuffer = await getDocumentBuffer(documentId);
@@ -80,8 +89,16 @@ export async function runFullAnalysis(documentId: string) {
     report,
   });
 
-  const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-  console.log(`[PIPELINE] Analysis completed for document ${documentId} in ${duration}s`);
-  await updateAnalysisStatus(documentId, "completed", 100);
+    const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+    console.log(`[PIPELINE] Analysis completed for document ${documentId} in ${duration}s`);
+    await updateAnalysisStatus(documentId, "completed", 100);
+    clearTimeout(pipelineTimeout);
+  } catch (error) {
+    clearTimeout(pipelineTimeout);
+    const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+    console.error(`[PIPELINE] ERROR after ${duration}s:`, error);
+    await updateAnalysisStatus(documentId, "error", 0);
+    throw error;
+  }
 }
 
