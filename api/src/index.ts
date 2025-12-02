@@ -840,19 +840,64 @@ Responde SOLO con un JSON válido con esta estructura:
         
         app.log.info(`[LEGAL-DOCS] Proxying ${req.method} ${req.url} → ${targetUrl}`);
         
+        // Manejar multipart/form-data (archivos)
+        const contentType = req.headers["content-type"] || "";
+        const isMultipart = contentType.includes("multipart/form-data");
+        
+        let body: any = undefined;
+        let headers: Record<string, string> = {};
+        
+        if (isMultipart) {
+          // Para multipart, usar el stream completo del request
+          // Fastify multipart ya parsea el archivo, necesitamos reenviarlo
+          const FormData = (await import("form-data")).default;
+          const form = new FormData();
+          
+          // Obtener todos los campos del multipart
+          const parts = req.parts();
+          for await (const part of parts) {
+            if (part.type === "file") {
+              form.append(part.fieldname || "file", part.file, {
+                filename: part.filename || "file",
+                contentType: part.mimetype,
+              });
+            } else {
+              form.append(part.fieldname, part.value as string);
+            }
+          }
+          
+          // Copiar headers de FormData
+          Object.assign(headers, form.getHeaders());
+          body = form;
+        } else if (req.method !== "GET" && req.method !== "HEAD") {
+          // Para JSON u otros tipos
+          headers["Content-Type"] = contentType || "application/json";
+          body = contentType.includes("application/json") 
+            ? JSON.stringify(req.body) 
+            : req.body;
+        }
+        
         // Usar fetch nativo de Node.js 18+
         const response = await fetch(targetUrl, {
           method: req.method,
           headers: {
-            "Content-Type": req.headers["content-type"] || "application/json",
+            ...headers,
+            // Copiar otros headers importantes
+            ...(req.headers.authorization && { Authorization: req.headers.authorization }),
           },
-          body: req.method !== "GET" && req.method !== "HEAD" 
-            ? JSON.stringify(req.body) 
-            : undefined,
+          body: body,
         });
         
-        const data = await response.json();
-        return rep.status(response.status).send(data);
+        const responseText = await response.text();
+        let responseData: any;
+        
+        try {
+          responseData = JSON.parse(responseText);
+        } catch {
+          responseData = responseText;
+        }
+        
+        return rep.status(response.status).send(responseData);
       } catch (error) {
         app.log.error(error, "Error en proxy legal-docs");
         return rep.status(502).send({ 
