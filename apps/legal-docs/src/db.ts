@@ -113,5 +113,18 @@ export const legalDb = {
       } : null,
     };
   },
+
+  async getAnalysis(documentId: string) {
+    const result = await db.query(
+      `SELECT * FROM legal_analysis WHERE document_id = $1`,
+      [documentId]
+    );
+    return result.rows[0] || null;
+  },
+
+  async updateAnalysisStatus(documentId: string, status: string, progress: number) {
+    // Por ahora solo logueamos, pero se puede extender la tabla después
+    console.log(`[STATUS] ${documentId}: ${status} (${progress}%)`);
+  },
 };
 

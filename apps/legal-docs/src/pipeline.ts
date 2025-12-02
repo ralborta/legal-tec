@@ -6,13 +6,24 @@ import { classifierAgent } from "./agents/classifier.js";
 import { runDistributionAnalyzer } from "./agents/analyzerDistribution.js";
 import { generateReport } from "./agents/report.js";
 
+// Función helper para actualizar estado del análisis
+async function updateAnalysisStatus(documentId: string, status: string, progress: number) {
+  try {
+    await legalDb.updateAnalysisStatus(documentId, status, progress);
+  } catch (error) {
+    console.warn(`[PIPELINE] No se pudo actualizar estado: ${error}`);
+  }
+}
+
 export async function runFullAnalysis(documentId: string) {
+  const startTime = Date.now();
   const doc = await legalDb.getDocument(documentId);
   if (!doc) {
     throw new Error("Document not found");
   }
 
   console.log(`[PIPELINE] Starting analysis for document ${documentId}`);
+  await updateAnalysisStatus(documentId, "ocr", 10);
 
   // 1. OCR / Extraer texto
   const fileBuffer = await getDocumentBuffer(documentId);
@@ -27,14 +38,17 @@ export async function runFullAnalysis(documentId: string) {
   });
 
   console.log(`[PIPELINE] OCR completed, extracted ${originalText.length} characters`);
+  await updateAnalysisStatus(documentId, "translating", 25);
 
   // 2. Traducción y estructuración
   const translated = await translatorAgent(originalText);
   console.log(`[PIPELINE] Translation completed, ${translated.length} clauses`);
+  await updateAnalysisStatus(documentId, "classifying", 40);
 
   // 3. Clasificación genérica
   const { type } = await classifierAgent(translated);
   console.log(`[PIPELINE] Classification: ${type}`);
+  await updateAnalysisStatus(documentId, "analyzing", 60);
 
   // 4. Router según tipo (por ahora, BASEUS / distribución)
   let checklist: any = null;
@@ -44,6 +58,7 @@ export async function runFullAnalysis(documentId: string) {
   } else {
     checklist = { type, note: "No specific analyzer implemented yet" };
   }
+  await updateAnalysisStatus(documentId, "generating_report", 80);
 
   // 5. Generar reporte
   const report = await generateReport({
@@ -53,6 +68,7 @@ export async function runFullAnalysis(documentId: string) {
     checklist,
   });
   console.log(`[PIPELINE] Report generated`);
+  await updateAnalysisStatus(documentId, "saving", 90);
 
   // 6. Guardar análisis
   await legalDb.upsertAnalysis({
@@ -64,6 +80,8 @@ export async function runFullAnalysis(documentId: string) {
     report,
   });
 
-  console.log(`[PIPELINE] Analysis saved for document ${documentId}`);
+  const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+  console.log(`[PIPELINE] Analysis completed for document ${documentId} in ${duration}s`);
+  await updateAnalysisStatus(documentId, "completed", 100);
 }
 
