@@ -826,6 +826,48 @@ Responde SOLO con un JSON válido con esta estructura:
   app.log.info("  POST /api/memos/extract-text");
   app.log.info("  POST /api/memos/query");
   app.log.info("  POST /api/memos/chat");
+  
+  // Proxy routes para legal-docs service
+  const LEGAL_DOCS_URL = process.env.LEGAL_DOCS_URL;
+  if (LEGAL_DOCS_URL) {
+    app.log.info(`[LEGAL-DOCS] Proxy configurado a: ${LEGAL_DOCS_URL}`);
+    
+    // Proxy para /legal/* → legal-docs service
+    app.all("/legal/*", async (req, rep) => {
+      try {
+        const path = req.url.replace("/legal", "");
+        const targetUrl = `${LEGAL_DOCS_URL}${path}`;
+        
+        app.log.info(`[LEGAL-DOCS] Proxying ${req.method} ${req.url} → ${targetUrl}`);
+        
+        // Usar fetch nativo de Node.js 18+
+        const response = await fetch(targetUrl, {
+          method: req.method,
+          headers: {
+            "Content-Type": req.headers["content-type"] || "application/json",
+          },
+          body: req.method !== "GET" && req.method !== "HEAD" 
+            ? JSON.stringify(req.body) 
+            : undefined,
+        });
+        
+        const data = await response.json();
+        return rep.status(response.status).send(data);
+      } catch (error) {
+        app.log.error(error, "Error en proxy legal-docs");
+        return rep.status(502).send({ 
+          error: "Error connecting to legal-docs service",
+          message: error instanceof Error ? error.message : "Unknown error"
+        });
+      }
+    });
+    
+    app.log.info("  POST /legal/upload → legal-docs service");
+    app.log.info("  POST /legal/analyze/:documentId → legal-docs service");
+    app.log.info("  GET  /legal/result/:documentId → legal-docs service");
+  } else {
+    app.log.warn("[LEGAL-DOCS] LEGAL_DOCS_URL no configurada, rutas /legal/* deshabilitadas");
+  }
 
   await app.listen({ host: "0.0.0.0", port: Number(process.env.PORT) || 3000 });
   app.log.info(`Servidor escuchando en puerto ${process.env.PORT || 3000}`);

@@ -1,0 +1,11 @@
+{
+  "name": "@legal/agents",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.ts",
+  "dependencies": {
+    "openai": "4.57.0",
+    "pdf-parse": "2.4.5"
+  }
+}
+

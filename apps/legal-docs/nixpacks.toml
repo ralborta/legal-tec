@@ -1,0 +1,12 @@
+[phases.setup]
+nixPkgs = ["nodejs-22_x"]
+
+[phases.install]
+cmds = ["cd apps/legal-docs && npm ci"]
+
+[phases.build]
+cmds = ["cd apps/legal-docs && npm run build"]
+
+[start]
+cmd = "cd apps/legal-docs && npm start"
+
