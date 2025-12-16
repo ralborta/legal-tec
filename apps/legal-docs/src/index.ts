@@ -231,8 +231,11 @@ async function handleAnalyze(req: express.Request, res: express.Response, next: 
 }
 
 app.post("/analyze/:documentId", handleAnalyze);
-// ❌ ELIMINADO: app.post("/legal/analyze/:documentId", handleAnalyze);
-// El gateway ya maneja el prefijo /legal, el servicio NO debe tenerlo
+// ✅ También registrar con prefijo /legal por si el proxy no lo quita
+app.post("/legal/analyze/:documentId", handleAnalyze);
+
+console.log("[ROUTES] ✅ POST /analyze/:documentId registrada");
+console.log("[ROUTES] ✅ POST /legal/analyze/:documentId registrada");
 
 // Obtener resultado
 async function handleResult(req: express.Request, res: express.Response, next: express.NextFunction) {
