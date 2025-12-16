@@ -660,7 +660,14 @@ function AnalizarDocumentosPanel() {
       }, 60000);
 
       if (!analyzeResponse.ok) {
-        throw new Error("Error al iniciar análisis");
+        const errorText = await analyzeResponse.text().catch(() => "");
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { error: errorText || "Error desconocido" };
+        }
+        throw new Error(`Error al iniciar análisis (${analyzeResponse.status}): ${errorData.error || errorData.message || "Sin detalles"}`);
       }
 
       // Iniciar polling para obtener resultados
