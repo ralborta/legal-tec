@@ -104,6 +104,58 @@ async function start() {
     timestamp: new Date().toISOString()
   }));
 
+  // Endpoint de diagnóstico para verificar configuración de legal-docs
+  app.get("/api/legal-docs-status", async (_req, rep) => {
+    const LEGAL_DOCS_URL = process.env.LEGAL_DOCS_URL;
+    if (!LEGAL_DOCS_URL) {
+      return rep.send({
+        configured: false,
+        error: "LEGAL_DOCS_URL no configurada",
+        message: "Agregar variable LEGAL_DOCS_URL en Railway apuntando a la URL del servicio legal-docs"
+      });
+    }
+
+    // Normalizar URL
+    let baseUrl = LEGAL_DOCS_URL.trim();
+    if (!baseUrl.startsWith("http://") && !baseUrl.startsWith("https://")) {
+      baseUrl = `https://${baseUrl}`;
+    }
+    baseUrl = baseUrl.replace(/\/$/, "");
+
+    // Verificar health check
+    try {
+      const healthUrl = `${baseUrl}/health`;
+      const healthCheck = await fetch(healthUrl, { 
+        method: "GET",
+        signal: AbortSignal.timeout(5000)
+      });
+      if (healthCheck.ok) {
+        const healthData = await healthCheck.json();
+        return rep.send({
+          configured: true,
+          url: baseUrl,
+          health: "ok",
+          healthData
+        });
+      } else {
+        return rep.send({
+          configured: true,
+          url: baseUrl,
+          health: "error",
+          status: healthCheck.status,
+          statusText: healthCheck.statusText
+        });
+      }
+    } catch (error) {
+      return rep.send({
+        configured: true,
+        url: baseUrl,
+        health: "error",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
   app.post("/v1/generate", async (req, rep) => {
     const body = z.object({
       type: z.enum(["dictamen","contrato","memo","escrito"]),
@@ -882,6 +934,12 @@ Responde SOLO con un JSON válido con esta estructura:
   const LEGAL_DOCS_URL = process.env.LEGAL_DOCS_URL;
   if (LEGAL_DOCS_URL) {
     app.log.info(`[LEGAL-DOCS] Proxy configurado a: ${LEGAL_DOCS_URL}`);
+  } else {
+    app.log.warn("[LEGAL-DOCS] ⚠️  LEGAL_DOCS_URL no configurada. Las rutas /legal/* no funcionarán.");
+    app.log.warn("[LEGAL-DOCS] Para habilitar: agregar variable LEGAL_DOCS_URL en Railway apuntando a la URL del servicio legal-docs");
+  }
+  
+  if (LEGAL_DOCS_URL) {
     const legalDocsTimeoutMs = Number(process.env.LEGAL_DOCS_TIMEOUT_MS || 110000); // < UI upload timeout (120s)
     
     // Proxy para /legal/* → legal-docs service
