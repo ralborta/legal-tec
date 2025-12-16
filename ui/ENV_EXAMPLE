@@ -1,2 +1,6 @@
-# URL de tu API en Railway
+# URL de tu API Gateway en Railway
 NEXT_PUBLIC_API_URL=https://tu-api.railway.app
+
+# URL de legal-docs service (para upload directo, sin proxy)
+# Si no se configura, el upload usará el API gateway (menos ideal)
+NEXT_PUBLIC_LEGAL_DOCS_URL=https://legal-docs-production.up.railway.app

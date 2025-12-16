@@ -6,7 +6,13 @@ import { saveOriginalDocument, getFullResult } from "./storage.js";
 import { legalDb } from "./db.js";
 
 const app = express();
-const upload = multer({ storage: multer.memoryStorage() });
+// ✅ Configurar multer con límite de tamaño (50MB)
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 50 * 1024 * 1024, // 50MB
+  }
+});
 
 // Middleware
 // CORS para frontend en Vercel y desarrollo local (y para uso vía proxy)
@@ -62,26 +68,64 @@ app.get("/debug/routes", (_req, res) => {
   res.json({ routes, total: routes.length });
 });
 
-// Upload documento
+// Upload documento - ✅ Versión robusta: solo devuelve documentId si el archivo se guardó correctamente
 async function handleUpload(req: express.Request, res: express.Response, next: express.NextFunction) {
   console.log(`[UPLOAD] Request recibido en ${req.path}, method: ${req.method}`);
   console.log(`[UPLOAD] Headers:`, { "content-type": req.headers["content-type"], "content-length": req.headers["content-length"] });
+  
   try {
     if (!req.file) {
       console.log("[UPLOAD] Error: no file in request");
-      return res.status(400).json({ error: "file is required" });
+      return res.status(400).json({ 
+        error: "file is required",
+        message: "Debes enviar un archivo en el campo 'file'"
+      });
     }
+
+    if (!req.file.buffer || req.file.buffer.length === 0) {
+      console.log("[UPLOAD] Error: archivo vacío");
+      return res.status(400).json({ 
+        error: "empty file",
+        message: "El archivo está vacío"
+      });
+    }
+
     console.log(`[UPLOAD] Archivo recibido: ${req.file.originalname}, tamaño: ${req.file.size} bytes`);
 
+    // ✅ Guardar documento (solo devuelve documentId si TODO salió bien)
     const documentId = await saveOriginalDocument({
       buffer: req.file.buffer,
       filename: req.file.originalname,
       mimetype: req.file.mimetype,
     });
 
+    console.log(`[UPLOAD] ✅ Documento guardado correctamente, documentId: ${documentId}`);
+    
+    // ✅ SOLO devolver documentId si el archivo se guardó correctamente
     res.json({ documentId });
-  } catch (err) {
-    next(err);
+  } catch (err: any) {
+    console.error(`[UPLOAD] Error: ${err?.message || err}`);
+    
+    // Errores específicos con códigos HTTP apropiados
+    if (err?.message?.includes("demasiado grande") || err?.message?.includes("too large")) {
+      return res.status(413).json({ 
+        error: "file too large",
+        message: err.message
+      });
+    }
+    
+    if (err?.message?.includes("vacío") || err?.message?.includes("empty")) {
+      return res.status(400).json({ 
+        error: "empty file",
+        message: err.message
+      });
+    }
+
+    // Error genérico
+    return res.status(500).json({ 
+      error: "upload failed",
+      message: err?.message || "Error desconocido al subir archivo"
+    });
   }
 }
 
@@ -117,10 +161,10 @@ async function handleAnalyze(req: express.Request, res: express.Response, next: 
       });
     }
     
-    // Verificar que el documento existe antes de iniciar análisis
+    // ✅ Verificar que el documento existe en DB
     const doc = await legalDb.getDocument(documentId);
     if (!doc) {
-      console.error(`[LEGAL-DOCS-ANALYZE] Documento no encontrado: ${documentId}`);
+      console.error(`[LEGAL-DOCS-ANALYZE] Documento no encontrado en DB: ${documentId}`);
       return res.status(404).json({ 
         error: "Document not found",
         message: `Document with id ${documentId} does not exist. Make sure you uploaded it first.`,
@@ -128,7 +172,19 @@ async function handleAnalyze(req: express.Request, res: express.Response, next: 
       });
     }
     
-    console.log(`[LEGAL-DOCS-ANALYZE] Documento encontrado: ${doc.filename}, iniciando análisis...`);
+    // ✅ CRÍTICO: Validar que el archivo existe físicamente (no solo en DB)
+    const { existsSync } = await import("fs");
+    if (!existsSync(doc.raw_path)) {
+      console.error(`[LEGAL-DOCS-ANALYZE] Archivo no existe en disco: ${doc.raw_path} (documentId: ${documentId})`);
+      return res.status(409).json({ 
+        error: "File not found",
+        message: `El archivo asociado al documento ${documentId} no existe en disco. El upload puede haber fallado. Por favor, sube el archivo nuevamente.`,
+        documentId,
+        expectedPath: doc.raw_path
+      });
+    }
+    
+    console.log(`[LEGAL-DOCS-ANALYZE] ✅ Documento y archivo validados: ${doc.filename}, iniciando análisis...`);
     
     // Disparar análisis de forma asíncrona
     runFullAnalysis(documentId).catch((error) => {

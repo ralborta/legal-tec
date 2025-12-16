@@ -17,6 +17,17 @@ function getApiUrl(): string {
   return url.endsWith("/") ? url.slice(0, -1) : url;
 }
 
+// Helper para obtener URL de legal-docs (upload directo, sin proxy)
+function getLegalDocsUrl(): string {
+  // Si hay URL específica de legal-docs, usarla (upload directo)
+  const legalDocsUrl = process.env.NEXT_PUBLIC_LEGAL_DOCS_URL || "";
+  if (legalDocsUrl) {
+    return legalDocsUrl.endsWith("/") ? legalDocsUrl.slice(0, -1) : legalDocsUrl;
+  }
+  // Fallback: usar API gateway (menos ideal, pero funciona)
+  return getApiUrl();
+}
+
 const kpis = [
   { title: "Solicitudes en Cola", value: "7", caption: "Pendientes", icon: Clock3, color: "text-amber-600" },
   { title: "Docs Generados (7d)", value: "126", caption: "+18% vs prev.", icon: FileText, color: "text-emerald-600" },
@@ -599,6 +610,7 @@ function AnalizarDocumentosPanel() {
   const [progress, setProgress] = useState<number>(0);
   const [statusLabel, setStatusLabel] = useState<string>("");
   const API = useMemo(() => getApiUrl(), []);
+  const LEGAL_DOCS_URL = useMemo(() => getLegalDocsUrl(), []);
 
   async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit = {}, timeoutMs = 30000) {
     const controller = new AbortController();
@@ -640,10 +652,19 @@ function AnalizarDocumentosPanel() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await fetchWithTimeout(`${API}/legal/upload`, {
+      // ✅ UPLOAD DIRECTO a legal-docs (sin proxy) para evitar ERR_STREAM_PREMATURE_CLOSE
+      // Si NEXT_PUBLIC_LEGAL_DOCS_URL está configurada, usa esa (directo)
+      // Si no, usa API gateway (fallback)
+      const uploadUrl = LEGAL_DOCS_URL !== API 
+        ? `${LEGAL_DOCS_URL}/upload`  // Directo a legal-docs
+        : `${API}/legal/upload`;       // Vía gateway (fallback)
+      
+      console.log(`[UPLOAD] Subiendo a: ${uploadUrl}`);
+      
+      const response = await fetchWithTimeout(uploadUrl, {
         method: "POST",
         body: formData,
-      }, 120000);
+      }, 180000); // 3 minutos para upload directo (sin proxy)
 
       if (!response.ok) {
         const errorText = await response.text().catch(() => "");
