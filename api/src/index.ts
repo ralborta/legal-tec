@@ -889,7 +889,16 @@ Responde SOLO con un JSON válido con esta estructura:
       try {
         const startedAt = Date.now();
         const path = req.url.replace("/legal", "");
-        const targetUrl = `${LEGAL_DOCS_URL}${path}`;
+        
+        // Normalizar LEGAL_DOCS_URL: si no tiene protocolo, agregar https://
+        let baseUrl = LEGAL_DOCS_URL.trim();
+        if (!baseUrl.startsWith("http://") && !baseUrl.startsWith("https://")) {
+          baseUrl = `https://${baseUrl}`;
+        }
+        // Remover barra final si existe para evitar doble barra
+        baseUrl = baseUrl.replace(/\/$/, "");
+        
+        const targetUrl = `${baseUrl}${path}`;
         
         app.log.info(`[LEGAL-DOCS] Proxying ${req.method} ${req.url} → ${targetUrl}`);
         
