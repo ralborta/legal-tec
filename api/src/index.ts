@@ -3,6 +3,8 @@ import Fastify from "fastify";
 import cors from "@fastify/cors";
 import multipart from "@fastify/multipart";
 import { z } from "zod";
+import pg from "pg";
+const { Client } = pg;
 import { generateDoc } from "./generate.js";
 import { ingestBatch } from "./ingest.js";
 import { queryDocument } from "./query-doc.js";
@@ -962,8 +964,6 @@ Responde SOLO con un JSON válido con esta estructura:
       const documentId = randomUUID();
       
       // Guardar metadata en DB (tabla legal_documents)
-      const pg = await import("pg");
-      const { Client } = pg;
       const client = new Client({ connectionString: process.env.DATABASE_URL });
       await client.connect();
       
