@@ -6,6 +6,23 @@ import { saveOriginalDocument, getFullResult } from "./storage.js";
 import { legalDb } from "./db.js";
 
 const app = express();
+
+// ✅ Log de inicio para verificar que el código correcto se está ejecutando
+console.log("=".repeat(60));
+console.log("[LEGAL-DOCS] 🚀 Iniciando servicio legal-docs (Express)");
+console.log("[LEGAL-DOCS] Timestamp:", new Date().toISOString());
+console.log("=".repeat(60));
+
+// ✅ Health check (primera ruta, siempre disponible)
+app.get("/health", (_req, res) => {
+  res.json({ 
+    status: "ok", 
+    service: "legal-docs",
+    framework: "express",
+    timestamp: new Date().toISOString()
+  });
+});
+
 // ✅ Configurar multer con límite de tamaño (50MB)
 const upload = multer({ 
   storage: multer.memoryStorage(),
