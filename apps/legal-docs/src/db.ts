@@ -22,6 +22,49 @@ export const db = {
 
 // Helper functions para documentos legales
 export const legalDb = {
+  /**
+   * Asegura que el schema mínimo exista.
+   * Esto evita que el servicio quede "procesando" infinito si no se ejecutaron migraciones.
+   */
+  async ensureSchema() {
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS legal_documents (
+        id VARCHAR(255) PRIMARY KEY,
+        filename VARCHAR(500) NOT NULL,
+        mime_type VARCHAR(100) NOT NULL,
+        raw_path TEXT NOT NULL,
+        status VARCHAR(50) DEFAULT 'uploaded',
+        progress INTEGER DEFAULT 0,
+        error_message TEXT,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+    `);
+
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS legal_analysis (
+        document_id VARCHAR(255) PRIMARY KEY,
+        type VARCHAR(100) NOT NULL,
+        original JSONB NOT NULL,
+        translated JSONB NOT NULL,
+        checklist JSONB,
+        report TEXT,
+        created_at TIMESTAMP DEFAULT NOW(),
+        FOREIGN KEY (document_id) REFERENCES legal_documents(id) ON DELETE CASCADE
+      );
+    `);
+
+    await db.query(`CREATE INDEX IF NOT EXISTS idx_legal_documents_created_at ON legal_documents(created_at);`);
+    await db.query(`CREATE INDEX IF NOT EXISTS idx_legal_analysis_type ON legal_analysis(type);`);
+    await db.query(`CREATE INDEX IF NOT EXISTS idx_legal_analysis_created_at ON legal_analysis(created_at);`);
+
+    // Asegurar columnas en caso de una tabla creada por migración vieja
+    await db.query(`ALTER TABLE legal_documents ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'uploaded';`);
+    await db.query(`ALTER TABLE legal_documents ADD COLUMN IF NOT EXISTS progress INTEGER DEFAULT 0;`);
+    await db.query(`ALTER TABLE legal_documents ADD COLUMN IF NOT EXISTS error_message TEXT;`);
+    await db.query(`ALTER TABLE legal_documents ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW();`);
+  },
+
   async createDocument(data: {
     id: string;
     filename: string;
@@ -29,8 +72,8 @@ export const legalDb = {
     rawPath: string;
   }) {
     const result = await db.query(
-      `INSERT INTO legal_documents (id, filename, mime_type, raw_path, created_at)
-       VALUES ($1, $2, $3, $4, NOW())
+      `INSERT INTO legal_documents (id, filename, mime_type, raw_path, status, progress, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, 'uploaded', 0, NOW(), NOW())
        RETURNING *`,
       [data.id, data.filename, data.mimeType, data.rawPath]
     );
@@ -123,8 +166,30 @@ export const legalDb = {
   },
 
   async updateAnalysisStatus(documentId: string, status: string, progress: number) {
-    // Por ahora solo logueamos, pero se puede extender la tabla después
-    console.log(`[STATUS] ${documentId}: ${status} (${progress}%)`);
+    // Persistir en legal_documents para que /status y la UI puedan reportar progreso real
+    try {
+      await db.query(
+        `UPDATE legal_documents
+         SET status = $2, progress = $3, updated_at = NOW()
+         WHERE id = $1`,
+        [documentId, status, progress]
+      );
+    } catch (error) {
+      console.log(`[STATUS] ${documentId}: ${status} (${progress}%) (no persistido: ${error})`);
+    }
+  },
+
+  async setAnalysisError(documentId: string, message: string) {
+    try {
+      await db.query(
+        `UPDATE legal_documents
+         SET status = 'error', progress = 0, error_message = $2, updated_at = NOW()
+         WHERE id = $1`,
+        [documentId, message]
+      );
+    } catch (error) {
+      console.log(`[STATUS] ${documentId}: error (no persistido: ${error})`);
+    }
   },
 };
 

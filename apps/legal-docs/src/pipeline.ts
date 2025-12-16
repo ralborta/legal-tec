@@ -98,6 +98,10 @@ export async function runFullAnalysis(documentId: string) {
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
     console.error(`[PIPELINE] ERROR after ${duration}s:`, error);
     await updateAnalysisStatus(documentId, "error", 0);
+    await legalDb.setAnalysisError(
+      documentId,
+      error instanceof Error ? error.message : "Error desconocido"
+    );
     throw error;
   }
 }

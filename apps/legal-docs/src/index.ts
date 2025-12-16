@@ -83,22 +83,22 @@ app.get("/result/:documentId", async (req, res, next) => {
 app.get("/status/:documentId", async (req, res, next) => {
   try {
     const { documentId } = req.params;
+    // Preferir status persistido en legal_documents (si existe)
+    const doc = await legalDb.getDocument(documentId);
+    if (doc && (doc.status || doc.progress !== undefined || doc.error_message)) {
+      return res.json({
+        status: doc.status || "processing",
+        progress: typeof doc.progress === "number" ? doc.progress : 0,
+        error: doc.error_message || null,
+        updatedAt: doc.updated_at || null,
+      });
+    }
+
+    // Fallback (si no existe la tabla/columnas de status)
     const analysis = await legalDb.getAnalysis(documentId);
-    
-    if (!analysis) {
-      return res.json({ status: "not_started", progress: 0 });
-    }
-
-    // Si tiene report, está completado
-    if (analysis.report) {
-      return res.json({ status: "completed", progress: 100 });
-    }
-
-    // Si tiene translated pero no report, está en progreso
-    if (analysis.translated && analysis.translated.length > 0) {
-      return res.json({ status: "processing", progress: 70 });
-    }
-
+    if (!analysis) return res.json({ status: "not_started", progress: 0 });
+    if (analysis.report) return res.json({ status: "completed", progress: 100 });
+    if (analysis.translated && analysis.translated.length > 0) return res.json({ status: "processing", progress: 70 });
     return res.json({ status: "processing", progress: 30 });
   } catch (err) {
     next(err);
@@ -115,7 +115,19 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
 });
 
 const port = process.env.PORT || 3001;
-app.listen(port, () => {
-  console.log(`legal-docs service running on port ${port}`);
-});
+// Asegurar schema antes de levantar el servidor
+legalDb.ensureSchema()
+  .then(() => {
+    console.log("[DB] Schema verificado/creado");
+    app.listen(port, () => {
+      console.log(`legal-docs service running on port ${port}`);
+    });
+  })
+  .catch((err) => {
+    console.error("[DB] Error asegurando schema:", err);
+    // Igual levantamos el server para poder ver errores via /health
+    app.listen(port, () => {
+      console.log(`legal-docs service running on port ${port} (sin schema garantizado)`);
+    });
+  });
 

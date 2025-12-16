@@ -596,7 +596,19 @@ function AnalizarDocumentosPanel() {
   const [analysisResult, setAnalysisResult] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [polling, setPolling] = useState(false);
+  const [progress, setProgress] = useState<number>(0);
+  const [statusLabel, setStatusLabel] = useState<string>("");
   const API = useMemo(() => getApiUrl(), []);
+
+  async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit = {}, timeoutMs = 30000) {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      return await fetch(input, { ...init, signal: controller.signal });
+    } finally {
+      clearTimeout(id);
+    }
+  }
 
   const handleUpload = async () => {
     if (!file) {
@@ -606,15 +618,17 @@ function AnalizarDocumentosPanel() {
 
     setError(null);
     setAnalyzing(true);
+    setProgress(0);
+    setStatusLabel("Subiendo…");
 
     try {
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await fetch(`${API}/legal/upload`, {
+      const response = await fetchWithTimeout(`${API}/legal/upload`, {
         method: "POST",
         body: formData,
-      });
+      }, 60000);
 
       if (!response.ok) {
         throw new Error(`Error al subir archivo: ${response.statusText}`);
@@ -624,9 +638,10 @@ function AnalizarDocumentosPanel() {
       setDocumentId(data.documentId);
 
       // Iniciar análisis
-      const analyzeResponse = await fetch(`${API}/legal/analyze/${data.documentId}`, {
+      setStatusLabel("Iniciando análisis…");
+      const analyzeResponse = await fetchWithTimeout(`${API}/legal/analyze/${data.documentId}`, {
         method: "POST",
-      });
+      }, 30000);
 
       if (!analyzeResponse.ok) {
         throw new Error("Error al iniciar análisis");
@@ -642,23 +657,40 @@ function AnalizarDocumentosPanel() {
   };
 
   const pollForResults = async (docId: string) => {
-    const maxAttempts = 30;
+    const maxAttempts = 60; // ~3 min
     let attempts = 0;
 
     const poll = async () => {
       try {
-        const response = await fetch(`${API}/legal/result/${docId}`);
-        
-        if (!response.ok) {
-          throw new Error("Error al obtener resultados");
+        // 1) Obtener status/progreso primero (si existe)
+        try {
+          const statusRes = await fetchWithTimeout(`${API}/legal/status/${docId}`, {}, 15000);
+          if (statusRes.ok) {
+            const s = await statusRes.json();
+            if (typeof s.progress === "number") setProgress(s.progress);
+            if (s.status) setStatusLabel(`Estado: ${s.status}`);
+            if (s.status === "error") {
+              setError(s.error || "Error durante el análisis");
+              setAnalyzing(false);
+              setPolling(false);
+              return;
+            }
+          }
+        } catch {
+          // ignorar: seguimos con /result
         }
 
+        // 2) Intentar obtener resultado
+        const response = await fetchWithTimeout(`${API}/legal/result/${docId}`, {}, 15000);
+        if (!response.ok) throw new Error(`Error al obtener resultados (${response.status})`);
         const result = await response.json();
 
         if (result.analysis) {
           setAnalysisResult(result);
           setAnalyzing(false);
           setPolling(false);
+          setProgress(100);
+          setStatusLabel("Completado");
         } else if (attempts < maxAttempts) {
           attempts++;
           setTimeout(poll, 3000); // Poll cada 3 segundos
@@ -764,6 +796,13 @@ function AnalizarDocumentosPanel() {
           {documentId && (
             <div className="text-xs text-gray-500 text-center">
               ID: {documentId}
+            </div>
+          )}
+
+          {analyzing && (
+            <div className="text-xs text-gray-600 text-center space-y-1">
+              <div>{statusLabel || "Procesando…"}</div>
+              <div>Progreso: {progress}%</div>
             </div>
           )}
 
