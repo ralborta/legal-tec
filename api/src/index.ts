@@ -40,7 +40,12 @@ try {
 }
 
 async function start() {
-  const app = Fastify({ logger: true });
+  const app = Fastify({ 
+    logger: true,
+    // ⚠️ CRÍTICO: Aumentar timeouts para uploads grandes
+    requestTimeout: 180000, // 3 minutos para request completo
+    bodyLimit: 50 * 1024 * 1024, // 50MB límite de body
+  });
 
   const allowedOriginsFromEnv = (process.env.CORS_ORIGINS || process.env.CORS_ORIGIN || "")
     .split(",")
@@ -934,8 +939,11 @@ Responde SOLO con un JSON válido con esta estructura:
   
   // Endpoint directo para upload de documentos legales (sin proxy, funciona como /api/memos/generate)
   app.post("/legal/upload", async (req, rep) => {
+    let documentId: string | null = null;
+    let storagePath: string | null = null;
+    
     try {
-      app.log.info("POST /legal/upload recibido");
+      app.log.info("[UPLOAD] POST /legal/upload recibido");
       
       if (!req.isMultipart()) {
         return rep.status(400).send({ error: "Se requiere multipart/form-data" });
@@ -945,48 +953,83 @@ Responde SOLO con un JSON válido con esta estructura:
       let filename: string | null = null;
       let mimetype: string | null = null;
 
-      for await (const part of req.parts()) {
-        if (part.type === "file" && part.fieldname === "file") {
-          fileBuffer = await part.toBuffer();
-          filename = part.filename || "document.pdf";
-          mimetype = part.mimetype || "application/pdf";
-          app.log.info(`Archivo recibido: ${filename}, tamaño: ${fileBuffer.length} bytes`);
-          break;
+      // 🔍 Leer stream con manejo de errores explícito para ERR_STREAM_PREMATURE_CLOSE
+      try {
+        app.log.info("[UPLOAD] Leyendo partes del multipart...");
+        for await (const part of req.parts()) {
+          if (part.type === "file" && part.fieldname === "file") {
+            app.log.info(`[UPLOAD] Part encontrada: ${part.filename}, fieldname: ${part.fieldname}`);
+            
+            // ⚠️ CRÍTICO: Leer buffer completo antes de continuar
+            // Si el stream se corta aquí, capturamos el error
+            fileBuffer = await part.toBuffer();
+            filename = part.filename || "document.pdf";
+            mimetype = part.mimetype || "application/pdf";
+            app.log.info(`[UPLOAD] Archivo leído: ${filename}, tamaño: ${fileBuffer.length} bytes`);
+            break;
+          }
         }
+      } catch (streamError: any) {
+        app.log.error(`[UPLOAD] Error leyendo stream: ${streamError?.code} - ${streamError?.message}`);
+        if (streamError?.code === "ERR_STREAM_PREMATURE_CLOSE" || streamError?.message?.includes("Premature close")) {
+          return rep.status(400).send({ 
+            error: "Upload interrumpido",
+            message: "El archivo se cortó durante la subida. Por favor, intentá nuevamente con un archivo más pequeño o verifica tu conexión.",
+            code: "ERR_STREAM_PREMATURE_CLOSE"
+          });
+        }
+        throw streamError; // Re-throw otros errores
       }
 
-      if (!fileBuffer) {
-        return rep.status(400).send({ error: "No se proporcionó archivo" });
+      if (!fileBuffer || fileBuffer.length === 0) {
+        app.log.warn("[UPLOAD] No se proporcionó archivo o archivo vacío");
+        return rep.status(400).send({ error: "No se proporcionó archivo o el archivo está vacío" });
       }
 
-      // Generar documentId y guardar en DB + disco (mismo patrón que legal-docs)
+      // Generar documentId ANTES de guardar (para poder limpiar si falla)
       const { randomUUID } = await import("crypto");
-      const documentId = randomUUID();
+      documentId = randomUUID();
       
-      // Asegurar que tenemos filename (ya validado arriba, pero TypeScript no lo sabe)
       const safeFilename = filename || "document.pdf";
       const safeMimetype = mimetype || "application/pdf";
       
       // Guardar archivo en disco (igual que legal-docs)
       const STORAGE_DIR = process.env.STORAGE_DIR || "./storage";
-      const { writeFileSync, mkdirSync, existsSync } = await import("fs");
+      const { writeFileSync, mkdirSync, existsSync, unlinkSync } = await import("fs");
+      const { stat } = await import("fs/promises");
       
       if (!existsSync(STORAGE_DIR)) {
         mkdirSync(STORAGE_DIR, { recursive: true });
       }
       
       const fileExtension = safeFilename.split(".").pop() || "bin";
-      const storagePath = join(STORAGE_DIR, `${documentId}.${fileExtension}`);
+      storagePath = join(STORAGE_DIR, `${documentId}.${fileExtension}`);
+      
+      app.log.info(`[UPLOAD] Guardando archivo en disco: ${storagePath}`);
       writeFileSync(storagePath, fileBuffer);
       
-      app.log.info(`Archivo guardado en disco: ${storagePath}`);
+      // ✅ VALIDAR que el archivo se guardó correctamente
+      if (!existsSync(storagePath)) {
+        app.log.error(`[UPLOAD] Archivo NO se guardó en disco: ${storagePath}`);
+        throw new Error("No se pudo guardar el archivo en disco");
+      }
+      
+      const stats = await stat(storagePath);
+      if (stats.size !== fileBuffer.length) {
+        app.log.error(`[UPLOAD] Tamaño del archivo guardado no coincide: esperado ${fileBuffer.length}, guardado ${stats.size}`);
+        // Limpiar archivo corrupto
+        try { unlinkSync(storagePath); } catch {}
+        throw new Error("El archivo guardado está corrupto");
+      }
+      
+      app.log.info(`[UPLOAD] Archivo guardado correctamente: ${storagePath} (${stats.size} bytes)`);
       
       // Guardar metadata en DB (tabla legal_documents)
       const client = new Client({ connectionString: process.env.DATABASE_URL });
       await client.connect();
       
       try {
-        // Asegurar que la tabla existe
+        // Crear tabla si no existe
         await client.query(`
           CREATE TABLE IF NOT EXISTS legal_documents (
             id VARCHAR(255) PRIMARY KEY,
@@ -1008,17 +1051,58 @@ Responde SOLO con un JSON válido con esta estructura:
            RETURNING id`,
           [documentId, safeFilename, safeMimetype, storagePath]
         );
+        app.log.info(`[UPLOAD] Documento guardado en DB, documentId: ${documentId}`);
         
-        app.log.info(`Documento guardado en DB, documentId: ${documentId}, path: ${storagePath}`);
+        // ✅ SOLO devolver documentId si TODO salió bien
         return rep.send({ documentId });
+      } catch (dbError) {
+        app.log.error(`[UPLOAD] Error guardando en DB: ${dbError}`);
+        // Limpiar archivo si falla la DB
+        if (storagePath && existsSync(storagePath)) {
+          try { unlinkSync(storagePath); } catch {}
+        }
+        throw dbError;
       } finally {
         await client.end();
       }
-    } catch (error) {
-      app.log.error(error, "Error en /legal/upload");
+    } catch (error: any) {
+      app.log.error(`[UPLOAD] Error en /legal/upload: ${error?.code} - ${error?.message}`);
+      
+      // Limpiar archivo si existe pero falló algo
+      if (storagePath) {
+        const { existsSync, unlinkSync } = await import("fs");
+        if (existsSync(storagePath)) {
+          try { 
+            unlinkSync(storagePath);
+            app.log.info(`[UPLOAD] Archivo limpiado después de error: ${storagePath}`);
+          } catch {}
+        }
+      }
+      
+      // Limpiar registro de DB si existe
+      if (documentId) {
+        try {
+          const client = new Client({ connectionString: process.env.DATABASE_URL });
+          await client.connect();
+          await client.query(`DELETE FROM legal_documents WHERE id = $1`, [documentId]);
+          await client.end();
+          app.log.info(`[UPLOAD] Registro de DB limpiado: ${documentId}`);
+        } catch {}
+      }
+      
+      // Mensaje de error específico según el tipo
+      if (error?.code === "ERR_STREAM_PREMATURE_CLOSE" || error?.message?.includes("Premature close")) {
+        return rep.status(400).send({
+          error: "Upload interrumpido",
+          message: "El archivo se cortó durante la subida. Por favor, intentá nuevamente.",
+          code: "ERR_STREAM_PREMATURE_CLOSE"
+        });
+      }
+      
       return rep.status(500).send({
         error: "Error al subir archivo",
-        message: error instanceof Error ? error.message : "Error desconocido"
+        message: error instanceof Error ? error.message : "Error desconocido",
+        code: error?.code
       });
     }
   });
