@@ -910,6 +910,24 @@ Responde SOLO con un JSON válido con esta estructura:
         app.log.info(`[LEGAL-DOCS] Proxying ${req.method} ${req.url} → ${targetUrl}`);
         app.log.info(`[LEGAL-DOCS] Debug: baseUrl=${baseUrl}, path=${path}, LEGAL_DOCS_URL=${LEGAL_DOCS_URL}`);
         
+        // Verificar que el servicio esté vivo antes de hacer el proxy
+        try {
+          const healthUrl = `${baseUrl}/health`;
+          const healthCheck = await fetch(healthUrl, { 
+            method: "GET",
+            signal: AbortSignal.timeout(5000) // 5s timeout para health check
+          });
+          if (!healthCheck.ok) {
+            app.log.warn(`[LEGAL-DOCS] Health check failed: ${healthCheck.status} ${healthCheck.statusText}`);
+          } else {
+            const healthData = await healthCheck.json();
+            app.log.info(`[LEGAL-DOCS] Health check OK: ${JSON.stringify(healthData)}`);
+          }
+        } catch (healthError) {
+          app.log.error(`[LEGAL-DOCS] Health check error: ${healthError instanceof Error ? healthError.message : String(healthError)}`);
+          // Continuar de todas formas, puede ser un problema temporal
+        }
+        
         // Manejar multipart/form-data (archivos)
         const contentType = req.headers["content-type"] || "";
         const isMultipart = contentType.includes("multipart/form-data");
