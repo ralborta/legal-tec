@@ -24,20 +24,8 @@ import mammoth from "mammoth";
 import { fillTemplateWithMemoData } from "./templates/fill-template.js";
 import type { MemoOutput } from "./memos/types.js";
 
-// Log de versiones para diagnóstico
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-try {
-  const fastifyPkg = JSON.parse(readFileSync(join(__dirname, "../../node_modules/fastify/package.json"), "utf-8"));
-  const corsPkg = JSON.parse(readFileSync(join(__dirname, "../../node_modules/@fastify/cors/package.json"), "utf-8"));
-  console.log("🔍 VERSIONES INSTALADAS:");
-  console.log("  Fastify:", fastifyPkg.version);
-  console.log("  @fastify/cors:", corsPkg.version);
-} catch (e) {
-  console.warn("⚠️  No se pudieron leer versiones de paquetes:", e);
-}
+// ❌ ELIMINADO: Check de versiones causaba ENOENT en Railway
+// El build ESM/dist no expone node_modules así, y no es crítico para el funcionamiento
 
 async function start() {
   const app = Fastify({ 
