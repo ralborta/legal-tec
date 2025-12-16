@@ -610,6 +610,21 @@ function AnalizarDocumentosPanel() {
     }
   }
 
+  function toUserFriendlyError(err: unknown, fallback: string) {
+    // Cuando AbortController corta el fetch, Chrome suele mostrar:
+    // "signal is aborted without reason" (AbortError)
+    if (err && typeof err === "object") {
+      const anyErr = err as any;
+      const name = anyErr?.name as string | undefined;
+      const message = anyErr?.message as string | undefined;
+      if (name === "AbortError" || (message && /aborted/i.test(message))) {
+        return "Tiempo de espera agotado. Railway puede estar iniciando (cold start) o la subida es lenta. Reintentá en unos segundos.";
+      }
+      if (message) return message;
+    }
+    return fallback;
+  }
+
   const handleUpload = async () => {
     if (!file) {
       setError("Por favor selecciona un archivo PDF");
@@ -628,7 +643,7 @@ function AnalizarDocumentosPanel() {
       const response = await fetchWithTimeout(`${API}/legal/upload`, {
         method: "POST",
         body: formData,
-      }, 60000);
+      }, 120000);
 
       if (!response.ok) {
         throw new Error(`Error al subir archivo: ${response.statusText}`);
@@ -641,7 +656,7 @@ function AnalizarDocumentosPanel() {
       setStatusLabel("Iniciando análisis…");
       const analyzeResponse = await fetchWithTimeout(`${API}/legal/analyze/${data.documentId}`, {
         method: "POST",
-      }, 30000);
+      }, 60000);
 
       if (!analyzeResponse.ok) {
         throw new Error("Error al iniciar análisis");
@@ -651,7 +666,7 @@ function AnalizarDocumentosPanel() {
       setPolling(true);
       pollForResults(data.documentId);
     } catch (err: any) {
-      setError(err.message || "Error al procesar documento");
+      setError(toUserFriendlyError(err, "Error al procesar documento"));
       setAnalyzing(false);
     }
   };
