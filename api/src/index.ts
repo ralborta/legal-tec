@@ -969,11 +969,30 @@ Responde SOLO con un JSON válido con esta estructura:
         
         const durationMs = Date.now() - startedAt;
         app.log.info(`[LEGAL-DOCS] Response ${response.status} in ${durationMs}ms for ${req.method} ${req.url}`);
+        
+        // Asegurar headers CORS en la respuesta del proxy (Fastify CORS puede no aplicarse automáticamente a respuestas reenviadas)
+        const origin = req.headers.origin;
+        if (origin && isAllowedOrigin(origin)) {
+          rep.header("Access-Control-Allow-Origin", origin);
+          rep.header("Access-Control-Allow-Credentials", "true");
+          rep.header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
+          rep.header("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept, X-Requested-With");
+        }
+        
         return rep.status(response.status).send(responseData);
       } catch (error) {
         app.log.error(error, "Error en proxy legal-docs");
         const name = (error as any)?.name;
         const message = (error as any)?.message;
+        // Asegurar headers CORS también en errores del proxy
+        const origin = req.headers.origin;
+        if (origin && isAllowedOrigin(origin)) {
+          rep.header("Access-Control-Allow-Origin", origin);
+          rep.header("Access-Control-Allow-Credentials", "true");
+          rep.header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
+          rep.header("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept, X-Requested-With");
+        }
+        
         if (name === "AbortError") {
           return rep.status(504).send({
             error: "legal-docs timeout",
