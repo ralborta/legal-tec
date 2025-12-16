@@ -19,6 +19,7 @@ export interface KnowledgeBase {
 
 /**
  * Listar todas las bases de conocimiento disponibles
+ * ✅ Resiliente: devuelve array vacío si la tabla no existe (no crashea)
  */
 export async function listKnowledgeBases(dbUrl: string): Promise<KnowledgeBase[]> {
   const client = new Client({ connectionString: dbUrl });
@@ -41,6 +42,13 @@ export async function listKnowledgeBases(dbUrl: string): Promise<KnowledgeBase[]
       createdAt: row.created_at,
       updatedAt: row.updated_at
     }));
+  } catch (error: any) {
+    // ✅ Si la tabla no existe, devolver array vacío (no crashear)
+    if (error?.message?.includes("does not exist") || error?.code === "42P01") {
+      console.warn("[knowledge-bases] Tabla knowledge_bases no existe, retornando array vacío");
+      return [];
+    }
+    throw error; // Re-throw otros errores
   } finally {
     await client.end();
   }
@@ -48,6 +56,7 @@ export async function listKnowledgeBases(dbUrl: string): Promise<KnowledgeBase[]
 
 /**
  * Obtener una base de conocimiento por ID
+ * ✅ Resiliente: devuelve null si la tabla no existe (no crashea)
  */
 export async function getKnowledgeBase(dbUrl: string, id: string): Promise<KnowledgeBase | null> {
   const client = new Client({ connectionString: dbUrl });
@@ -76,6 +85,13 @@ export async function getKnowledgeBase(dbUrl: string, id: string): Promise<Knowl
       createdAt: row.created_at,
       updatedAt: row.updated_at
     };
+  } catch (error: any) {
+    // ✅ Si la tabla no existe, devolver null (no crashear)
+    if (error?.message?.includes("does not exist") || error?.code === "42P01") {
+      console.warn("[knowledge-bases] Tabla knowledge_bases no existe");
+      return null;
+    }
+    throw error; // Re-throw otros errores
   } finally {
     await client.end();
   }
@@ -83,6 +99,7 @@ export async function getKnowledgeBase(dbUrl: string, id: string): Promise<Knowl
 
 /**
  * Crear o actualizar una base de conocimiento
+ * ✅ Resiliente: lanza error claro si la tabla no existe (mejor que crashear silenciosamente)
  */
 export async function upsertKnowledgeBase(
   dbUrl: string, 
@@ -125,6 +142,12 @@ export async function upsertKnowledgeBase(
       createdAt: row.created_at,
       updatedAt: row.updated_at
     };
+  } catch (error: any) {
+    // ✅ Error claro si la tabla no existe
+    if (error?.message?.includes("does not exist") || error?.code === "42P01") {
+      throw new Error("Tabla knowledge_bases no existe. Ejecuta la migración sql/002_add_knowledge_bases.sql");
+    }
+    throw error; // Re-throw otros errores
   } finally {
     await client.end();
   }
@@ -132,6 +155,7 @@ export async function upsertKnowledgeBase(
 
 /**
  * Habilitar o deshabilitar una base de conocimiento
+ * ✅ Resiliente: lanza error claro si la tabla no existe
  */
 export async function toggleKnowledgeBase(
   dbUrl: string, 
@@ -146,6 +170,12 @@ export async function toggleKnowledgeBase(
       `UPDATE knowledge_bases SET enabled = $1, updated_at = now() WHERE id = $2`,
       [enabled, id]
     );
+  } catch (error: any) {
+    // ✅ Error claro si la tabla no existe
+    if (error?.message?.includes("does not exist") || error?.code === "42P01") {
+      throw new Error("Tabla knowledge_bases no existe. Ejecuta la migración sql/002_add_knowledge_bases.sql");
+    }
+    throw error; // Re-throw otros errores
   } finally {
     await client.end();
   }
@@ -153,6 +183,7 @@ export async function toggleKnowledgeBase(
 
 /**
  * Obtener estadísticas de una base de conocimiento
+ * ✅ Resiliente: devuelve stats vacías si la tabla no existe (no crashea)
  */
 export async function getKnowledgeBaseStats(dbUrl: string, id: string): Promise<{
   totalChunks: number;
@@ -206,6 +237,13 @@ export async function getKnowledgeBaseStats(dbUrl: string, id: string): Promise<
       totalChunks: parseInt(totalResult.rows[0].count),
       sourceTypes
     };
+  } catch (error: any) {
+    // ✅ Si la tabla no existe, devolver stats vacías (no crashear)
+    if (error?.message?.includes("does not exist") || error?.code === "42P01") {
+      console.warn("[knowledge-bases] Tabla knowledge_bases o chunks no existe, retornando stats vacías");
+      return { totalChunks: 0, sourceTypes: {} };
+    }
+    throw error; // Re-throw otros errores
   } finally {
     await client.end();
   }

@@ -816,46 +816,88 @@ Responde SOLO con un JSON válido con esta estructura:
   });
 
   app.get("/api/knowledge-bases/:id", async (req, rep) => {
-    const { id } = req.params as { id: string };
-    const kb = await knowledgeBases.getKnowledgeBase(process.env.DATABASE_URL!, id);
-    if (!kb) {
-      return rep.status(404).send({ error: "Base de conocimiento no encontrada" });
+    try {
+      const { id } = req.params as { id: string };
+      const kb = await knowledgeBases.getKnowledgeBase(process.env.DATABASE_URL!, id);
+      if (!kb) {
+        return rep.status(404).send({ error: "Base de conocimiento no encontrada" });
+      }
+      const stats = await knowledgeBases.getKnowledgeBaseStats(process.env.DATABASE_URL!, id);
+      return rep.send({ ...kb, stats });
+    } catch (error) {
+      app.log.error(error, "Error al obtener knowledge base");
+      // ✅ Si la tabla no existe, devolver 404 (no crashear)
+      if (error instanceof Error && error.message.includes("does not exist")) {
+        return rep.status(404).send({ error: "Base de conocimiento no encontrada" });
+      }
+      return rep.status(500).send({ 
+        error: "Error al obtener base de conocimiento",
+        message: error instanceof Error ? error.message : "Error desconocido"
+      });
     }
-    const stats = await knowledgeBases.getKnowledgeBaseStats(process.env.DATABASE_URL!, id);
-    return rep.send({ ...kb, stats });
   });
 
   app.post("/api/knowledge-bases", async (req, rep) => {
-    const body = z.object({
-      id: z.string().min(1),
-      name: z.string().min(1),
-      description: z.string().optional(),
-      sourceType: z.string(),
-      enabled: z.boolean().optional(),
-      metadata: z.record(z.any()).optional()
-    }).parse(req.body);
+    try {
+      const body = z.object({
+        id: z.string().min(1),
+        name: z.string().min(1),
+        description: z.string().optional(),
+        sourceType: z.string(),
+        enabled: z.boolean().optional(),
+        metadata: z.record(z.any()).optional()
+      }).parse(req.body);
 
-    const kbData: Omit<knowledgeBases.KnowledgeBase, "createdAt" | "updatedAt"> = {
-      id: body.id,
-      name: body.name,
-      description: body.description,
-      sourceType: body.sourceType,
-      enabled: body.enabled ?? true,  // Default true si no se especifica
-      metadata: body.metadata ?? {}
-    };
+      const kbData: Omit<knowledgeBases.KnowledgeBase, "createdAt" | "updatedAt"> = {
+        id: body.id,
+        name: body.name,
+        description: body.description,
+        sourceType: body.sourceType,
+        enabled: body.enabled ?? true,  // Default true si no se especifica
+        metadata: body.metadata ?? {}
+      };
 
-    const kb = await knowledgeBases.upsertKnowledgeBase(process.env.DATABASE_URL!, kbData);
-    return rep.send(kb);
+      const kb = await knowledgeBases.upsertKnowledgeBase(process.env.DATABASE_URL!, kbData);
+      return rep.send(kb);
+    } catch (error) {
+      app.log.error(error, "Error al crear/actualizar knowledge base");
+      // ✅ Si la tabla no existe, devolver error claro (no crashear)
+      if (error instanceof Error && error.message.includes("does not exist")) {
+        return rep.status(500).send({ 
+          error: "Tabla knowledge_bases no existe",
+          message: "Ejecuta la migración sql/002_add_knowledge_bases.sql en Railway"
+        });
+      }
+      return rep.status(500).send({ 
+        error: "Error al crear/actualizar base de conocimiento",
+        message: error instanceof Error ? error.message : "Error desconocido"
+      });
+    }
   });
 
   app.patch("/api/knowledge-bases/:id/toggle", async (req, rep) => {
-    const { id } = req.params as { id: string };
-    const body = z.object({
-      enabled: z.boolean()
-    }).parse(req.body);
+    try {
+      const { id } = req.params as { id: string };
+      const body = z.object({
+        enabled: z.boolean()
+      }).parse(req.body);
 
-    await knowledgeBases.toggleKnowledgeBase(process.env.DATABASE_URL!, id, body.enabled);
-    return rep.send({ ok: true });
+      await knowledgeBases.toggleKnowledgeBase(process.env.DATABASE_URL!, id, body.enabled);
+      return rep.send({ ok: true });
+    } catch (error) {
+      app.log.error(error, "Error al toggle knowledge base");
+      // ✅ Si la tabla no existe, devolver error claro (no crashear)
+      if (error instanceof Error && error.message.includes("does not exist")) {
+        return rep.status(500).send({ 
+          error: "Tabla knowledge_bases no existe",
+          message: "Ejecuta la migración sql/002_add_knowledge_bases.sql en Railway"
+        });
+      }
+      return rep.status(500).send({ 
+        error: "Error al habilitar/deshabilitar base de conocimiento",
+        message: error instanceof Error ? error.message : "Error desconocido"
+      });
+    }
   });
 
   // Endpoint para scrapear URLs y guardarlas en base de conocimiento
