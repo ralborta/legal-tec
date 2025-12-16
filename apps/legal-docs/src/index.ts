@@ -304,19 +304,27 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
 });
 
 const port = process.env.PORT || 3001;
-// Asegurar schema antes de levantar el servidor
-legalDb.ensureSchema()
-  .then(() => {
-    console.log("[DB] Schema verificado/creado");
-    app.listen(port, () => {
-      console.log(`legal-docs service running on port ${port}`);
+
+// ✅ CRÍTICO: Levantar el servidor PRIMERO, luego verificar schema
+// Esto evita que Railway mate el proceso por timeout durante ensureSchema()
+console.log(`[STARTUP] Iniciando servidor en puerto ${port}...`);
+
+const server = app.listen(port, () => {
+  console.log(`[STARTUP] ✅ legal-docs service running on port ${port}`);
+  console.log(`[STARTUP] DATABASE_URL configurada: ${process.env.DATABASE_URL ? "sí" : "NO"}`);
+  
+  // Asegurar schema DESPUÉS de que el servidor esté escuchando
+  legalDb.ensureSchema()
+    .then(() => {
+      console.log("[DB] ✅ Schema verificado/creado");
+    })
+    .catch((err) => {
+      console.error("[DB] ⚠️ Error asegurando schema (el servidor sigue corriendo):", err?.message || err);
     });
-  })
-  .catch((err) => {
-    console.error("[DB] Error asegurando schema:", err);
-    // Igual levantamos el server para poder ver errores via /health
-    app.listen(port, () => {
-      console.log(`legal-docs service running on port ${port} (sin schema garantizado)`);
-    });
-  });
+});
+
+server.on("error", (err) => {
+  console.error("[STARTUP] ❌ Error al iniciar servidor:", err);
+  process.exit(1);
+});
 
