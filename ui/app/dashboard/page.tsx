@@ -148,7 +148,7 @@ function Topbar() {
 
   return (
     <header className="sticky top-0 z-10 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-b">
-      <div className="h-16 flex items-center justify_between px-4">
+      <div className="h-16 flex items-center justify-between px-4">
         <div className="flex items-center gap-4">
           <div className="rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs px-3 py-1">Estado: Operativo</div>
         </div>
