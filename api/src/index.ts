@@ -1019,8 +1019,144 @@ Responde SOLO con un JSON válido con esta estructura:
   if (LEGAL_DOCS_URL) {
     const legalDocsTimeoutMs = Number(process.env.LEGAL_DOCS_TIMEOUT_MS || 110000); // < UI upload timeout (120s)
     
-    // Proxy para /legal/* → legal-docs service
+    // Proxy para rutas específicas de /legal/* (EXCEPTO /legal/upload que se maneja directamente arriba)
+    // Usar rutas específicas en vez de app.all para evitar conflictos
+    app.all("/legal/analyze/:documentId", async (req, rep) => {
+      // Proxy a /analyze/:documentId
+      const path = req.url.replace("/legal", "");
+      await proxyToLegalDocs(req, rep, path, legalDocsTimeoutMs, LEGAL_DOCS_URL);
+    });
+    
+    app.all("/legal/result/:documentId", async (req, rep) => {
+      // Proxy a /result/:documentId
+      const path = req.url.replace("/legal", "");
+      await proxyToLegalDocs(req, rep, path, legalDocsTimeoutMs, LEGAL_DOCS_URL);
+    });
+    
+    app.all("/legal/status/:documentId", async (req, rep) => {
+      // Proxy a /status/:documentId
+      const path = req.url.replace("/legal", "");
+      await proxyToLegalDocs(req, rep, path, legalDocsTimeoutMs, LEGAL_DOCS_URL);
+    });
+    
+    // Función helper para el proxy
+    async function proxyToLegalDocs(req: any, rep: any, path: string, timeoutMs: number, baseUrl: string) {
+      try {
+        const startedAt = Date.now();
+        
+        // Normalizar baseUrl
+        let normalizedUrl = baseUrl.trim();
+        if (!normalizedUrl.startsWith("http://") && !normalizedUrl.startsWith("https://")) {
+          normalizedUrl = `https://${normalizedUrl}`;
+        }
+        normalizedUrl = normalizedUrl.replace(/\/$/, "");
+        
+        const targetUrl = `${normalizedUrl}${path}`;
+        
+        app.log.info(`[LEGAL-DOCS] Proxying ${req.method} ${req.url} → ${targetUrl}`);
+        
+        // Manejar multipart/form-data (archivos)
+        const contentType = req.headers["content-type"] || "";
+        const isMultipart = contentType.includes("multipart/form-data");
+        
+        let body: any = undefined;
+        let headers: Record<string, string> = {};
+        
+        if (isMultipart) {
+          const form = new FormData();
+          
+          const parts = req.parts();
+          for await (const part of parts) {
+            if (part.type === "file") {
+              const buf = await part.toBuffer();
+              const bytes = new Uint8Array(buf);
+              const blob = new Blob([bytes], { type: part.mimetype || "application/octet-stream" });
+              form.append(part.fieldname || "file", blob, part.filename || "file");
+            } else {
+              form.append(part.fieldname, String(part.value));
+            }
+          }
+          
+          body = form;
+        } else if (req.method !== "GET" && req.method !== "HEAD") {
+          headers["Content-Type"] = contentType || "application/json";
+          body = contentType.includes("application/json") 
+            ? JSON.stringify(req.body) 
+            : req.body;
+        }
+        
+        // Headers CORS
+        const origin = req.headers.origin;
+        if (origin && isAllowedOrigin(origin)) {
+          rep.header("Access-Control-Allow-Origin", origin);
+          rep.header("Access-Control-Allow-Credentials", "true");
+          rep.header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
+          rep.header("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept, X-Requested-With");
+        }
+        
+        const controller = new AbortController();
+        const t = setTimeout(() => controller.abort(), timeoutMs);
+        let response: Response;
+        try {
+          response = await fetch(targetUrl, {
+            method: req.method,
+            headers: {
+              ...headers,
+              ...(req.headers.authorization && { Authorization: req.headers.authorization }),
+            },
+            body: body,
+            signal: controller.signal,
+          });
+        } finally {
+          clearTimeout(t);
+        }
+        
+        const responseText = await response.text();
+        let responseData: any;
+        
+        try {
+          responseData = JSON.parse(responseText);
+        } catch {
+          responseData = responseText;
+        }
+        
+        const durationMs = Date.now() - startedAt;
+        app.log.info(`[LEGAL-DOCS] Response ${response.status} in ${durationMs}ms for ${req.method} ${req.url}`);
+        return rep.status(response.status).send(responseData);
+      } catch (error) {
+        app.log.error(error, "Error en proxy legal-docs");
+        const name = (error as any)?.name;
+        const message = (error as any)?.message;
+        
+        // Headers CORS también en errores
+        const origin = req.headers.origin;
+        if (origin && isAllowedOrigin(origin)) {
+          rep.header("Access-Control-Allow-Origin", origin);
+          rep.header("Access-Control-Allow-Credentials", "true");
+          rep.header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
+          rep.header("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept, X-Requested-With");
+        }
+        
+        if (name === "AbortError") {
+          return rep.status(504).send({
+            error: "legal-docs timeout",
+            message: `legal-docs did not respond within ${timeoutMs}ms`,
+          });
+        }
+        return rep.status(502).send({ 
+          error: "Error connecting to legal-docs service",
+          message: error instanceof Error ? error.message : (message || "Unknown error")
+        });
+      }
+    }
+    
+    // Proxy genérico para otras rutas /legal/* (fallback, pero /upload ya está excluido)
     app.all("/legal/*", async (req, rep) => {
+      const urlPath = req.url.split("?")[0];
+      if (urlPath === "/legal/upload") {
+        return; // Ya manejado por el endpoint directo arriba
+      }
+      
       try {
         const startedAt = Date.now();
         
