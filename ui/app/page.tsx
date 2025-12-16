@@ -653,11 +653,11 @@ function AnalizarDocumentosPanel() {
       const data = await response.json();
       setDocumentId(data.documentId);
 
-      // Iniciar análisis
+      // Iniciar análisis (aumentado timeout porque ahora incluye RAG)
       setStatusLabel("Iniciando análisis…");
       const analyzeResponse = await fetchWithTimeout(`${API}/legal/analyze/${data.documentId}`, {
         method: "POST",
-      }, 60000);
+      }, 120000); // 2 minutos para iniciar análisis (ahora incluye RAG)
 
       if (!analyzeResponse.ok) {
         const errorText = await analyzeResponse.text().catch(() => "");
