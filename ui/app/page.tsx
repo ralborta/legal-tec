@@ -653,11 +653,11 @@ function AnalizarDocumentosPanel() {
       const data = await response.json();
       setDocumentId(data.documentId);
 
-      // Iniciar análisis (aumentado timeout porque ahora incluye RAG)
+      // Iniciar análisis (timeout corto: /analyze es fire-and-forget, solo necesita confirmación)
       setStatusLabel("Iniciando análisis…");
       const analyzeResponse = await fetchWithTimeout(`${API}/legal/analyze/${data.documentId}`, {
         method: "POST",
-      }, 120000); // 2 minutos para iniciar análisis (ahora incluye RAG)
+      }, 30000); // 30s - suficiente para confirmación (gateway tiene 10s, pero damos margen para cold start)
 
       if (!analyzeResponse.ok) {
         const errorText = await analyzeResponse.text().catch(() => "");

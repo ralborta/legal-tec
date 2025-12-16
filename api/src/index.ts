@@ -1035,14 +1035,16 @@ Responde SOLO con un JSON válido con esta estructura:
   }
   
   if (LEGAL_DOCS_URL) {
-    const legalDocsTimeoutMs = Number(process.env.LEGAL_DOCS_TIMEOUT_MS || 110000); // < UI upload timeout (120s)
+    const legalDocsTimeoutMs = Number(process.env.LEGAL_DOCS_TIMEOUT_MS || 110000); // Para rutas que pueden tardar (result, status)
+    const analyzeTimeoutMs = Number(process.env.LEGAL_DOCS_ANALYZE_TIMEOUT_MS || 10000); // 10s - solo necesita confirmación rápida
     
     // Proxy para rutas específicas de /legal/* (EXCEPTO /legal/upload que se maneja directamente arriba)
     // Usar rutas específicas en vez de app.all para evitar conflictos
     app.all("/legal/analyze/:documentId", async (req, rep) => {
       // Proxy a /analyze/:documentId
       const path = req.url.replace("/legal", "");
-      await proxyToLegalDocs(req, rep, path, legalDocsTimeoutMs, LEGAL_DOCS_URL);
+      // Timeout corto: /analyze solo necesita confirmación (fire-and-forget en legal-docs)
+      await proxyToLegalDocs(req, rep, path, analyzeTimeoutMs, LEGAL_DOCS_URL);
     });
     
     app.all("/legal/result/:documentId", async (req, rep) => {
