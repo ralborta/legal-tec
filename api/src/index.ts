@@ -1041,21 +1041,24 @@ Responde SOLO con un JSON válido con esta estructura:
     // Proxy para rutas específicas de /legal/* (EXCEPTO /legal/upload que se maneja directamente arriba)
     // Usar rutas específicas en vez de app.all para evitar conflictos
     app.all("/legal/analyze/:documentId", async (req, rep) => {
-      // Proxy a /analyze/:documentId
-      const path = req.url.replace("/legal", "");
+      // Proxy a /analyze/:documentId (SIN /legal - el servicio no debe tener prefijo)
+      const documentId = (req.params as any).documentId;
+      const path = `/analyze/${documentId}`;
       // Timeout corto: /analyze solo necesita confirmación (fire-and-forget en legal-docs)
       await proxyToLegalDocs(req, rep, path, analyzeTimeoutMs, LEGAL_DOCS_URL);
     });
     
     app.all("/legal/result/:documentId", async (req, rep) => {
-      // Proxy a /result/:documentId
-      const path = req.url.replace("/legal", "");
+      // Proxy a /result/:documentId (SIN /legal)
+      const documentId = (req.params as any).documentId;
+      const path = `/result/${documentId}`;
       await proxyToLegalDocs(req, rep, path, legalDocsTimeoutMs, LEGAL_DOCS_URL);
     });
     
     app.all("/legal/status/:documentId", async (req, rep) => {
-      // Proxy a /status/:documentId
-      const path = req.url.replace("/legal", "");
+      // Proxy a /status/:documentId (SIN /legal)
+      const documentId = (req.params as any).documentId;
+      const path = `/status/${documentId}`;
       await proxyToLegalDocs(req, rep, path, legalDocsTimeoutMs, LEGAL_DOCS_URL);
     });
     

@@ -93,11 +93,9 @@ console.log("[LEGAL-DOCS] Rutas registradas:");
 console.log("  POST /upload");
 console.log("  POST /legal/upload");
 console.log("  POST /analyze/:documentId");
-console.log("  POST /legal/analyze/:documentId");
 console.log("  GET  /result/:documentId");
-console.log("  GET  /legal/result/:documentId");
 console.log("  GET  /status/:documentId");
-console.log("  GET  /legal/status/:documentId");
+// Nota: El gateway maneja el prefijo /legal, este servicio NO debe tenerlo
 
 // Analizar documento
 async function handleAnalyze(req: express.Request, res: express.Response, next: express.NextFunction) {
@@ -118,7 +116,8 @@ async function handleAnalyze(req: express.Request, res: express.Response, next: 
 }
 
 app.post("/analyze/:documentId", handleAnalyze);
-app.post("/legal/analyze/:documentId", handleAnalyze);
+// ❌ ELIMINADO: app.post("/legal/analyze/:documentId", handleAnalyze);
+// El gateway ya maneja el prefijo /legal, el servicio NO debe tenerlo
 
 // Obtener resultado
 async function handleResult(req: express.Request, res: express.Response, next: express.NextFunction) {
@@ -147,7 +146,8 @@ async function handleResult(req: express.Request, res: express.Response, next: e
 }
 
 app.get("/result/:documentId", handleResult);
-app.get("/legal/result/:documentId", handleResult);
+// ❌ ELIMINADO: app.get("/legal/result/:documentId", handleResult);
+// El gateway ya maneja el prefijo /legal, el servicio NO debe tenerlo
 
 // Obtener estado del análisis
 async function handleStatus(req: express.Request, res: express.Response, next: express.NextFunction) {
@@ -176,7 +176,8 @@ async function handleStatus(req: express.Request, res: express.Response, next: e
 }
 
 app.get("/status/:documentId", handleStatus);
-app.get("/legal/status/:documentId", handleStatus);
+// ❌ ELIMINADO: app.get("/legal/status/:documentId", handleStatus);
+// El gateway ya maneja el prefijo /legal, el servicio NO debe tenerlo
 
 // Error handler
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
