@@ -1237,6 +1237,9 @@ Responde SOLO con un JSON válido con esta estructura:
         const contentType = req.headers["content-type"] || "";
         const isMultipart = contentType.includes("multipart/form-data");
         
+        // ✅ Detectar si es /analyze/:documentId (POST sin body)
+        const isAnalyzeEndpoint = path.startsWith("/analyze/");
+        
         let body: any = undefined;
         let headers: Record<string, string> = {};
         
@@ -1257,10 +1260,22 @@ Responde SOLO con un JSON válido con esta estructura:
           
           body = form;
         } else if (req.method !== "GET" && req.method !== "HEAD") {
-          headers["Content-Type"] = contentType || "application/json";
-          body = contentType.includes("application/json") 
-            ? JSON.stringify(req.body) 
-            : req.body;
+          // ✅ Para /analyze/:documentId, NO enviar Content-Type si no hay body
+          // Esto evita el error FST_ERR_CTP_EMPTY_JSON_BODY en Fastify
+          const hasBody = req.body !== undefined && req.body !== null && Object.keys(req.body || {}).length > 0;
+          
+          if (isAnalyzeEndpoint && !hasBody) {
+            // POST /analyze/:id sin body → no enviar Content-Type
+            // Fastify acepta POST sin body si no hay Content-Type
+            body = undefined;
+            // No agregar Content-Type a headers
+          } else {
+            // Para otros endpoints o si hay body, enviar Content-Type normalmente
+            headers["Content-Type"] = contentType || "application/json";
+            body = contentType.includes("application/json") 
+              ? (hasBody ? JSON.stringify(req.body) : undefined)
+              : req.body;
+          }
         }
         
         // Headers CORS
@@ -1276,12 +1291,25 @@ Responde SOLO con un JSON válido con esta estructura:
         const t = setTimeout(() => controller.abort(), timeoutMs);
         let response: Response;
         try {
+          // ✅ Construir headers finales (sin Content-Type si no hay body para /analyze)
+          const finalHeaders: Record<string, string> = {
+            ...headers,
+            ...(req.headers.authorization && { Authorization: req.headers.authorization }),
+          };
+          
+          // ✅ Si es /analyze y no hay body, asegurar que no haya Content-Type
+          if (isAnalyzeEndpoint && !body) {
+            delete finalHeaders["Content-Type"];
+            delete finalHeaders["content-type"];
+          }
+          
+          app.log.info(`[LEGAL-DOCS] Proxying ${req.method} ${path} → ${targetUrl}`);
+          app.log.info(`[LEGAL-DOCS] Headers enviados: ${JSON.stringify(finalHeaders)}`);
+          app.log.info(`[LEGAL-DOCS] Has body: ${body !== undefined ? "yes" : "no"}`);
+          
           response = await fetch(targetUrl, {
             method: req.method,
-            headers: {
-              ...headers,
-              ...(req.headers.authorization && { Authorization: req.headers.authorization }),
-            },
+            headers: finalHeaders,
             body: body,
             signal: controller.signal,
           });
