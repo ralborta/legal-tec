@@ -959,9 +959,27 @@ Responde SOLO con un JSON válido con esta estructura:
         return rep.status(400).send({ error: "No se proporcionó archivo" });
       }
 
-      // Generar documentId y guardar en DB (mismo patrón que legal-docs)
+      // Generar documentId y guardar en DB + disco (mismo patrón que legal-docs)
       const { randomUUID } = await import("crypto");
       const documentId = randomUUID();
+      
+      // Asegurar que tenemos filename (ya validado arriba, pero TypeScript no lo sabe)
+      const safeFilename = filename || "document.pdf";
+      const safeMimetype = mimetype || "application/pdf";
+      
+      // Guardar archivo en disco (igual que legal-docs)
+      const STORAGE_DIR = process.env.STORAGE_DIR || "./storage";
+      const { writeFileSync, mkdirSync, existsSync } = await import("fs");
+      
+      if (!existsSync(STORAGE_DIR)) {
+        mkdirSync(STORAGE_DIR, { recursive: true });
+      }
+      
+      const fileExtension = safeFilename.split(".").pop() || "bin";
+      const storagePath = join(STORAGE_DIR, `${documentId}.${fileExtension}`);
+      writeFileSync(storagePath, fileBuffer);
+      
+      app.log.info(`Archivo guardado en disco: ${storagePath}`);
       
       // Guardar metadata en DB (tabla legal_documents)
       const client = new Client({ connectionString: process.env.DATABASE_URL });
@@ -974,7 +992,7 @@ Responde SOLO con un JSON válido con esta estructura:
             id VARCHAR(255) PRIMARY KEY,
             filename VARCHAR(500) NOT NULL,
             mime_type VARCHAR(100) NOT NULL,
-            raw_path TEXT,
+            raw_path TEXT NOT NULL,
             status VARCHAR(50) DEFAULT 'uploaded',
             progress INTEGER DEFAULT 0,
             error_message TEXT,
@@ -983,15 +1001,15 @@ Responde SOLO con un JSON válido con esta estructura:
           )
         `);
         
-        // Guardar metadata (sin guardar archivo en disco por ahora, solo metadata)
+        // Guardar metadata con path real al archivo en disco
         await client.query(
           `INSERT INTO legal_documents (id, filename, mime_type, raw_path, status, progress, created_at, updated_at)
            VALUES ($1, $2, $3, $4, 'uploaded', 0, NOW(), NOW())
            RETURNING id`,
-          [documentId, filename, mimetype, `memory:${documentId}`]
+          [documentId, safeFilename, safeMimetype, storagePath]
         );
         
-        app.log.info(`Documento guardado en DB, documentId: ${documentId}`);
+        app.log.info(`Documento guardado en DB, documentId: ${documentId}, path: ${storagePath}`);
         return rep.send({ documentId });
       } finally {
         await client.end();
