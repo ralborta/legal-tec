@@ -133,9 +133,22 @@ function SideLink({ icon: Icon, label, active, className = "" }: any) {
 }
 
 function Topbar() {
+  // Evitar hydration mismatch: calcular fecha solo en cliente
+  const [today, setToday] = React.useState("");
+
+  React.useEffect(() => {
+    setToday(
+      new Date().toLocaleDateString("es-AR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      })
+    );
+  }, []);
+
   return (
     <header className="sticky top-0 z-10 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-b">
-      <div className="h-16 flex items-center justify-between px-4">
+      <div className="h-16 flex items-center justify_between px-4">
         <div className="flex items-center gap-4">
           <div className="rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs px-3 py-1">Estado: Operativo</div>
         </div>
@@ -145,7 +158,7 @@ function Topbar() {
             <input className="w-full rounded-xl border bg-white pl-10 pr-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-900/10" placeholder="Buscar por asunto, ID o cliente…" />
           </div>
         </div>
-        <div className="text-sm text-slate-500">{new Date().toLocaleDateString()}</div>
+        <div className="text-sm text-slate-500">{today || ""}</div>
       </div>
     </header>
   );

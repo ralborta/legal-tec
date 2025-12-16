@@ -200,6 +200,19 @@ function SideLink({ icon: Icon, label, active, className = "", onClick }: any) {
 }
 
 function Topbar() {
+  // Evitar hydration mismatch: calcular fecha solo en cliente
+  const [today, setToday] = React.useState("");
+
+  React.useEffect(() => {
+    setToday(
+      new Date().toLocaleDateString("es-AR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      })
+    );
+  }, []);
+
   return (
     <header className="flex items-center justify-between p-6 border-b border-gray-200 bg-white">
       <div className="flex items-center gap-4">
@@ -218,7 +231,7 @@ function Topbar() {
         </div>
       </div>
       <div className="text-right text-sm text-gray-500 font-medium">
-        {new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+        {today || ""}
       </div>
     </header>
   );
