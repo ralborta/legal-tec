@@ -69,7 +69,8 @@ async function start() {
     },
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
-    allowedHeaders: ["Content-Type", "Authorization"]
+    allowedHeaders: ["Content-Type", "Authorization", "Accept", "X-Requested-With"],
+    optionsSuccessStatus: 204
   });
 
   // Multipart para manejar archivos
@@ -845,9 +846,19 @@ Responde SOLO con un JSON válido con esta estructura:
   if (LEGAL_DOCS_URL) {
     app.log.info(`[LEGAL-DOCS] Proxy configurado a: ${LEGAL_DOCS_URL}`);
     
+    // Responder preflight localmente (NO proxyear OPTIONS a legal-docs) para evitar CORS bloqueado
+    app.options("/legal/*", async (_req, rep) => {
+      return rep.status(204).send();
+    });
+
     // Proxy para /legal/* → legal-docs service
     app.all("/legal/*", async (req, rep) => {
       try {
+        // Extra safety: si llega OPTIONS acá, no proxyear
+        if (req.method === "OPTIONS") {
+          return rep.status(204).send();
+        }
+
         const path = req.url.replace("/legal", "");
         const targetUrl = `${LEGAL_DOCS_URL}${path}`;
         
