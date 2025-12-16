@@ -901,26 +901,26 @@ Responde SOLO con un JSON válido con esta estructura:
         let headers: Record<string, string> = {};
         
         if (isMultipart) {
-          // Para multipart, usar el stream completo del request
-          // Fastify multipart ya parsea el archivo, necesitamos reenviarlo
-          const FormData = (await import("form-data")).default;
+          // Para multipart, rearmar el body con FormData nativo (Node 18+/undici)
+          // Nota: evitar `form-data` (legacy) porque puede no ser compatible con `fetch` nativo.
           const form = new FormData();
           
           // Obtener todos los campos del multipart
           const parts = req.parts();
           for await (const part of parts) {
             if (part.type === "file") {
-              form.append(part.fieldname || "file", part.file, {
-                filename: part.filename || "file",
-                contentType: part.mimetype,
-              });
+              const buf = await part.toBuffer();
+              // Node types: BlobPart no acepta Buffer<SharedArrayBuffer> estrictamente en TS,
+              // así que normalizamos a Uint8Array.
+              const bytes = new Uint8Array(buf);
+              const blob = new Blob([bytes], { type: part.mimetype || "application/octet-stream" });
+              form.append(part.fieldname || "file", blob, part.filename || "file");
             } else {
-              form.append(part.fieldname, part.value as string);
+              form.append(part.fieldname, String(part.value));
             }
           }
           
-          // Copiar headers de FormData
-          Object.assign(headers, form.getHeaders());
+          // Importante: NO seteamos Content-Type manualmente. `fetch` lo agrega con boundary.
           body = form;
         } else if (req.method !== "GET" && req.method !== "HEAD") {
           // Para JSON u otros tipos

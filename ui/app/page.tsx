@@ -646,7 +646,8 @@ function AnalizarDocumentosPanel() {
       }, 120000);
 
       if (!response.ok) {
-        throw new Error(`Error al subir archivo: ${response.statusText}`);
+        const errorText = await response.text().catch(() => "");
+        throw new Error(`Error al subir archivo (${response.status}): ${errorText || response.statusText || "Sin detalles"}`);
       }
 
       const data = await response.json();
