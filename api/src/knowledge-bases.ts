@@ -167,17 +167,39 @@ export async function getKnowledgeBaseStats(dbUrl: string, id: string): Promise<
       [id]
     );
     
-    const sourceResult = await client.query(
-      `SELECT source, COUNT(*) as count 
-       FROM chunks 
-       WHERE knowledge_base = $1 
-       GROUP BY source`,
-      [id]
+    // Detectar si existe columna source directa o si está en metadata
+    const columnCheck = await client.query(
+      `SELECT column_name FROM information_schema.columns 
+       WHERE table_name = 'chunks' AND column_name = 'source'`
     );
+    
+    const hasSourceColumn = columnCheck.rows.length > 0;
+    
+    let sourceResult;
+    if (hasSourceColumn) {
+      // Esquema simple: source como columna
+      sourceResult = await client.query(
+        `SELECT source, COUNT(*) as count 
+         FROM chunks 
+         WHERE knowledge_base = $1 
+         GROUP BY source`,
+        [id]
+      );
+    } else {
+      // Esquema optimizado: source en metadata JSONB
+      sourceResult = await client.query(
+        `SELECT metadata->>'source' as source, COUNT(*) as count 
+         FROM chunks 
+         WHERE knowledge_base = $1 
+         GROUP BY metadata->>'source'`,
+        [id]
+      );
+    }
     
     const sourceTypes: Record<string, number> = {};
     sourceResult.rows.forEach(row => {
-      sourceTypes[row.source] = parseInt(row.count);
+      const source = row.source || 'unknown';
+      sourceTypes[source] = parseInt(row.count);
     });
     
     return {
@@ -188,5 +210,16 @@ export async function getKnowledgeBaseStats(dbUrl: string, id: string): Promise<
     await client.end();
   }
 }
+
+
+
+
+
+
+
+
+
+
+
 
 

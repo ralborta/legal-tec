@@ -31,28 +31,38 @@ async function runMigration() {
     await client.connect();
     console.log('✅ Conectado');
     
-    console.log('📄 Leyendo archivo SQL...');
-    const sql = readFileSync(join(__dirname, 'sql/003_legal_documents.sql'), 'utf-8');
+    // Migración 002: Knowledge Bases (corregida para ambos esquemas)
+    console.log('\n📄 Ejecutando migración 002: Knowledge Bases...');
+    const sql002 = readFileSync(join(__dirname, 'sql/002_add_knowledge_bases.sql'), 'utf-8');
+    await client.query(sql002);
+    console.log('✅ Migración 002 completada');
     
-    console.log('🚀 Ejecutando migración...');
-    await client.query(sql);
+    // Migración 003: Legal Documents
+    console.log('\n📄 Ejecutando migración 003: Legal Documents...');
+    const sql003 = readFileSync(join(__dirname, 'sql/003_legal_documents.sql'), 'utf-8');
+    await client.query(sql003);
+    console.log('✅ Migración 003 completada');
     
-    console.log('✅ Migración completada exitosamente!');
+    console.log('\n✅ Todas las migraciones completadas exitosamente!');
     console.log('');
     console.log('📋 Tablas creadas:');
+    console.log('  - knowledge_bases');
+    console.log('  - chunks.knowledge_base (columna añadida)');
     console.log('  - legal_documents');
     console.log('  - legal_analysis');
     console.log('  - Índices creados');
     
   } catch (error) {
     console.error('❌ Error ejecutando migración:', error.message);
-    if (error.message.includes('already exists')) {
-      console.log('ℹ️  Las tablas ya existen, esto es normal');
+    if (error.message.includes('already exists') || error.message.includes('duplicate')) {
+      console.log('ℹ️  Algunas tablas/columnas ya existen, esto es normal');
     } else {
+      console.error('Detalles del error:', error);
       process.exit(1);
     }
   } finally {
     await client.end();
+    console.log('\n🔌 Conexión cerrada');
   }
 }
 
