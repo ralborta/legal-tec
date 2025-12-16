@@ -35,6 +35,40 @@ async function start() {
     bodyLimit: 50 * 1024 * 1024, // 50MB límite de body
   });
 
+  // ✅ Crear tabla knowledge_bases automáticamente al iniciar (si no existe)
+  try {
+    const client = new Client({ connectionString: process.env.DATABASE_URL });
+    await client.connect();
+    
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS knowledge_bases (
+        id          text PRIMARY KEY,
+        name        text NOT NULL,
+        description text,
+        source_type text NOT NULL,
+        enabled     boolean DEFAULT true,
+        metadata    jsonb DEFAULT '{}'::jsonb,
+        created_at  timestamptz DEFAULT now(),
+        updated_at  timestamptz DEFAULT now()
+      )
+    `);
+    
+    // Insertar bases de conocimiento por defecto (si no existen)
+    await client.query(`
+      INSERT INTO knowledge_bases (id, name, description, source_type, enabled) VALUES
+        ('normativa_principal', 'Normativa Principal', 'Normativa argentina principal', 'normativa', true),
+        ('jurisprudencia_principal', 'Jurisprudencia Principal', 'Jurisprudencia argentina principal', 'juris', true),
+        ('interno_principal', 'Base Interna Principal', 'Documentos internos del estudio', 'interno', true)
+      ON CONFLICT (id) DO NOTHING
+    `);
+    
+    await client.end();
+    app.log.info("[STARTUP] Tabla knowledge_bases creada/verificada correctamente");
+  } catch (error: any) {
+    app.log.warn(`[STARTUP] No se pudo crear/verificar knowledge_bases (continuando igual): ${error?.message || error}`);
+    // No crashear si falla, el código es resiliente
+  }
+
   const allowedOriginsFromEnv = (process.env.CORS_ORIGINS || process.env.CORS_ORIGIN || "")
     .split(",")
     .map((s) => s.trim())

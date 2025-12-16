@@ -72,6 +72,37 @@ export const legalDb = {
     await db.query(`ALTER TABLE legal_documents ADD COLUMN IF NOT EXISTS progress INTEGER DEFAULT 0;`);
     await db.query(`ALTER TABLE legal_documents ADD COLUMN IF NOT EXISTS error_message TEXT;`);
     await db.query(`ALTER TABLE legal_documents ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW();`);
+
+    // ✅ Crear tabla knowledge_bases automáticamente (si no existe)
+    // Esto evita que el servicio crashee si la tabla no existe
+    try {
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS knowledge_bases (
+          id          text PRIMARY KEY,
+          name        text NOT NULL,
+          description text,
+          source_type text NOT NULL,
+          enabled     boolean DEFAULT true,
+          metadata    jsonb DEFAULT '{}'::jsonb,
+          created_at  timestamptz DEFAULT now(),
+          updated_at  timestamptz DEFAULT now()
+        )
+      `);
+      
+      // Insertar bases de conocimiento por defecto (si no existen)
+      await db.query(`
+        INSERT INTO knowledge_bases (id, name, description, source_type, enabled) VALUES
+          ('normativa_principal', 'Normativa Principal', 'Normativa argentina principal', 'normativa', true),
+          ('jurisprudencia_principal', 'Jurisprudencia Principal', 'Jurisprudencia argentina principal', 'juris', true),
+          ('interno_principal', 'Base Interna Principal', 'Documentos internos del estudio', 'interno', true)
+        ON CONFLICT (id) DO NOTHING
+      `);
+      
+      console.log("[DB] Tabla knowledge_bases creada/verificada");
+    } catch (error) {
+      console.warn("[DB] No se pudo crear/verificar knowledge_bases (continuando igual):", error);
+      // No crashear si falla, el código es resiliente
+    }
   },
 
   async createDocument(data: {
