@@ -45,10 +45,14 @@ app.get("/health", (_req, res) => {
 
 // Upload documento
 async function handleUpload(req: express.Request, res: express.Response, next: express.NextFunction) {
+  console.log(`[UPLOAD] Request recibido en ${req.path}, method: ${req.method}`);
+  console.log(`[UPLOAD] Headers:`, { "content-type": req.headers["content-type"], "content-length": req.headers["content-length"] });
   try {
     if (!req.file) {
+      console.log("[UPLOAD] Error: no file in request");
       return res.status(400).json({ error: "file is required" });
     }
+    console.log(`[UPLOAD] Archivo recibido: ${req.file.originalname}, tamaño: ${req.file.size} bytes`);
 
     const documentId = await saveOriginalDocument({
       buffer: req.file.buffer,
@@ -65,6 +69,16 @@ async function handleUpload(req: express.Request, res: express.Response, next: e
 app.post("/upload", upload.single("file"), handleUpload);
 // Alias para compatibilidad si este servicio queda expuesto directo (sin proxy del API)
 app.post("/legal/upload", upload.single("file"), handleUpload);
+
+console.log("[LEGAL-DOCS] Rutas registradas:");
+console.log("  POST /upload");
+console.log("  POST /legal/upload");
+console.log("  POST /analyze/:documentId");
+console.log("  POST /legal/analyze/:documentId");
+console.log("  GET  /result/:documentId");
+console.log("  GET  /legal/result/:documentId");
+console.log("  GET  /status/:documentId");
+console.log("  GET  /legal/status/:documentId");
 
 // Analizar documento
 async function handleAnalyze(req: express.Request, res: express.Response, next: express.NextFunction) {
