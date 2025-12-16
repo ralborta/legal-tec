@@ -860,10 +860,12 @@ Responde SOLO con un JSON válido con esta estructura:
   const LEGAL_DOCS_URL = process.env.LEGAL_DOCS_URL;
   if (LEGAL_DOCS_URL) {
     app.log.info(`[LEGAL-DOCS] Proxy configurado a: ${LEGAL_DOCS_URL}`);
+    const legalDocsTimeoutMs = Number(process.env.LEGAL_DOCS_TIMEOUT_MS || 110000); // < UI upload timeout (120s)
     
     // Proxy para /legal/* → legal-docs service
     app.all("/legal/*", async (req, rep) => {
       try {
+        const startedAt = Date.now();
         const path = req.url.replace("/legal", "");
         const targetUrl = `${LEGAL_DOCS_URL}${path}`;
         
@@ -906,16 +908,24 @@ Responde SOLO con un JSON válido con esta estructura:
             : req.body;
         }
         
-        // Usar fetch nativo de Node.js 18+
-        const response = await fetch(targetUrl, {
-          method: req.method,
-          headers: {
-            ...headers,
-            // Copiar otros headers importantes
-            ...(req.headers.authorization && { Authorization: req.headers.authorization }),
-          },
-          body: body,
-        });
+        // Usar fetch nativo con timeout (si el servicio legal-docs no responde, evitar quedar "pending")
+        const controller = new AbortController();
+        const t = setTimeout(() => controller.abort(), legalDocsTimeoutMs);
+        let response: Response;
+        try {
+          response = await fetch(targetUrl, {
+            method: req.method,
+            headers: {
+              ...headers,
+              // Copiar otros headers importantes
+              ...(req.headers.authorization && { Authorization: req.headers.authorization }),
+            },
+            body: body,
+            signal: controller.signal,
+          });
+        } finally {
+          clearTimeout(t);
+        }
         
         const responseText = await response.text();
         let responseData: any;
@@ -926,12 +936,22 @@ Responde SOLO con un JSON válido con esta estructura:
           responseData = responseText;
         }
         
+        const durationMs = Date.now() - startedAt;
+        app.log.info(`[LEGAL-DOCS] Response ${response.status} in ${durationMs}ms for ${req.method} ${req.url}`);
         return rep.status(response.status).send(responseData);
       } catch (error) {
         app.log.error(error, "Error en proxy legal-docs");
+        const name = (error as any)?.name;
+        const message = (error as any)?.message;
+        if (name === "AbortError") {
+          return rep.status(504).send({
+            error: "legal-docs timeout",
+            message: `legal-docs did not respond within ${Number(process.env.LEGAL_DOCS_TIMEOUT_MS || 110000)}ms`,
+          });
+        }
         return rep.status(502).send({ 
           error: "Error connecting to legal-docs service",
-          message: error instanceof Error ? error.message : "Unknown error"
+          message: error instanceof Error ? error.message : (message || "Unknown error")
         });
       }
     });

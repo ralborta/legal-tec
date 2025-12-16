@@ -3,12 +3,21 @@ const { Pool } = pg;
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  // Evitar requests colgados si Postgres está lento/no disponible (Railway cold start / networking)
+  connectionTimeoutMillis: Number(process.env.PG_CONNECT_TIMEOUT_MS || 10000),
 });
 
 export const db = {
-  async query(text: string, params?: any[]) {
+  async query(text: string, params?: any[], opts?: { timeoutMs?: number }) {
     const start = Date.now();
-    const res = await pool.query(text, params);
+    const timeoutMs = opts?.timeoutMs ?? Number(process.env.PG_QUERY_TIMEOUT_MS || 20000);
+
+    const res = (await Promise.race([
+      pool.query(text, params),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error(`DB query timeout after ${timeoutMs}ms`)), timeoutMs)
+      ),
+    ])) as any;
     const duration = Date.now() - start;
     console.log("Executed query", { text, duration, rows: res.rowCount });
     return res;
