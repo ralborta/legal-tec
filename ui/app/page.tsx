@@ -1,7 +1,7 @@
 "use client";
 import React, { useMemo, useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Search, FileText, Gavel, BookOpen, CheckCircle2, Clock3, Users, Settings, Upload, Send, Download, ExternalLink, Trash2, Filter, Plus, History, Sparkles, Loader2, Eye, X, Zap, ArrowRight } from "lucide-react";
+import { Search, FileText, Gavel, BookOpen, CheckCircle2, Clock3, Users, Settings, Upload, Send, Download, ExternalLink, Trash2, Filter, Plus, History, Sparkles, Loader2, Eye, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 
@@ -129,7 +129,7 @@ export default function CentroGestionLegalPage() {
                   </div>
                 </>
               ) : (
-                <AnalizarArranquePanel />
+                <AnalizarDocumentosPanel />
               )}
 
               {error && (
@@ -588,213 +588,6 @@ function downloadMD(filename: string, md: string) {
 }
 function sanitize(s: string) { return s.replace(/[^a-z0-9\-\_\ ]/gi, "_"); }
 
-function AnalizarArranquePanel() {
-  const API = useMemo(() => getApiUrl(), []);
-  const [showPdfPanel, setShowPdfPanel] = useState(false);
-
-  const [kbList, setKbList] = useState<Array<{ id: string; name: string; enabled: boolean }>>([]);
-  const [kbId, setKbId] = useState<string>("jurisprudencia_ar");
-  const [urlsText, setUrlsText] = useState<string>("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<{ success: number; failed: number; results: any[] } | null>(null);
-
-  useEffect(() => {
-    if (!API) return;
-    fetch(`${API}/api/knowledge-bases`)
-      .then((r) => r.json())
-      .then((data) => {
-        const list = (data.knowledgeBases || []) as Array<{ id: string; name: string; enabled: boolean }>;
-        setKbList(list);
-        // Si ya existe la KB default, usarla
-        if (list.some((kb) => kb.id === "jurisprudencia_ar")) {
-          setKbId("jurisprudencia_ar");
-        }
-      })
-      .catch(() => {
-        // silencioso: la UI puede funcionar igual y crear la KB al ingestar
-      });
-  }, [API]);
-
-  async function ensureKnowledgeBase(id: string) {
-    // Si ya está en la lista, no hacemos nada
-    if (kbList.some((kb) => kb.id === id)) return;
-
-    // Crear KB por defecto (jurisprudencia argentina)
-    const r = await fetch(`${API}/api/knowledge-bases`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        id,
-        name: "Jurisprudencia Argentina",
-        description: "URLs de jurisprudencia argentina para consultas RAG (fase inicial).",
-        sourceType: "jurisprudencia",
-        enabled: true,
-        metadata: { country: "AR", kind: "jurisprudencia", createdBy: "ui" },
-      }),
-    });
-
-    if (!r.ok) {
-      const t = await r.text();
-      throw new Error(`No se pudo crear la base de conocimiento (${r.status}): ${t || "sin detalles"}`);
-    }
-
-    // refrescar lista
-    const listRes = await fetch(`${API}/api/knowledge-bases`);
-    if (listRes.ok) {
-      const data = await listRes.json();
-      setKbList((data.knowledgeBases || []) as any);
-    }
-  }
-
-  function parseUrls(text: string) {
-    return text
-      .split(/\r?\n/)
-      .map((s) => s.trim())
-      .filter(Boolean)
-      .filter((u) => /^https?:\/\//i.test(u));
-  }
-
-  async function handleIngest() {
-    setError(null);
-    setResult(null);
-    try {
-      if (!API) throw new Error("Falta NEXT_PUBLIC_API_URL");
-      const urls = parseUrls(urlsText);
-      if (urls.length === 0) throw new Error("Pegá al menos 1 URL válida (http/https), una por línea.");
-      if (urls.length > 10) throw new Error("Por ahora, cargá hasta 10 URLs por tanda para evitar timeouts.");
-
-      setLoading(true);
-      const targetKb = kbId || "jurisprudencia_ar";
-      await ensureKnowledgeBase(targetKb);
-
-      const r = await fetch(`${API}/api/scrape-urls`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          urls,
-          knowledgeBaseId: targetKb,
-          sourceType: "jurisprudencia",
-        }),
-      });
-
-      const text = await r.text();
-      let data: any = null;
-      try {
-        data = JSON.parse(text);
-      } catch {
-        data = { error: text };
-      }
-      if (!r.ok) {
-        throw new Error(data?.error || `Error ${r.status}`);
-      }
-      setResult(data);
-    } catch (e: any) {
-      setError(e?.message || "Error al ingestar URLs");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <div className="space-y-6">
-      <div className="bg-white p-6 rounded-xl border border-gray-200">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h3 className="font-bold text-lg text-gray-900">Cargar Jurisprudencia (URLs)</h3>
-            <p className="text-sm text-gray-500 mt-1">
-              Para arrancar sin PDFs: pegá URLs públicas (una por línea) y las incorporamos a una base de conocimiento.
-            </p>
-          </div>
-          <button
-            className="text-sm rounded-lg border border-gray-200 px-3 py-2 hover:bg-gray-50"
-            onClick={() => setShowPdfPanel((v) => !v)}
-          >
-            {showPdfPanel ? "Ocultar PDFs" : "Mostrar PDFs"}
-          </button>
-        </div>
-
-        <div className="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-1">
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Base de conocimiento</label>
-            <select
-              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm"
-              value={kbId}
-              onChange={(e) => setKbId(e.target.value)}
-            >
-              <option value="jurisprudencia_ar">Jurisprudencia Argentina (default)</option>
-              {kbList
-                .filter((kb) => kb.id !== "jurisprudencia_ar")
-                .map((kb) => (
-                  <option key={kb.id} value={kb.id}>
-                    {kb.name} ({kb.id})
-                  </option>
-                ))}
-            </select>
-            <p className="text-xs text-gray-500 mt-2">
-              Tip: empezá con 2–5 URLs por tanda (algunos sitios bloquean scraping).
-            </p>
-          </div>
-
-          <div className="lg:col-span-2">
-            <label className="block text-xs font-semibold text-gray-600 mb-1">URLs (una por línea)</label>
-            <textarea
-              className="w-full h-32 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-mono"
-              placeholder={"https://...\nhttps://...\nhttps://..."}
-              value={urlsText}
-              onChange={(e) => setUrlsText(e.target.value)}
-            />
-            <div className="mt-3 flex items-center gap-3">
-              <button
-                className="inline-flex items-center gap-2 rounded-lg bg-[#C026D3] text-white px-4 py-2 text-sm hover:bg-[#A21CAF] disabled:opacity-60"
-                onClick={handleIngest}
-                disabled={loading}
-              >
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
-                {loading ? "Ingestando…" : "Ingestar URLs"}
-              </button>
-              <button
-                className="text-sm rounded-lg border border-gray-200 px-3 py-2 hover:bg-gray-50"
-                onClick={() => {
-                  setUrlsText("");
-                  setResult(null);
-                  setError(null);
-                }}
-                disabled={loading}
-              >
-                Limpiar
-              </button>
-            </div>
-
-            {error && (
-              <div className="mt-3 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 p-3 text-sm">
-                {error}
-              </div>
-            )}
-
-            {result && (
-              <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 p-3 text-sm">
-                <div className="font-semibold">Ingesta completada</div>
-                <div className="mt-1">
-                  Exitosas: <b>{result.success}</b> · Fallidas: <b>{result.failed}</b>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {showPdfPanel ? (
-        <AnalizarDocumentosPanel />
-      ) : (
-        <div className="rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-600">
-          PDFs deshabilitados por ahora para avanzar rápido. Cuando quieras, activamos “Mostrar PDFs”.
-        </div>
-      )}
-    </div>
-  );
-}
-
 // Componente para analizar documentos legales
 function AnalizarDocumentosPanel() {
   const [file, setFile] = useState<File | null>(null);
@@ -1009,7 +802,7 @@ function AnalizarDocumentosPanel() {
               </>
             ) : (
               <>
-                <Zap className="h-5 w-5" />
+                <Sparkles className="h-5 w-5" />
                 Analizar Documento
               </>
             )}

@@ -114,7 +114,29 @@ async function start() {
       excludeKnowledgeBases: z.array(z.string()).optional() // IDs de bases de conocimiento a excluir
     }).parse(req.body);
 
-    const res = await generateDoc(process.env.DATABASE_URL!, process.env.OPENAI_API_KEY!, body);
+    // Default KBs: si no se especifica nada, preferimos usar las KBs "de fábrica" habilitadas
+    // (ej. jurisprudencia argentina y normativa), para que el usuario no tenga que seleccionar nada.
+    let effectiveBody = body;
+    if ((!body.knowledgeBases || body.knowledgeBases.length === 0) && (!body.excludeKnowledgeBases || body.excludeKnowledgeBases.length === 0)) {
+      try {
+        const kbs = await knowledgeBases.listKnowledgeBases(process.env.DATABASE_URL!);
+        const enabled = (kbs || []).filter(kb => kb.enabled).map(kb => kb.id);
+
+        // Preferencias explícitas si existen
+        const preferred = ["jurisprudencia_principal", "normativa_nacional_urls"].filter(id => enabled.includes(id));
+        const defaults = preferred.length > 0 ? preferred : enabled;
+
+        if (defaults.length > 0) {
+          app.log.info({ defaults }, "Usando knowledge bases por defecto");
+          effectiveBody = { ...body, knowledgeBases: defaults };
+        }
+      } catch (e) {
+        // Si la tabla no existe o falla, seguimos sin filtro (compatibilidad)
+        app.log.warn({ err: e }, "No se pudieron cargar KBs por defecto; se usará búsqueda global");
+      }
+    }
+
+    const res = await generateDoc(process.env.DATABASE_URL!, process.env.OPENAI_API_KEY!, effectiveBody);
     return rep.send(res);
   });
 
