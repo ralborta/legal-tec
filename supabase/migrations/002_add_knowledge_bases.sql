@@ -72,4 +72,3 @@ COMMENT ON COLUMN chunks.knowledge_base IS 'Identificador de la base de conocimi
 COMMENT ON COLUMN knowledge_bases.id IS 'Identificador único de la base de conocimiento';
 COMMENT ON COLUMN knowledge_bases.source_type IS 'Tipo de fuente: normativa, juris, interno, doctrina, etc.';
 
-
