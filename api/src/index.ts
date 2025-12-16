@@ -930,7 +930,84 @@ Responde SOLO con un JSON válido con esta estructura:
   app.log.info("  POST /api/memos/query");
   app.log.info("  POST /api/memos/chat");
   
-  // Proxy routes para legal-docs service
+  // Endpoint directo para upload de documentos legales (sin proxy, funciona como /api/memos/generate)
+  app.post("/legal/upload", async (req, rep) => {
+    try {
+      app.log.info("POST /legal/upload recibido");
+      
+      if (!req.isMultipart()) {
+        return rep.status(400).send({ error: "Se requiere multipart/form-data" });
+      }
+
+      let fileBuffer: Buffer | null = null;
+      let filename: string | null = null;
+      let mimetype: string | null = null;
+
+      for await (const part of req.parts()) {
+        if (part.type === "file" && part.fieldname === "file") {
+          fileBuffer = await part.toBuffer();
+          filename = part.filename || "document.pdf";
+          mimetype = part.mimetype || "application/pdf";
+          app.log.info(`Archivo recibido: ${filename}, tamaño: ${fileBuffer.length} bytes`);
+          break;
+        }
+      }
+
+      if (!fileBuffer) {
+        return rep.status(400).send({ error: "No se proporcionó archivo" });
+      }
+
+      // Generar documentId y guardar en DB (mismo patrón que legal-docs)
+      const { randomUUID } = await import("crypto");
+      const documentId = randomUUID();
+      
+      // Guardar metadata en DB (tabla legal_documents)
+      const pg = await import("pg");
+      const { Client } = pg;
+      const client = new Client({ connectionString: process.env.DATABASE_URL });
+      await client.connect();
+      
+      try {
+        // Asegurar que la tabla existe
+        await client.query(`
+          CREATE TABLE IF NOT EXISTS legal_documents (
+            id VARCHAR(255) PRIMARY KEY,
+            filename VARCHAR(500) NOT NULL,
+            mime_type VARCHAR(100) NOT NULL,
+            raw_path TEXT,
+            status VARCHAR(50) DEFAULT 'uploaded',
+            progress INTEGER DEFAULT 0,
+            error_message TEXT,
+            created_at TIMESTAMP DEFAULT NOW(),
+            updated_at TIMESTAMP DEFAULT NOW()
+          )
+        `);
+        
+        // Guardar metadata (sin guardar archivo en disco por ahora, solo metadata)
+        await client.query(
+          `INSERT INTO legal_documents (id, filename, mime_type, raw_path, status, progress, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, 'uploaded', 0, NOW(), NOW())
+           RETURNING id`,
+          [documentId, filename, mimetype, `memory:${documentId}`]
+        );
+        
+        app.log.info(`Documento guardado en DB, documentId: ${documentId}`);
+        return rep.send({ documentId });
+      } finally {
+        await client.end();
+      }
+    } catch (error) {
+      app.log.error(error, "Error en /legal/upload");
+      return rep.status(500).send({
+        error: "Error al subir archivo",
+        message: error instanceof Error ? error.message : "Error desconocido"
+      });
+    }
+  });
+
+  app.log.info("  POST /legal/upload → directo (sin proxy)");
+  
+  // Proxy routes para legal-docs service (para otros endpoints como /analyze, /result, etc.)
   const LEGAL_DOCS_URL = process.env.LEGAL_DOCS_URL;
   if (LEGAL_DOCS_URL) {
     app.log.info(`[LEGAL-DOCS] Proxy configurado a: ${LEGAL_DOCS_URL}`);
