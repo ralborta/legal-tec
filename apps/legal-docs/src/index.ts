@@ -146,44 +146,58 @@ async function handleAnalyze(req: express.Request, res: express.Response, next: 
   try {
     const { documentId } = req.params;
     
-    // 🔍 LOGGING para diagnóstico
+    // 🔍 LOGGING para diagnóstico (más detallado)
+    console.log(`[LEGAL-DOCS-ANALYZE] ========================================`);
     console.log(`[LEGAL-DOCS-ANALYZE] Request recibido: ${req.method} ${req.originalUrl || req.url}`);
-    console.log(`[LEGAL-DOCS-ANALYZE] Params:`, req.params);
-    console.log(`[LEGAL-DOCS-ANALYZE] documentId: ${documentId}`);
+    console.log(`[LEGAL-DOCS-ANALYZE] Params completos:`, JSON.stringify(req.params, null, 2));
+    console.log(`[LEGAL-DOCS-ANALYZE] documentId extraído: "${documentId}"`);
+    console.log(`[LEGAL-DOCS-ANALYZE] Tipo de documentId: ${typeof documentId}`);
+    console.log(`[LEGAL-DOCS-ANALYZE] documentId length: ${documentId?.length || 0}`);
     
     // Validar que documentId existe y es válido
     if (!documentId || typeof documentId !== 'string' || documentId.trim().length === 0) {
-      console.error(`[LEGAL-DOCS-ANALYZE] documentId inválido: ${documentId}`);
+      console.error(`[LEGAL-DOCS-ANALYZE] ❌ documentId inválido: "${documentId}"`);
       return res.status(400).json({ 
         error: "Invalid documentId",
         message: "documentId is required and must be a valid UUID",
-        received: documentId
+        received: documentId,
+        type: typeof documentId
       });
     }
     
     // ✅ Verificar que el documento existe en DB
+    console.log(`[LEGAL-DOCS-ANALYZE] Buscando documento en DB: ${documentId}`);
     const doc = await legalDb.getDocument(documentId);
     if (!doc) {
-      console.error(`[LEGAL-DOCS-ANALYZE] Documento no encontrado en DB: ${documentId}`);
+      console.error(`[LEGAL-DOCS-ANALYZE] ❌ Documento NO encontrado en DB: ${documentId}`);
+      console.error(`[LEGAL-DOCS-ANALYZE] ❌ Esto significa que el upload falló o el documentId es incorrecto`);
       return res.status(404).json({ 
         error: "Document not found",
-        message: `Document with id ${documentId} does not exist. Make sure you uploaded it first.`,
-        documentId
+        message: `Document with id ${documentId} does not exist in database. Make sure you uploaded it first.`,
+        documentId,
+        hint: "El upload puede haber fallado. Por favor, sube el archivo nuevamente."
       });
     }
+    
+    console.log(`[LEGAL-DOCS-ANALYZE] ✅ Documento encontrado en DB: ${doc.filename}`);
+    console.log(`[LEGAL-DOCS-ANALYZE] Path esperado: ${doc.raw_path}`);
     
     // ✅ CRÍTICO: Validar que el archivo existe físicamente (no solo en DB)
     const { existsSync } = await import("fs");
     if (!existsSync(doc.raw_path)) {
-      console.error(`[LEGAL-DOCS-ANALYZE] Archivo no existe en disco: ${doc.raw_path} (documentId: ${documentId})`);
+      console.error(`[LEGAL-DOCS-ANALYZE] ❌ Archivo NO existe en disco: ${doc.raw_path}`);
+      console.error(`[LEGAL-DOCS-ANALYZE] ❌ documentId: ${documentId}`);
+      console.error(`[LEGAL-DOCS-ANALYZE] ❌ Esto significa que el upload falló (se creó el registro pero no el archivo)`);
       return res.status(409).json({ 
         error: "File not found",
         message: `El archivo asociado al documento ${documentId} no existe en disco. El upload puede haber fallado. Por favor, sube el archivo nuevamente.`,
         documentId,
-        expectedPath: doc.raw_path
+        expectedPath: doc.raw_path,
+        hint: "El registro existe en DB pero el archivo no. Esto indica que el upload falló parcialmente."
       });
     }
     
+    console.log(`[LEGAL-DOCS-ANALYZE] ✅ Archivo existe en disco: ${doc.raw_path}`);
     console.log(`[LEGAL-DOCS-ANALYZE] ✅ Documento y archivo validados: ${doc.filename}, iniciando análisis...`);
     
     // Disparar análisis de forma asíncrona

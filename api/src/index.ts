@@ -1300,6 +1300,19 @@ Responde SOLO con un JSON válido con esta estructura:
         
         const durationMs = Date.now() - startedAt;
         app.log.info(`[LEGAL-DOCS] Response ${response.status} in ${durationMs}ms for ${req.method} ${req.url}`);
+        
+        // 🔍 LOGGING MEJORADO para diagnóstico de errores 400
+        if (response.status >= 400) {
+          app.log.error(`[LEGAL-DOCS] ❌❌❌ ERROR ${response.status} ❌❌❌`);
+          app.log.error(`[LEGAL-DOCS] ❌ URL: ${targetUrl}`);
+          app.log.error(`[LEGAL-DOCS] ❌ Response body completo: ${responseText}`);
+          const headersObj: Record<string, string> = {};
+          response.headers.forEach((value, key) => {
+            headersObj[key] = value;
+          });
+          app.log.error(`[LEGAL-DOCS] ❌ Response headers: ${JSON.stringify(headersObj)}`);
+        }
+        
         return rep.status(response.status).send(responseData);
       } catch (error) {
         app.log.error(error, "Error en proxy legal-docs");
