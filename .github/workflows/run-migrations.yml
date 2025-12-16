@@ -1,0 +1,32 @@
+name: Ejecutar Migraciones SQL
+
+on:
+  workflow_dispatch: # Permite ejecutar manualmente desde GitHub
+  push:
+    branches:
+      - main
+    paths:
+      - 'sql/**'
+      - 'ejecutar-migracion.js'
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+      
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Instalar dependencias
+        run: npm install pg
+      
+      - name: Ejecutar migraciones
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: node ejecutar-migracion.js
+
