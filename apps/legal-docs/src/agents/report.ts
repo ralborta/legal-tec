@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import type { DistributionChecklistItem } from "./analyzerDistribution.js";
 import type { TranslatedClause } from "./translator.js";
+import { queryJurisprudence } from "./rag-query.js";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -19,17 +20,20 @@ Generate a comprehensive legal analysis report in Spanish based on:
 2. Translated clauses (Spanish)
 3. Document type classification
 4. Analysis checklist (if available)
+5. Relevant jurisprudence and legal precedents (if available)
 
 The report should include:
 
 - Executive summary
 - Document type and key characteristics
 - Critical clauses analysis
-- Risk assessment
+- Risk assessment (considering relevant jurisprudence)
+- Legal precedents and jurisprudence analysis (if available)
 - Recommendations for the client (DISTRIBUTOR perspective)
 - Action items
 
 Format: Professional legal report in Spanish, structured with clear sections.
+When citing jurisprudence, include the source and URL if available.
 
 Return ONLY the report text, no JSON, no markdown headers.`;
 
@@ -38,6 +42,15 @@ export async function generateReport(input: ReportInput): Promise<string> {
   const timeout = 90000; // 90 segundos timeout
   
   try {
+    // Consultar jurisprudencia relevante usando RAG
+    console.log(`[REPORT] Consultando jurisprudencia para tipo: ${input.type}`);
+    const jurisprudence = await queryJurisprudence(
+      input.original,
+      input.type,
+      6 // Máximo 6 resultados
+    );
+    console.log(`[REPORT] Encontradas ${jurisprudence.length} fuentes de jurisprudencia`);
+
     const checklistText = input.checklist?.items
       ? input.checklist.items
           .map(
@@ -51,6 +64,16 @@ export async function generateReport(input: ReportInput): Promise<string> {
       .map((c) => `${c.clause_number}. ${c.title_es}\n${c.body_es}`)
       .join("\n\n")
       .substring(0, 6000); // Reducir tamaño
+
+    // Formatear jurisprudencia para el prompt
+    const jurisprudenceText = jurisprudence.length > 0
+      ? jurisprudence
+          .map(
+            (j) =>
+              `### ${j.title} (${j.source})\n${j.text}${j.url ? `\nFuente: ${j.url}` : ""}`
+          )
+          .join("\n\n")
+      : "No se encontró jurisprudencia relevante para este documento.";
 
     const response = await Promise.race([
       openai.chat.completions.create({
@@ -75,7 +98,10 @@ CLÁUSULAS TRADUCIDAS:
 ${translatedText}
 
 CHECKLIST DE ANÁLISIS:
-${checklistText}`,
+${checklistText}
+
+JURISPRUDENCIA Y NORMATIVA RELEVANTE:
+${jurisprudenceText}`,
           },
         ],
       }, { timeout }),
