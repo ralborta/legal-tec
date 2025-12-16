@@ -102,15 +102,43 @@ async function handleAnalyze(req: express.Request, res: express.Response, next: 
   try {
     const { documentId } = req.params;
     
-    console.log(`[ANALYZE] Starting analysis for document: ${documentId}`);
+    // 🔍 LOGGING para diagnóstico
+    console.log(`[LEGAL-DOCS-ANALYZE] Request recibido: ${req.method} ${req.originalUrl || req.url}`);
+    console.log(`[LEGAL-DOCS-ANALYZE] Params:`, req.params);
+    console.log(`[LEGAL-DOCS-ANALYZE] documentId: ${documentId}`);
+    
+    // Validar que documentId existe y es válido
+    if (!documentId || typeof documentId !== 'string' || documentId.trim().length === 0) {
+      console.error(`[LEGAL-DOCS-ANALYZE] documentId inválido: ${documentId}`);
+      return res.status(400).json({ 
+        error: "Invalid documentId",
+        message: "documentId is required and must be a valid UUID",
+        received: documentId
+      });
+    }
+    
+    // Verificar que el documento existe antes de iniciar análisis
+    const doc = await legalDb.getDocument(documentId);
+    if (!doc) {
+      console.error(`[LEGAL-DOCS-ANALYZE] Documento no encontrado: ${documentId}`);
+      return res.status(404).json({ 
+        error: "Document not found",
+        message: `Document with id ${documentId} does not exist. Make sure you uploaded it first.`,
+        documentId
+      });
+    }
+    
+    console.log(`[LEGAL-DOCS-ANALYZE] Documento encontrado: ${doc.filename}, iniciando análisis...`);
     
     // Disparar análisis de forma asíncrona
     runFullAnalysis(documentId).catch((error) => {
       console.error(`[ANALYZE] Error en análisis de documento ${documentId}:`, error);
     });
 
+    console.log(`[LEGAL-DOCS-ANALYZE] Análisis iniciado, respondiendo 200`);
     res.json({ status: "processing", documentId });
   } catch (err) {
+    console.error(`[LEGAL-DOCS-ANALYZE] Error inesperado:`, err);
     next(err);
   }
 }

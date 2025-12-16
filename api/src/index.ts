@@ -1044,6 +1044,12 @@ Responde SOLO con un JSON válido con esta estructura:
       // Proxy a /analyze/:documentId (SIN /legal - el servicio no debe tener prefijo)
       const documentId = (req.params as any).documentId;
       const path = `/analyze/${documentId}`;
+      
+      // 🔍 LOGGING para diagnóstico
+      app.log.info(`[GW-ANALYZE] Incoming: ${req.method} ${req.url}`);
+      app.log.info(`[GW-ANALYZE] Params: documentId=${documentId}`);
+      app.log.info(`[GW-ANALYZE] Proxy path: ${path}`);
+      
       // Timeout corto: /analyze solo necesita confirmación (fire-and-forget en legal-docs)
       await proxyToLegalDocs(req, rep, path, analyzeTimeoutMs, LEGAL_DOCS_URL);
     });
@@ -1077,6 +1083,7 @@ Responde SOLO con un JSON válido con esta estructura:
         const targetUrl = `${normalizedUrl}${path}`;
         
         app.log.info(`[LEGAL-DOCS] Proxying ${req.method} ${req.url} → ${targetUrl}`);
+        app.log.info(`[LEGAL-DOCS] Target URL completo: ${targetUrl}`);
         
         // Manejar multipart/form-data (archivos)
         const contentType = req.headers["content-type"] || "";
