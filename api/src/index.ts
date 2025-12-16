@@ -888,7 +888,14 @@ Responde SOLO con un JSON válido con esta estructura:
     app.all("/legal/*", async (req, rep) => {
       try {
         const startedAt = Date.now();
-        const path = req.url.replace("/legal", "");
+        
+        // Extraer path correctamente: remover /legal del inicio y preservar query string si existe
+        // req.url en Fastify es el pathname + query string (ej: "/legal/upload" o "/legal/upload?foo=bar")
+        let path = req.url.replace(/^\/legal/, "") || "/";
+        // Asegurar que empiece con /
+        if (!path.startsWith("/")) {
+          path = "/" + path;
+        }
         
         // Normalizar LEGAL_DOCS_URL: si no tiene protocolo, agregar https://
         let baseUrl = LEGAL_DOCS_URL.trim();
@@ -901,6 +908,7 @@ Responde SOLO con un JSON válido con esta estructura:
         const targetUrl = `${baseUrl}${path}`;
         
         app.log.info(`[LEGAL-DOCS] Proxying ${req.method} ${req.url} → ${targetUrl}`);
+        app.log.info(`[LEGAL-DOCS] Debug: baseUrl=${baseUrl}, path=${path}, LEGAL_DOCS_URL=${LEGAL_DOCS_URL}`);
         
         // Manejar multipart/form-data (archivos)
         const contentType = req.headers["content-type"] || "";
