@@ -43,6 +43,25 @@ app.get("/health", (_req, res) => {
   res.json({ service: "legal-docs", ok: true });
 });
 
+// Endpoint de diagnóstico para ver qué rutas están registradas
+app.get("/debug/routes", (_req, res) => {
+  const routes: string[] = [];
+  app._router?.stack?.forEach((middleware: any) => {
+    if (middleware.route) {
+      const methods = Object.keys(middleware.route.methods).join(",").toUpperCase();
+      routes.push(`${methods} ${middleware.route.path}`);
+    } else if (middleware.name === "router") {
+      middleware.handle.stack?.forEach((handler: any) => {
+        if (handler.route) {
+          const methods = Object.keys(handler.route.methods).join(",").toUpperCase();
+          routes.push(`${methods} ${handler.route.path}`);
+        }
+      });
+    }
+  });
+  res.json({ routes, total: routes.length });
+});
+
 // Upload documento
 async function handleUpload(req: express.Request, res: express.Response, next: express.NextFunction) {
   console.log(`[UPLOAD] Request recibido en ${req.path}, method: ${req.method}`);
