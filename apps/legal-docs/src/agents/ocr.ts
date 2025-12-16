@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import pdfParse from "pdf-parse";
+import { PDFParse } from "pdf-parse";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -11,8 +11,13 @@ export async function ocrAgent(file: {
   // Si es PDF, extraer texto directamente
   if (file.mimeType === "application/pdf" || file.filename.toLowerCase().endsWith(".pdf")) {
     try {
-      const data = await pdfParse(file.buffer);
-      return data.text;
+      const parser = new PDFParse({ data: file.buffer });
+      try {
+        const data = await parser.getText();
+        return data.text;
+      } finally {
+        await parser.destroy();
+      }
     } catch (error) {
       console.error("Error parsing PDF:", error);
       throw new Error("Failed to extract text from PDF");

@@ -40,8 +40,28 @@ try {
 async function start() {
   const app = Fastify({ logger: true });
 
+  const allowedOriginsFromEnv = (process.env.CORS_ORIGINS || process.env.CORS_ORIGIN || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  const isAllowedOrigin = (origin: string) => {
+    // Permitir localhost
+    if (origin.startsWith("http://localhost:") || origin.startsWith("http://127.0.0.1:")) return true;
+
+    // Permitir todos los dominios de Vercel (preview + prod)
+    if (origin.includes(".vercel.app") || origin.endsWith("vercel.app")) return true;
+
+    // Permitir orígenes explícitos vía env
+    if (allowedOriginsFromEnv.includes(origin)) return true;
+
+    return false;
+  };
+
   // CORS para frontend en Vercel y desarrollo local
   await app.register(cors, {
+    // Importante: setear CORS lo más temprano posible para que aplique también a 404/errores/proxy
+    hook: "onRequest",
     origin: (origin, cb) => {
       // Permitir requests sin origin (Postman, curl, etc.)
       if (!origin) {
@@ -51,15 +71,8 @@ async function start() {
       
       app.log.info(`CORS: Verificando origin: ${origin}`);
       
-      // Permitir localhost
-      if (origin.startsWith("http://localhost:") || origin.startsWith("http://127.0.0.1:")) {
-        app.log.info("CORS: Localhost permitido");
-        return cb(null, true);
-      }
-      
-      // Permitir todos los dominios de Vercel (cualquier subdominio)
-      if (origin.includes("vercel.app")) {
-        app.log.info("CORS: Dominio Vercel permitido");
+      if (isAllowedOrigin(origin)) {
+        app.log.info("CORS: Origin permitido");
         return cb(null, true);
       }
       
@@ -67,9 +80,11 @@ async function start() {
       app.log.warn(`CORS: Origin denegado: ${origin}`);
       return cb(new Error("Not allowed by CORS"), false);
     },
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization", "Accept", "X-Requested-With"],
+    exposedHeaders: ["Content-Disposition"],
+    maxAge: 86400,
     optionsSuccessStatus: 204
   });
 
@@ -846,19 +861,9 @@ Responde SOLO con un JSON válido con esta estructura:
   if (LEGAL_DOCS_URL) {
     app.log.info(`[LEGAL-DOCS] Proxy configurado a: ${LEGAL_DOCS_URL}`);
     
-    // Responder preflight localmente (NO proxyear OPTIONS a legal-docs) para evitar CORS bloqueado
-    app.options("/legal/*", async (_req, rep) => {
-      return rep.status(204).send();
-    });
-
     // Proxy para /legal/* → legal-docs service
     app.all("/legal/*", async (req, rep) => {
       try {
-        // Extra safety: si llega OPTIONS acá, no proxyear
-        if (req.method === "OPTIONS") {
-          return rep.status(204).send();
-        }
-
         const path = req.url.replace("/legal", "");
         const targetUrl = `${LEGAL_DOCS_URL}${path}`;
         

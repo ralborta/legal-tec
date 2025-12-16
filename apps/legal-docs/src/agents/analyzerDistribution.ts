@@ -59,7 +59,6 @@ export async function runDistributionAnalyzer(
         model: "gpt-4o-mini",
         temperature: 0.2,
         max_tokens: 3000, // Limitar tokens de respuesta
-        timeout: timeout,
         messages: [
           {
             role: "system",
@@ -71,7 +70,7 @@ export async function runDistributionAnalyzer(
           },
         ],
         response_format: { type: "json_object" },
-      }),
+      }, { timeout }),
       new Promise((_, reject) => 
         setTimeout(() => reject(new Error("Distribution analysis timeout after 90s")), timeout)
       )

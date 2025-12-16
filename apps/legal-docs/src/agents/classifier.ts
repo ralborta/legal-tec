@@ -47,7 +47,6 @@ export async function classifierAgent(
         model: "gpt-4o-mini",
         temperature: 0.1,
         max_tokens: 500, // Clasificación es corta
-        timeout: timeout,
         messages: [
           {
             role: "system",
@@ -59,7 +58,7 @@ export async function classifierAgent(
           },
         ],
         response_format: { type: "json_object" },
-      }),
+      }, { timeout }),
       new Promise((_, reject) => 
         setTimeout(() => reject(new Error("Classification timeout after 30s")), timeout)
       )

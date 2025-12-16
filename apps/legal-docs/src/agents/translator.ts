@@ -43,7 +43,6 @@ export async function translatorAgent(originalText: string): Promise<TranslatedC
         model: "gpt-4o-mini",
         temperature: 0.2,
         max_tokens: 4000, // Limitar tokens de respuesta
-        timeout: timeout,
         messages: [
           {
             role: "system",
@@ -55,7 +54,7 @@ export async function translatorAgent(originalText: string): Promise<TranslatedC
           },
         ],
         response_format: { type: "json_object" },
-      }),
+      }, { timeout }),
       new Promise((_, reject) => 
         setTimeout(() => reject(new Error("Translation timeout after 60s")), timeout)
       )

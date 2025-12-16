@@ -57,7 +57,6 @@ export async function generateReport(input: ReportInput): Promise<string> {
         model: "gpt-4o-mini",
         temperature: 0.3,
         max_tokens: 2000, // Limitar tokens de respuesta
-        timeout: timeout,
         messages: [
           {
             role: "system",
@@ -79,7 +78,7 @@ CHECKLIST DE ANÁLISIS:
 ${checklistText}`,
           },
         ],
-      }),
+      }, { timeout }),
       new Promise((_, reject) => 
         setTimeout(() => reject(new Error("Report generation timeout after 90s")), timeout)
       )

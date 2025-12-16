@@ -9,6 +9,33 @@ const app = express();
 const upload = multer({ storage: multer.memoryStorage() });
 
 // Middleware
+// CORS para frontend en Vercel y desarrollo local (y para uso vía proxy)
+const allowedOriginsFromEnv = (process.env.CORS_ORIGINS || process.env.CORS_ORIGIN || "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+function isAllowedOrigin(origin: string) {
+  if (origin.startsWith("http://localhost:") || origin.startsWith("http://127.0.0.1:")) return true;
+  if (origin.includes(".vercel.app") || origin.endsWith("vercel.app")) return true;
+  if (allowedOriginsFromEnv.includes(origin)) return true;
+  return false;
+}
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && typeof origin === "string" && isAllowedOrigin(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+    res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept, X-Requested-With");
+    res.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
+  }
+  if (req.method === "OPTIONS") return res.status(204).end();
+  next();
+});
+
 app.use(express.json());
 
 // Health check
@@ -17,7 +44,7 @@ app.get("/health", (_req, res) => {
 });
 
 // Upload documento
-app.post("/upload", upload.single("file"), async (req, res, next) => {
+async function handleUpload(req: express.Request, res: express.Response, next: express.NextFunction) {
   try {
     if (!req.file) {
       return res.status(400).json({ error: "file is required" });
@@ -33,10 +60,14 @@ app.post("/upload", upload.single("file"), async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-});
+}
+
+app.post("/upload", upload.single("file"), handleUpload);
+// Alias para compatibilidad si este servicio queda expuesto directo (sin proxy del API)
+app.post("/legal/upload", upload.single("file"), handleUpload);
 
 // Analizar documento
-app.post("/analyze/:documentId", async (req, res, next) => {
+async function handleAnalyze(req: express.Request, res: express.Response, next: express.NextFunction) {
   try {
     const { documentId } = req.params;
     
@@ -51,10 +82,13 @@ app.post("/analyze/:documentId", async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-});
+}
+
+app.post("/analyze/:documentId", handleAnalyze);
+app.post("/legal/analyze/:documentId", handleAnalyze);
 
 // Obtener resultado
-app.get("/result/:documentId", async (req, res, next) => {
+async function handleResult(req: express.Request, res: express.Response, next: express.NextFunction) {
   try {
     const { documentId } = req.params;
     const result = await getFullResult(documentId);
@@ -77,10 +111,13 @@ app.get("/result/:documentId", async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-});
+}
+
+app.get("/result/:documentId", handleResult);
+app.get("/legal/result/:documentId", handleResult);
 
 // Obtener estado del análisis
-app.get("/status/:documentId", async (req, res, next) => {
+async function handleStatus(req: express.Request, res: express.Response, next: express.NextFunction) {
   try {
     const { documentId } = req.params;
     // Preferir status persistido en legal_documents (si existe)
@@ -103,7 +140,10 @@ app.get("/status/:documentId", async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-});
+}
+
+app.get("/status/:documentId", handleStatus);
+app.get("/legal/status/:documentId", handleStatus);
 
 // Error handler
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
