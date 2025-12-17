@@ -170,9 +170,14 @@ export default function CentroGestionLegalPage() {
                         setError={setError}
                         setLoading={setLoading}
                       />
-                      <ChatPanel memoContent={lastGeneratedMemo} />
                     </div>
                   </div>
+                  {/* Chat debajo del contenido cuando hay un memo generado */}
+                  {lastGeneratedMemo && (
+                    <div className="mt-8">
+                      <ChatPanel memoContent={lastGeneratedMemo} />
+                    </div>
+                  )}
                 </>
               ) : activeView === "analizar" ? (
                 <AnalizarDocumentosPanel />
