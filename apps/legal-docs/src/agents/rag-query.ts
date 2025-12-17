@@ -32,7 +32,8 @@ export async function queryJurisprudence(
         tableName: "chunks",
       });
 
-      const index = await VectorStoreIndex.fromVectorStore(store);
+      // POC: cast para compatibilidad de tipos (PGVectorStore no tiene embedModel)
+      const index = await VectorStoreIndex.fromVectorStore(store as any);
       const retriever = index.asRetriever({ similarityTopK: maxResults * 2 }); // Buscar más para filtrar
 
       // Query: buscar jurisprudencia relevante al tipo de documento y contenido
