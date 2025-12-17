@@ -895,31 +895,50 @@ function AnalysisResultPanel({ analysisResult, analyzing, documentId }: {
   }, [analysisResult]);
 
   const handleChatSubmit = async () => {
-    if (!chatInput.trim() || !documentId) return;
+    if (!chatInput.trim()) return;
     
     const userMessage = chatInput.trim();
     setChatInput("");
-    setChatMessages(prev => [...prev, { role: "user", content: userMessage }]);
+    
+    // Agregar mensaje del usuario al historial
+    const newMessages = [...chatMessages, { role: "user" as const, content: userMessage }];
+    setChatMessages(newMessages);
     setChatLoading(true);
 
     try {
+      // Preparar citas en el formato correcto
+      const citas = report?.citas?.map((c: any) => ({
+        tipo: c.tipo || "otra",
+        referencia: c.referencia || "",
+        descripcion: c.descripcion,
+        url: c.url
+      })) || [];
+
       const response = await fetch(`${API}/api/memos/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          documentId,
-          message: userMessage,
-          context: report?.texto_formateado || analysisResult?.analysis?.report || "",
-          history: chatMessages
+          // Usar el texto formateado como contexto principal
+          memoText: report?.texto_formateado || (typeof analysisResult?.analysis?.report === 'string' ? analysisResult.analysis.report : JSON.stringify(analysisResult?.analysis?.report)),
+          // Historial de mensajes incluyendo el nuevo
+          messages: newMessages,
+          // Área legal si está disponible
+          areaLegal: report?.area_legal || analysisResult?.analysis?.type || "",
+          // Citas del análisis
+          citas: citas
         })
       });
 
-      if (!response.ok) throw new Error("Error en el chat");
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Error en el chat: ${errorText}`);
+      }
       
       const data = await response.json();
-      setChatMessages(prev => [...prev, { role: "assistant", content: data.response || data.message || "Sin respuesta" }]);
-    } catch (err) {
-      setChatMessages(prev => [...prev, { role: "assistant", content: "Error al procesar tu consulta. Intenta de nuevo." }]);
+      setChatMessages(prev => [...prev, { role: "assistant", content: data.message || data.response || "Sin respuesta" }]);
+    } catch (err: any) {
+      console.error("Error en chat:", err);
+      setChatMessages(prev => [...prev, { role: "assistant", content: `Error al procesar tu consulta: ${err.message || "Intenta de nuevo."}` }]);
     } finally {
       setChatLoading(false);
     }

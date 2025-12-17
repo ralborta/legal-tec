@@ -84,67 +84,137 @@ const FUENTES_LEGALES = `
 
 const prompt = `Eres un analista legal senior de WNS & Asociados especializado en análisis de documentos legales (contratos, acuerdos, escrituras, etc.).
 
-INSTRUCCIONES:
+INSTRUCCIONES CRÍTICAS:
 1. Detecta la JURISDICCIÓN del documento (Nacional, CABA, Buenos Aires, Córdoba, Santa Fe, Mendoza, u otra provincia)
 2. Identifica el ÁREA LEGAL (Civil, Comercial, Laboral, Tributario, Societario, etc.)
-3. Analiza el documento completo
-4. Genera un análisis estructurado en JSON
+3. Analiza TODAS las cláusulas del documento - NO omitas ninguna
+4. Genera un análisis EXTENSO y DETALLADO
+
+REQUISITOS DE EXTENSIÓN:
+- "resumen_ejecutivo": MÍNIMO 3-4 párrafos completos describiendo el documento, partes, objeto, y aspectos más relevantes
+- "clausulas_analizadas": OBLIGATORIO analizar CADA cláusula del documento. Mínimo 5-10 cláusulas. Para cada una incluir análisis detallado.
+- "analisis_juridico": MÍNIMO 4-5 párrafos con análisis legal profundo, normativa aplicable, interpretación jurídica
+- "riesgos": MÍNIMO 3-5 riesgos identificados con nivel y recomendación específica
+- "recomendaciones": MÍNIMO 5 recomendaciones prácticas y específicas
+- "proximos_pasos": MÍNIMO 3-5 acciones concretas a tomar
+- "citas": MÍNIMO 3-5 citas de normativa/jurisprudencia relevante CON URLs
+- "documentos_sugeridos": MÍNIMO 2-3 documentos que podrían complementar o ser necesarios
 
 Devuelve un JSON con esta estructura EXACTA:
 
 {
-  "titulo": "Título descriptivo del análisis",
-  "tipo_documento": "Tipo de documento analizado",
-  "jurisdiccion": "Jurisdicción identificada (ej: Nacional, CABA, Buenos Aires)",
-  "area_legal": "Área legal principal (ej: Civil y Comercial, Laboral, Societario)",
-  "resumen_ejecutivo": "Resumen ejecutivo completo de 2-3 párrafos",
+  "titulo": "Análisis Legal de [tipo de documento] - [partes involucradas]",
+  "tipo_documento": "Tipo específico (ej: Contrato de Locación, Contrato de Distribución, Acuerdo de Confidencialidad)",
+  "jurisdiccion": "Jurisdicción identificada",
+  "area_legal": "Área legal principal",
+  "resumen_ejecutivo": "Resumen EXTENSO de 3-4 párrafos. Incluir: partes del contrato, objeto, plazo, precio/contraprestación, aspectos más relevantes, contexto general.",
   "clausulas_analizadas": [
     {
-      "numero": "Número de cláusula",
+      "numero": "1",
       "titulo": "Título de la cláusula",
-      "analisis": "Análisis detallado de la cláusula",
+      "analisis": "Análisis DETALLADO de la cláusula: qué establece, implicancias legales, si es favorable/desfavorable, comparación con estándares del mercado",
       "riesgo": "bajo" | "medio" | "alto"
     }
   ],
-  "analisis_juridico": "Análisis jurídico completo y detallado del documento",
+  "analisis_juridico": "Análisis jurídico EXTENSO de 4-5 párrafos. Incluir: marco normativo aplicable, interpretación de cláusulas clave, validez legal, posibles conflictos, jurisprudencia relevante si aplica.",
   "riesgos": [
     {
-      "descripcion": "Descripción del riesgo identificado",
+      "descripcion": "Descripción ESPECÍFICA del riesgo",
       "nivel": "bajo" | "medio" | "alto",
-      "recomendacion": "Recomendación para mitigar el riesgo"
+      "recomendacion": "Recomendación CONCRETA para mitigar este riesgo"
     }
   ],
-  "recomendaciones": ["Recomendación 1", "Recomendación 2", ...],
-  "proximos_pasos": ["Acción 1", "Acción 2", ...],
+  "recomendaciones": [
+    "Recomendación específica y accionable 1",
+    "Recomendación específica y accionable 2"
+  ],
+  "proximos_pasos": [
+    "Acción concreta 1 con responsable si corresponde",
+    "Acción concreta 2 con plazo si corresponde"
+  ],
   "citas": [
     {
-      "tipo": "normativa" | "jurisprudencia" | "doctrina" | "otra",
-      "referencia": "Referencia completa (ej: Art. 765 CCyC)",
-      "descripcion": "Breve descripción",
+      "tipo": "normativa",
+      "referencia": "Art. XXX del Código Civil y Comercial",
+      "descripcion": "Descripción de qué regula este artículo",
       "url": "URL de la fuente oficial"
     }
   ],
   "documentos_sugeridos": [
     {
-      "tipo": "Tipo de documento sugerido",
-      "descripcion": "Por qué se sugiere este documento"
+      "tipo": "Tipo de documento",
+      "descripcion": "Por qué se sugiere y para qué serviría"
     }
   ],
-  "texto_formateado": "Texto completo del análisis formateado profesionalmente para copiar"
+  "texto_formateado": "Reporte completo formateado profesionalmente (ver formato abajo)"
 }
 
-IMPORTANTE:
-- Las citas DEBEN incluir URLs de las fuentes oficiales proporcionadas
-- Los riesgos deben ser específicos y accionables
-- Las recomendaciones deben ser prácticas y aplicables
-- Los documentos sugeridos deben ser relevantes para el caso
-- El texto_formateado debe ser un reporte profesional completo
+FORMATO PARA "texto_formateado":
+═══════════════════════════════════════════════════════════════════════════════
+                              WNS & ASOCIADOS
+                         ANÁLISIS LEGAL DE DOCUMENTO
+═══════════════════════════════════════════════════════════════════════════════
+
+DOCUMENTO: [Tipo de documento]
+PARTES: [Partes involucradas]
+FECHA DE ANÁLISIS: [Fecha actual]
+JURISDICCIÓN: [Jurisdicción]
+ÁREA LEGAL: [Área legal]
+
+═══════════════════════════════════════════════════════════════════════════════
+                          I. RESUMEN EJECUTIVO
+═══════════════════════════════════════════════════════════════════════════════
+
+[Resumen extenso de 3-4 párrafos]
+
+═══════════════════════════════════════════════════════════════════════════════
+                       II. ANÁLISIS DE CLÁUSULAS
+═══════════════════════════════════════════════════════════════════════════════
+
+[Para cada cláusula analizada, incluir número, título, análisis y nivel de riesgo]
+
+═══════════════════════════════════════════════════════════════════════════════
+                        III. ANÁLISIS JURÍDICO
+═══════════════════════════════════════════════════════════════════════════════
+
+[Análisis jurídico extenso]
+
+═══════════════════════════════════════════════════════════════════════════════
+                      IV. RIESGOS IDENTIFICADOS
+═══════════════════════════════════════════════════════════════════════════════
+
+[Lista de riesgos con nivel y recomendación]
+
+═══════════════════════════════════════════════════════════════════════════════
+                        V. RECOMENDACIONES
+═══════════════════════════════════════════════════════════════════════════════
+
+[Lista de recomendaciones]
+
+═══════════════════════════════════════════════════════════════════════════════
+                         VI. PRÓXIMOS PASOS
+═══════════════════════════════════════════════════════════════════════════════
+
+[Lista de acciones a tomar]
+
+═══════════════════════════════════════════════════════════════════════════════
+                     VII. FUENTES Y REFERENCIAS
+═══════════════════════════════════════════════════════════════════════════════
+
+[Lista de citas con URLs]
+
+═══════════════════════════════════════════════════════════════════════════════
+
+WNS & ASOCIADOS
+Estudio Jurídico Integral
+
+═══════════════════════════════════════════════════════════════════════════════
 
 Devuelve SOLO el JSON válido, sin texto adicional.`;
 
 export async function generateReport(input: ReportInput): Promise<AnalysisReport> {
   const startTime = Date.now();
-  const timeout = 90000; // 90 segundos timeout
+  const timeout = 120000; // 120 segundos timeout (más tiempo para análisis extenso)
   
   try {
     // Consultar jurisprudencia relevante usando RAG
@@ -165,10 +235,11 @@ export async function generateReport(input: ReportInput): Promise<AnalysisReport
           .join("\n\n")
       : "No checklist disponible";
 
+    // Usar más texto del documento para mejor análisis
     const translatedText = input.translated
       .map((c) => `${c.clause_number}. ${c.title_es}\n${c.body_es}`)
       .join("\n\n")
-      .substring(0, 6000); // Reducir tamaño
+      .substring(0, 10000); // Aumentado para mejor análisis
 
     // Formatear jurisprudencia para el prompt
     const jurisprudenceText = jurisprudence.length > 0
@@ -184,11 +255,11 @@ export async function generateReport(input: ReportInput): Promise<AnalysisReport
       openai.chat.completions.create({
         model: "gpt-4o-mini",
         temperature: 0.3,
-        max_tokens: 4000,
+        max_tokens: 6000, // Aumentado para respuestas más extensas
         messages: [
           {
             role: "system",
-            content: "Eres un analista legal senior. Devuelve SOLO JSON válido con el análisis estructurado del documento.",
+            content: "Eres un analista legal senior. Genera análisis EXTENSOS y DETALLADOS. Devuelve SOLO JSON válido.",
           },
           {
             role: "user",
@@ -198,23 +269,25 @@ ${FUENTES_LEGALES}
 
 TIPO DE DOCUMENTO: ${input.type}
 
-TEXTO ORIGINAL (primeros caracteres):
-${input.original.substring(0, 3000)}
+TEXTO ORIGINAL:
+${input.original.substring(0, 5000)}
 
-CLÁUSULAS TRADUCIDAS:
+CLÁUSULAS DEL DOCUMENTO (analizar TODAS):
 ${translatedText}
 
-CHECKLIST DE ANÁLISIS:
+CHECKLIST DE ANÁLISIS PREVIO:
 ${checklistText}
 
 JURISPRUDENCIA Y NORMATIVA RELEVANTE:
-${jurisprudenceText}`,
+${jurisprudenceText}
+
+IMPORTANTE: El análisis debe ser EXTENSO y DETALLADO. Analiza TODAS las cláusulas del documento.`,
           },
         ],
         response_format: { type: "json_object" },
       }, { timeout }),
       new Promise((_, reject) => 
-        setTimeout(() => reject(new Error("Report generation timeout after 90s")), timeout)
+        setTimeout(() => reject(new Error("Report generation timeout after 120s")), timeout)
       )
     ]) as any;
     
