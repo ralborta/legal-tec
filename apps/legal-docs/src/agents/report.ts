@@ -12,9 +12,43 @@ interface ReportInput {
   checklist: { items?: DistributionChecklistItem[] } | null;
 }
 
+// Estructura del reporte (similar al memo)
+export interface AnalysisReport {
+  titulo: string;
+  tipo_documento: string;
+  jurisdiccion: string;
+  area_legal: string;
+  resumen_ejecutivo: string;
+  clausulas_analizadas: Array<{
+    numero: string;
+    titulo: string;
+    analisis: string;
+    riesgo: "bajo" | "medio" | "alto";
+  }>;
+  analisis_juridico: string;
+  riesgos: Array<{
+    descripcion: string;
+    nivel: "bajo" | "medio" | "alto";
+    recomendacion: string;
+  }>;
+  recomendaciones: string[];
+  proximos_pasos: string[];
+  citas: Array<{
+    tipo: "normativa" | "jurisprudencia" | "doctrina" | "otra";
+    referencia: string;
+    descripcion?: string;
+    url?: string;
+  }>;
+  documentos_sugeridos: Array<{
+    tipo: string;
+    descripcion: string;
+  }>;
+  texto_formateado: string;
+}
+
 // Fuentes legales organizadas por jurisdicción y área
 const FUENTES_LEGALES = `
-## FUENTES DE CONSULTA OBLIGATORIAS
+## FUENTES DE CONSULTA OBLIGATORIAS - INCLUIR URLs EN LAS CITAS
 
 ### NIVEL NACIONAL
 - Boletín Oficial: https://www.boletinoficial.gob.ar/
@@ -41,64 +75,74 @@ const FUENTES_LEGALES = `
 - UNLP: https://www.bibliojuridica.laplata.edu.ar/
 
 ### PROVINCIAS - Usar según jurisdicción del documento:
-
-**CABA:**
-- Boletín Oficial CABA: https://boletinoficial.buenosaires.gob.ar/
-- Código Procesal CABA: https://www.argentina.gob.ar/normativa/provincial/ley-189-123456789-0abc-defg-981-0000xvorpyel/actualizacion
-
-**Buenos Aires:**
-- Boletín Oficial PBA: https://normas.gba.gob.ar/
-- SIND PBA: https://www.gob.gba.gov.ar/legislacion/
-
-**Córdoba:**
-- Boletín Oficial: https://boletinoficial.cba.gov.ar/
-- Legislatura: https://www.legislaturacba.gov.ar/
-
-**Santa Fe:**
-- Boletín Oficial: https://boletinoficial.santafe.gob.ar/
-- Normativa: https://www.santafe.gov.ar/index.php/web/content/view/full/208678
-
-**Mendoza:**
-- Boletín Oficial: https://www.boletinoficial.mendoza.gov.ar/
-- Poder Judicial: https://www.jus.mendoza.gov.ar
-
-**Otras provincias:** Consultar en SAIJ la normativa provincial correspondiente.
+- CABA Boletín Oficial: https://boletinoficial.buenosaires.gob.ar/
+- Buenos Aires (Normas): https://normas.gba.gob.ar/
+- Córdoba Boletín Oficial: https://boletinoficial.cba.gov.ar/
+- Santa Fe Boletín Oficial: https://boletinoficial.santafe.gob.ar/
+- Mendoza Boletín Oficial: https://www.boletinoficial.mendoza.gov.ar/
 `;
 
-const prompt = `Eres un generador de reportes legales para WNS & Asociados.
+const prompt = `Eres un analista legal senior de WNS & Asociados especializado en análisis de documentos legales (contratos, acuerdos, escrituras, etc.).
 
-INSTRUCCIONES IMPORTANTES:
-1. PRIMERO: Detecta la JURISDICCIÓN del documento (Nacional, CABA, Buenos Aires, Córdoba, Santa Fe, Mendoza, u otra provincia)
-2. SEGUNDO: Identifica el ÁREA LEGAL (Civil, Comercial, Laboral, Tributario, Penal, Administrativo, etc.)
-3. TERCERO: Genera el análisis completo
-4. CUARTO: OBLIGATORIO incluir sección "FUENTES Y REFERENCIAS" al final con las URLs relevantes
+INSTRUCCIONES:
+1. Detecta la JURISDICCIÓN del documento (Nacional, CABA, Buenos Aires, Córdoba, Santa Fe, Mendoza, u otra provincia)
+2. Identifica el ÁREA LEGAL (Civil, Comercial, Laboral, Tributario, Societario, etc.)
+3. Analiza el documento completo
+4. Genera un análisis estructurado en JSON
 
-Genera un reporte de análisis legal completo en español basado en:
+Devuelve un JSON con esta estructura EXACTA:
 
-1. Texto original del documento
-2. Cláusulas traducidas (español)
-3. Clasificación del tipo de documento
-4. Checklist de análisis (si disponible)
-5. Jurisprudencia y precedentes legales (si disponible)
+{
+  "titulo": "Título descriptivo del análisis",
+  "tipo_documento": "Tipo de documento analizado",
+  "jurisdiccion": "Jurisdicción identificada (ej: Nacional, CABA, Buenos Aires)",
+  "area_legal": "Área legal principal (ej: Civil y Comercial, Laboral, Societario)",
+  "resumen_ejecutivo": "Resumen ejecutivo completo de 2-3 párrafos",
+  "clausulas_analizadas": [
+    {
+      "numero": "Número de cláusula",
+      "titulo": "Título de la cláusula",
+      "analisis": "Análisis detallado de la cláusula",
+      "riesgo": "bajo" | "medio" | "alto"
+    }
+  ],
+  "analisis_juridico": "Análisis jurídico completo y detallado del documento",
+  "riesgos": [
+    {
+      "descripcion": "Descripción del riesgo identificado",
+      "nivel": "bajo" | "medio" | "alto",
+      "recomendacion": "Recomendación para mitigar el riesgo"
+    }
+  ],
+  "recomendaciones": ["Recomendación 1", "Recomendación 2", ...],
+  "proximos_pasos": ["Acción 1", "Acción 2", ...],
+  "citas": [
+    {
+      "tipo": "normativa" | "jurisprudencia" | "doctrina" | "otra",
+      "referencia": "Referencia completa (ej: Art. 765 CCyC)",
+      "descripcion": "Breve descripción",
+      "url": "URL de la fuente oficial"
+    }
+  ],
+  "documentos_sugeridos": [
+    {
+      "tipo": "Tipo de documento sugerido",
+      "descripcion": "Por qué se sugiere este documento"
+    }
+  ],
+  "texto_formateado": "Texto completo del análisis formateado profesionalmente para copiar"
+}
 
-El reporte DEBE incluir:
+IMPORTANTE:
+- Las citas DEBEN incluir URLs de las fuentes oficiales proporcionadas
+- Los riesgos deben ser específicos y accionables
+- Las recomendaciones deben ser prácticas y aplicables
+- Los documentos sugeridos deben ser relevantes para el caso
+- El texto_formateado debe ser un reporte profesional completo
 
-- **Resumen Ejecutivo**
-- **Jurisdicción y Área Legal Identificada**
-- **Tipo de documento y características clave**
-- **Análisis de cláusulas críticas**
-- **Evaluación de riesgos** (considerando jurisprudencia relevante)
-- **Precedentes legales y análisis jurisprudencial** (si disponible)
-- **Recomendaciones para el cliente** (perspectiva del DISTRIBUIDOR)
-- **Acciones a tomar**
-- **FUENTES Y REFERENCIAS** (OBLIGATORIO - incluir URLs de las fuentes consultadas según jurisdicción y área legal)
+Devuelve SOLO el JSON válido, sin texto adicional.`;
 
-Formato: Reporte legal profesional en español, estructurado con secciones claras.
-Al citar jurisprudencia o normativa, incluir la fuente y URL.
-
-Devuelve SOLO el texto del reporte, sin JSON, sin headers markdown.`;
-
-export async function generateReport(input: ReportInput): Promise<string> {
+export async function generateReport(input: ReportInput): Promise<AnalysisReport> {
   const startTime = Date.now();
   const timeout = 90000; // 90 segundos timeout
   
@@ -140,11 +184,11 @@ export async function generateReport(input: ReportInput): Promise<string> {
       openai.chat.completions.create({
         model: "gpt-4o-mini",
         temperature: 0.3,
-        max_tokens: 3000, // Aumentado para incluir fuentes
+        max_tokens: 4000,
         messages: [
           {
             role: "system",
-            content: "Eres un generador de reportes legales. Devuelve SOLO el texto del reporte en español, formato profesional. SIEMPRE incluye una sección de FUENTES Y REFERENCIAS al final con URLs relevantes.",
+            content: "Eres un analista legal senior. Devuelve SOLO JSON válido con el análisis estructurado del documento.",
           },
           {
             role: "user",
@@ -155,7 +199,7 @@ ${FUENTES_LEGALES}
 TIPO DE DOCUMENTO: ${input.type}
 
 TEXTO ORIGINAL (primeros caracteres):
-${input.original.substring(0, 2000)}
+${input.original.substring(0, 3000)}
 
 CLÁUSULAS TRADUCIDAS:
 ${translatedText}
@@ -167,6 +211,7 @@ JURISPRUDENCIA Y NORMATIVA RELEVANTE:
 ${jurisprudenceText}`,
           },
         ],
+        response_format: { type: "json_object" },
       }, { timeout }),
       new Promise((_, reject) => 
         setTimeout(() => reject(new Error("Report generation timeout after 90s")), timeout)
@@ -176,10 +221,59 @@ ${jurisprudenceText}`,
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
     console.log(`[REPORT] Completed in ${duration}s`);
 
-    const report = response.choices[0]?.message?.content || "No se pudo generar el reporte.";
-    return report;
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error("OpenAI no devolvió contenido");
+    }
+
+    // Limpiar JSON si viene con markdown
+    let jsonText = content.trim();
+    if (jsonText.startsWith("```json")) {
+      jsonText = jsonText.replace(/^```json\s*/, "").replace(/\s*```$/, "");
+    } else if (jsonText.startsWith("```")) {
+      jsonText = jsonText.replace(/^```\s*/, "").replace(/\s*```$/, "");
+    }
+
+    const parsed = JSON.parse(jsonText) as AnalysisReport;
+
+    // Validar estructura mínima
+    if (!parsed.titulo || !parsed.resumen_ejecutivo) {
+      throw new Error("Respuesta de OpenAI incompleta: faltan campos requeridos");
+    }
+
+    // Asegurar arrays
+    parsed.clausulas_analizadas = parsed.clausulas_analizadas || [];
+    parsed.riesgos = parsed.riesgos || [];
+    parsed.recomendaciones = parsed.recomendaciones || [];
+    parsed.proximos_pasos = parsed.proximos_pasos || [];
+    parsed.citas = parsed.citas || [];
+    parsed.documentos_sugeridos = parsed.documentos_sugeridos || [];
+
+    return parsed;
   } catch (error) {
     console.error("Error generando reporte:", error);
-    return `Error al generar reporte: ${error instanceof Error ? error.message : "Error desconocido"}`;
+    
+    // Devolver estructura mínima en caso de error
+    return {
+      titulo: "Error en el análisis",
+      tipo_documento: input.type,
+      jurisdiccion: "No determinada",
+      area_legal: "No determinada",
+      resumen_ejecutivo: `Error al generar el análisis: ${error instanceof Error ? error.message : "Error desconocido"}`,
+      clausulas_analizadas: [],
+      analisis_juridico: "No se pudo generar el análisis jurídico.",
+      riesgos: [],
+      recomendaciones: [],
+      proximos_pasos: [],
+      citas: [],
+      documentos_sugeridos: [],
+      texto_formateado: `Error al generar reporte: ${error instanceof Error ? error.message : "Error desconocido"}`
+    };
   }
+}
+
+// Mantener compatibilidad con código existente que espera string
+export async function generateReportText(input: ReportInput): Promise<string> {
+  const report = await generateReport(input);
+  return report.texto_formateado;
 }

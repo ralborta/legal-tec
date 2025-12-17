@@ -154,7 +154,7 @@ export const legalDb = {
         JSON.stringify(data.original),
         JSON.stringify(data.translated),
         JSON.stringify(data.checklist),
-        data.report,
+        typeof data.report === 'string' ? data.report : JSON.stringify(data.report),
       ]
     );
     return result.rows[0];
