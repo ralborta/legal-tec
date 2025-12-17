@@ -1,5 +1,5 @@
 "use client";
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Search, FileText, Gavel, BookOpen, CheckCircle2, Clock3, Users, Settings, Upload, Send, Download, ExternalLink, Trash2, Filter, Plus, History, Sparkles, Loader2, Eye, X } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -1087,6 +1087,7 @@ function AnalysisResultPanel({ analysisResult, analyzing, documentId }: {
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
   const API = useMemo(() => getApiUrl(), []);
+  const chatMessagesEndRef = useRef<HTMLDivElement>(null);
 
   // Parsear el report si es string JSON
   const report = useMemo(() => {
@@ -1102,6 +1103,13 @@ function AnalysisResultPanel({ analysisResult, analyzing, documentId }: {
     }
     return r;
   }, [analysisResult]);
+
+  // Auto-scroll cuando cambian los mensajes o cuando termina de cargar
+  useEffect(() => {
+    if (chatMessagesEndRef.current && activeTab === "chat") {
+      chatMessagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [chatMessages, chatLoading, activeTab]);
 
   const handleChatSubmit = async () => {
     if (!chatInput.trim()) return;
@@ -1423,6 +1431,7 @@ function AnalysisResultPanel({ analysisResult, analyzing, documentId }: {
                   </div>
                 </div>
               )}
+              <div ref={chatMessagesEndRef} />
             </div>
             <div className="flex gap-2">
               <input
@@ -2612,6 +2621,7 @@ function ChatPanel({ memoContent }: { memoContent: { content: string; resumen: s
   const [loading, setLoading] = useState(false);
   const [chatStarted, setChatStarted] = useState(false);
   const API = useMemo(() => getApiUrl(), []);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Resetear cuando cambia el memo
   useEffect(() => {
@@ -2635,6 +2645,13 @@ function ChatPanel({ memoContent }: { memoContent: { content: string; resumen: s
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [memoContent?.titulo, chatStarted]);
+
+  // Auto-scroll cuando cambian los mensajes o cuando termina de cargar
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [messages, loading]);
 
   async function handleSendMessage(messageText?: string, isInitial = false) {
     const textToSend = messageText || currentMessage;
@@ -2785,6 +2802,7 @@ function ChatPanel({ memoContent }: { memoContent: { content: string; resumen: s
             </div>
           </motion.div>
         )}
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Input area */}
