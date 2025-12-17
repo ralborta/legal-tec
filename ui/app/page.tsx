@@ -856,6 +856,9 @@ function AnalizarDocumentosPanel() {
             </div>
           )}
         </div>
+
+        {/* Documentos Sugeridos - Solo mostrar cuando hay análisis */}
+        <DocumentosSugeridosPanel analysisResult={analysisResult} />
       </div>
 
       <AnalysisResultPanel 
@@ -863,6 +866,134 @@ function AnalizarDocumentosPanel() {
         analyzing={analyzing} 
         documentId={documentId}
       />
+    </div>
+  );
+}
+
+// Componente para mostrar y generar documentos sugeridos
+function DocumentosSugeridosPanel({ analysisResult }: { analysisResult: any }) {
+  const [generatingDoc, setGeneratingDoc] = useState<string | null>(null);
+  const [generatedDoc, setGeneratedDoc] = useState<{ tipo: string; contenido: string } | null>(null);
+  const API = useMemo(() => getApiUrl(), []);
+
+  // Parsear el report
+  const report = useMemo(() => {
+    if (!analysisResult?.analysis?.report) return null;
+    const r = analysisResult.analysis.report;
+    if (typeof r === 'string') {
+      try {
+        return JSON.parse(r);
+      } catch {
+        return null;
+      }
+    }
+    return r;
+  }, [analysisResult]);
+
+  const documentosSugeridos = report?.documentos_sugeridos || [];
+
+  const handleGenerateDocument = async (doc: { tipo: string; descripcion: string }) => {
+    setGeneratingDoc(doc.tipo);
+    setGeneratedDoc(null);
+
+    try {
+      const response = await fetch(`${API}/api/generate-suggested-doc`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tipoDocumento: doc.tipo,
+          descripcion: doc.descripcion,
+          contextoAnalisis: report?.texto_formateado || "",
+          tipoDocumentoAnalizado: report?.tipo_documento || "",
+          jurisdiccion: report?.jurisdiccion || "",
+          areaLegal: report?.area_legal || "",
+          citas: report?.citas || []
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error("Error al generar documento");
+      }
+
+      const data = await response.json();
+      setGeneratedDoc({ tipo: doc.tipo, contenido: data.documento || data.contenido || "Sin contenido" });
+    } catch (err) {
+      console.error("Error generando documento:", err);
+      setGeneratedDoc({ tipo: doc.tipo, contenido: "Error al generar el documento. Intenta de nuevo." });
+    } finally {
+      setGeneratingDoc(null);
+    }
+  };
+
+  if (documentosSugeridos.length === 0) return null;
+
+  return (
+    <div className="mt-6 border-t border-gray-200 pt-6">
+      <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+        <FileText className="h-4 w-4 text-[#C026D3]" />
+        Documentos Sugeridos
+      </h4>
+      <p className="text-xs text-gray-500 mb-4">
+        Basados en el análisis, se sugieren los siguientes documentos. Hacé click para generar la redacción.
+      </p>
+      
+      <div className="space-y-2">
+        {documentosSugeridos.map((doc: any, i: number) => (
+          <div key={i} className="border border-gray-200 rounded-lg p-3 hover:border-[#C026D3]/40 transition">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-900">{doc.tipo}</p>
+                <p className="text-xs text-gray-500">{doc.descripcion}</p>
+              </div>
+              <button
+                onClick={() => handleGenerateDocument(doc)}
+                disabled={generatingDoc === doc.tipo}
+                className="ml-3 px-3 py-1.5 bg-[#C026D3] text-white text-xs font-medium rounded-lg hover:bg-[#A21CAF] disabled:opacity-50 flex items-center gap-1"
+              >
+                {generatingDoc === doc.tipo ? (
+                  <>
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Generando...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-3 w-3" />
+                    Generar
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Modal/Panel para mostrar documento generado */}
+      {generatedDoc && (
+        <div className="mt-4 border border-[#C026D3]/30 rounded-lg bg-purple-50/50 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h5 className="font-semibold text-gray-900">{generatedDoc.tipo}</h5>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(generatedDoc.contenido);
+                }}
+                className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+              >
+                📋 Copiar
+              </button>
+              <button
+                onClick={() => setGeneratedDoc(null)}
+                className="text-xs px-2 py-1 text-gray-500 hover:text-gray-700"
+              >
+                ✕ Cerrar
+              </button>
+            </div>
+          </div>
+          <div className="text-sm text-gray-700 bg-white p-4 rounded-lg border border-gray-200 max-h-[400px] overflow-y-auto whitespace-pre-wrap">
+            {generatedDoc.contenido}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

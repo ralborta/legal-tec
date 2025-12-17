@@ -511,6 +511,81 @@ async function start() {
     }
   });
 
+  // Generar documento sugerido basado en el análisis
+  app.post("/api/generate-suggested-doc", async (req, rep) => {
+    try {
+      const body = req.body as {
+        tipoDocumento: string;
+        descripcion: string;
+        contextoAnalisis: string;
+        tipoDocumentoAnalizado?: string;
+        jurisdiccion?: string;
+        areaLegal?: string;
+        citas?: Array<{ tipo: string; referencia: string; descripcion?: string; url?: string }>;
+      };
+
+      const openaiKey = process.env.OPENAI_API_KEY;
+      if (!openaiKey) {
+        return rep.status(500).send({ error: "OPENAI_API_KEY no configurada" });
+      }
+
+      const OpenAI = (await import("openai")).default;
+      const openai = new OpenAI({ apiKey: openaiKey });
+
+      const citasText = body.citas?.map(c => `- ${c.referencia}${c.descripcion ? `: ${c.descripcion}` : ""}`).join("\n") || "No hay citas disponibles";
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        temperature: 0.3,
+        max_tokens: 3000,
+        messages: [
+          {
+            role: "system",
+            content: `Sos un abogado argentino senior de WNS & Asociados. 
+Tu tarea es redactar documentos legales profesionales basados en el análisis de un documento previo.
+
+REGLAS:
+- Redactá en español argentino formal
+- Usá formato profesional de documento legal
+- Incluí fecha, lugar, partes si corresponde
+- Citá normativa relevante cuando sea apropiado
+- El documento debe estar listo para usar (solo completar datos específicos marcados con [COMPLETAR])
+
+CONTEXTO:
+- Documento analizado: ${body.tipoDocumentoAnalizado || "No especificado"}
+- Jurisdicción: ${body.jurisdiccion || "Nacional"}
+- Área legal: ${body.areaLegal || "Civil y Comercial"}
+
+CITAS LEGALES DISPONIBLES:
+${citasText}`
+          },
+          {
+            role: "user",
+            content: `Basándote en el siguiente análisis de documento, redactá un "${body.tipoDocumento}".
+
+MOTIVO: ${body.descripcion}
+
+ANÁLISIS DEL DOCUMENTO ORIGINAL:
+${body.contextoAnalisis.substring(0, 4000)}
+
+Generá el documento "${body.tipoDocumento}" completo, profesional y listo para usar.`
+          }
+        ]
+      });
+
+      const documento = response.choices[0]?.message?.content || "No se pudo generar el documento.";
+
+      return rep.send({ documento });
+
+    } catch (error) {
+      app.log.error(error, "Error en /api/generate-suggested-doc");
+      return rep.status(500).send({
+        error: "Error al generar documento",
+        message: error instanceof Error ? error.message : "Error desconocido"
+      });
+    }
+  });
+
   // Sugerir templates según el contenido del memo (con validación por IA)
   app.post("/api/templates/suggest", async (req, rep) => {
     try {
