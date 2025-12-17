@@ -162,3 +162,4 @@ curl -X POST https://tu-api.railway.app/v1/generate \
 El sistema está completamente implementado y listo para añadir bases de conocimiento adicionales. Consultá `docs/knowledge-bases.md` para más detalles y ejemplos.
 
 
+

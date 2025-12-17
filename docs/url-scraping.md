@@ -134,3 +134,4 @@ O usar el endpoint API con las URLs que querés actualizar.
 - Los embeddings se generan automáticamente al guardar
 - El contenido está disponible inmediatamente después del scraping
 
+

@@ -258,3 +258,4 @@ supabase db push sql/002_add_knowledge_bases.sql
 - ✅ **Trazabilidad**: Identifica de qué base proviene cada resultado
 
 
+

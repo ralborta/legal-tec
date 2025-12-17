@@ -207,3 +207,4 @@ La vista está dividida en dos columnas:
    - Filtrar por fecha, área legal, tipo de documento
    - Ordenar por fecha, relevancia
 
+

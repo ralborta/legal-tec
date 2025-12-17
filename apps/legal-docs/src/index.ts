@@ -150,6 +150,46 @@ app.post("/upload", upload.single("file"), handleUpload);
 // Alias para compatibilidad si este servicio queda expuesto directo (sin proxy del API)
 app.post("/legal/upload", upload.single("file"), handleUpload);
 
+// ✅ Upload múltiple (máximo 3 archivos)
+async function handleUploadMany(req: express.Request, res: express.Response, next: express.NextFunction) {
+  console.log(`[UPLOAD-MANY] Request recibido`);
+  
+  try {
+    const files = (req.files as Express.Multer.File[]) || [];
+    
+    if (!files.length) {
+      return res.status(400).json({ error: "files is required" });
+    }
+
+    console.log(`[UPLOAD-MANY] ${files.length} archivos recibidos`);
+
+    const results = [];
+    for (const f of files) {
+      if (!f.buffer || f.buffer.length === 0) {
+        console.log(`[UPLOAD-MANY] Saltando archivo vacío: ${f.originalname}`);
+        continue;
+      }
+
+      const documentId = await saveOriginalDocument({
+        buffer: f.buffer,
+        filename: f.originalname,
+        mimetype: f.mimetype,
+      });
+
+      results.push({ documentId, filename: f.originalname, size: f.size });
+      console.log(`[UPLOAD-MANY] ✅ ${f.originalname} -> ${documentId}`);
+    }
+
+    return res.json({ count: results.length, documents: results });
+  } catch (err: any) {
+    console.error(`[UPLOAD-MANY] Error: ${err?.message || err}`);
+    return res.status(500).json({ error: "upload failed", message: err?.message });
+  }
+}
+
+app.post("/upload-many", upload.array("files", 3), handleUploadMany);
+app.post("/legal/upload-many", upload.array("files", 3), handleUploadMany);
+
 console.log("[LEGAL-DOCS] Rutas registradas:");
 console.log("  POST /upload");
 console.log("  POST /legal/upload");
