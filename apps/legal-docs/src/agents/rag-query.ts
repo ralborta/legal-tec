@@ -33,7 +33,8 @@ export async function queryJurisprudence(
       });
 
       // POC: cast para compatibilidad de tipos (PGVectorStore no tiene embedModel)
-      const index = await VectorStoreIndex.fromVectorStore(store as any);
+      // @ts-ignore - PGVectorStore incompatible con BaseVectorStore en esta versión
+      const index = await VectorStoreIndex.fromVectorStore(store);
       const retriever = index.asRetriever({ similarityTopK: maxResults * 2 }); // Buscar más para filtrar
 
       // Query: buscar jurisprudencia relevante al tipo de documento y contenido
