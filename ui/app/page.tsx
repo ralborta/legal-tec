@@ -41,7 +41,7 @@ export default function CentroGestionLegalPage() {
   const [items, setItems] = useState<Array<any>>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeView, setActiveView] = useState<"bandeja" | "analizar" | "generar">("bandeja");
+  const [activeView, setActiveView] = useState<"bandeja" | "analizar" | "generar" | "historial">("bandeja");
   const [lastGeneratedMemo, setLastGeneratedMemo] = useState<{
     content: string;
     resumen: string;
@@ -83,14 +83,16 @@ export default function CentroGestionLegalPage() {
             <div>
               <div className="mb-8">
                 <h2 className="text-3xl font-bold text-gray-900">
-                  {activeView === "bandeja" ? "Centro de Gestión" : activeView === "analizar" ? "Analizar Documentos Legales" : "Generar Documentos"}
+                  {activeView === "bandeja" ? "Centro de Gestión" : activeView === "analizar" ? "Analizar Documentos Legales" : activeView === "generar" ? "Generar Documentos" : "Historial"}
                 </h2>
                 <p className="text-gray-500 mt-1">
                   {activeView === "bandeja" 
                     ? "Operación de agentes jurídicos · WNS & Asociados"
                     : activeView === "analizar"
                     ? "Análisis automatizado de contratos y documentos legales"
-                    : "Generación de memos, dictámenes, contratos y documentos legales"}
+                    : activeView === "generar"
+                    ? "Generación de memos, dictámenes, contratos y documentos legales"
+                    : "Todos tus documentos organizados por tipo"}
                 </p>
               </div>
 
@@ -143,7 +145,7 @@ export default function CentroGestionLegalPage() {
                 </>
               ) : activeView === "analizar" ? (
                 <AnalizarDocumentosPanel />
-              ) : (
+              ) : activeView === "generar" ? (
                 /* Vista Generar - pantalla completa */
                 <div className="max-w-4xl mx-auto">
                   <GenerarPanel
@@ -184,7 +186,9 @@ export default function CentroGestionLegalPage() {
                     <ChatPanel memoContent={lastGeneratedMemo} />
                   </div>
                 </div>
-              )}
+              ) : activeView === "historial" ? (
+                <HistorialPanel items={items} />
+              ) : null}
 
               {error && (
                 <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 p-3 text-sm">{error}</div>
@@ -208,7 +212,7 @@ export default function CentroGestionLegalPage() {
   );
 }
 
-function Sidebar({ activeView, setActiveView }: { activeView: string; setActiveView: (view: "bandeja" | "analizar" | "generar") => void }) {
+function Sidebar({ activeView, setActiveView }: { activeView: string; setActiveView: (view: "bandeja" | "analizar" | "generar" | "historial") => void }) {
   return (
     <aside className="hidden lg:flex w-64 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col p-4">
       <div className="flex items-center space-x-3 p-2 mb-6">
@@ -224,7 +228,7 @@ function Sidebar({ activeView, setActiveView }: { activeView: string; setActiveV
         <SideLink icon={Sparkles} label="Bandeja" active={activeView === "bandeja"} onClick={() => setActiveView("bandeja")} />
         <SideLink icon={FileText} label="Analizar Documentos" active={activeView === "analizar"} onClick={() => setActiveView("analizar")} />
         <SideLink icon={Plus} label="Generar" active={activeView === "generar"} onClick={() => setActiveView("generar")} />
-        <SideLink icon={History} label="Historial" />
+        <SideLink icon={History} label="Historial" active={activeView === "historial"} onClick={() => setActiveView("historial")} />
         <h2 className="text-xs font-bold uppercase text-gray-400 pt-6 pb-1 px-4">Fuentes</h2>
         <SideLink icon={BookOpen} label="Normativa" />
         <SideLink icon={Gavel} label="Jurisprudencia" />
@@ -2321,6 +2325,252 @@ function GenerarDesdePlantilla({ onGenerated, setError, setLoading }: { onGenera
             </div>
           </div>
         )}
+    </div>
+  );
+}
+
+// Panel de Historial con filtros por tipo
+function HistorialPanel({ items }: { items: Array<any> }) {
+  const [filtro, setFiltro] = useState<"todos" | "memos" | "analisis" | "contratos">("todos");
+  const [busqueda, setBusqueda] = useState("");
+  const [itemSeleccionado, setItemSeleccionado] = useState<any | null>(null);
+
+  // Clasificar items por tipo
+  const itemsFiltrados = useMemo(() => {
+    let resultado = items;
+    
+    // Filtrar por tipo
+    if (filtro === "memos") {
+      resultado = resultado.filter(item => 
+        item.type === "memo" || item.tipo?.toLowerCase().includes("memo") || item.tipo?.toLowerCase().includes("dictamen")
+      );
+    } else if (filtro === "analisis") {
+      resultado = resultado.filter(item => 
+        item.type === "analysis" || item.tipo?.toLowerCase().includes("análisis") || item.tipo?.toLowerCase().includes("analisis")
+      );
+    } else if (filtro === "contratos") {
+      resultado = resultado.filter(item => 
+        item.type === "contrato" || item.tipo?.toLowerCase().includes("contrato")
+      );
+    }
+
+    // Filtrar por búsqueda
+    if (busqueda.trim()) {
+      const termino = busqueda.toLowerCase();
+      resultado = resultado.filter(item =>
+        item.title?.toLowerCase().includes(termino) ||
+        item.asunto?.toLowerCase().includes(termino) ||
+        item.markdown?.toLowerCase().includes(termino)
+      );
+    }
+
+    // Ordenar por fecha (más reciente primero)
+    return resultado.sort((a, b) => {
+      const fechaA = new Date(a.createdAt || 0).getTime();
+      const fechaB = new Date(b.createdAt || 0).getTime();
+      return fechaB - fechaA;
+    });
+  }, [items, filtro, busqueda]);
+
+  const contadores = useMemo(() => ({
+    todos: items.length,
+    memos: items.filter(item => item.type === "memo" || item.tipo?.toLowerCase().includes("memo") || item.tipo?.toLowerCase().includes("dictamen")).length,
+    analisis: items.filter(item => item.type === "analysis" || item.tipo?.toLowerCase().includes("análisis") || item.tipo?.toLowerCase().includes("analisis")).length,
+    contratos: items.filter(item => item.type === "contrato" || item.tipo?.toLowerCase().includes("contrato")).length,
+  }), [items]);
+
+  const getTipoIcon = (item: any) => {
+    if (item.type === "memo" || item.tipo?.toLowerCase().includes("memo")) return "📝";
+    if (item.type === "analysis" || item.tipo?.toLowerCase().includes("análisis")) return "🔍";
+    if (item.type === "contrato" || item.tipo?.toLowerCase().includes("contrato")) return "📄";
+    return "📋";
+  };
+
+  const getTipoColor = (item: any) => {
+    if (item.type === "memo" || item.tipo?.toLowerCase().includes("memo")) return "bg-purple-100 text-purple-700";
+    if (item.type === "analysis" || item.tipo?.toLowerCase().includes("análisis")) return "bg-blue-100 text-blue-700";
+    if (item.type === "contrato" || item.tipo?.toLowerCase().includes("contrato")) return "bg-green-100 text-green-700";
+    return "bg-gray-100 text-gray-700";
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Filtros */}
+      <div className="bg-white rounded-xl border border-gray-200 p-4">
+        <div className="flex flex-wrap gap-3 mb-4">
+          <button
+            onClick={() => setFiltro("todos")}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              filtro === "todos" ? "bg-[#C026D3] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+          >
+            📋 Todos ({contadores.todos})
+          </button>
+          <button
+            onClick={() => setFiltro("memos")}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              filtro === "memos" ? "bg-purple-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+          >
+            📝 Memos / Reuniones ({contadores.memos})
+          </button>
+          <button
+            onClick={() => setFiltro("analisis")}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              filtro === "analisis" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+          >
+            🔍 Documentos Analizados ({contadores.analisis})
+          </button>
+          <button
+            onClick={() => setFiltro("contratos")}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              filtro === "contratos" ? "bg-green-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+          >
+            📄 Contratos Creados ({contadores.contratos})
+          </button>
+        </div>
+        
+        {/* Búsqueda */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Buscar por título, asunto o contenido..."
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#C026D3] focus:border-transparent"
+          />
+        </div>
+      </div>
+
+      {/* Lista de items */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {itemsFiltrados.length === 0 ? (
+          <div className="col-span-2 bg-white rounded-xl border border-gray-200 p-8 text-center">
+            <div className="text-4xl mb-3">📭</div>
+            <p className="text-gray-500">No hay documentos en esta categoría</p>
+          </div>
+        ) : (
+          itemsFiltrados.map((item) => (
+            <div
+              key={item.id}
+              onClick={() => setItemSeleccionado(item)}
+              className={`bg-white rounded-xl border border-gray-200 p-4 cursor-pointer hover:border-[#C026D3] hover:shadow-md transition-all ${
+                itemSeleccionado?.id === item.id ? "border-[#C026D3] ring-2 ring-[#C026D3]/20" : ""
+              }`}
+            >
+              <div className="flex items-start justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">{getTipoIcon(item)}</span>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getTipoColor(item)}`}>
+                    {item.tipo || item.type || "Documento"}
+                  </span>
+                </div>
+                <span className="text-xs text-gray-400">{item.creado || new Date(item.createdAt).toLocaleDateString("es-AR")}</span>
+              </div>
+              <h4 className="font-medium text-gray-900 mb-1 line-clamp-2">{item.title || item.asunto || "Sin título"}</h4>
+              {item.memoData?.resumen && (
+                <p className="text-sm text-gray-500 line-clamp-2">{item.memoData.resumen}</p>
+              )}
+              <div className="flex items-center gap-2 mt-3">
+                <span className={`px-2 py-0.5 rounded text-xs ${
+                  item.estado === "Listo para revisión" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
+                }`}>
+                  {item.estado || "Completado"}
+                </span>
+                {item.areaLegal && (
+                  <span className="px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-600">
+                    {item.areaLegal.replace(/_/g, " ")}
+                  </span>
+                )}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Modal de detalle */}
+      {itemSeleccionado && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setItemSeleccionado(null)}>
+          <div 
+            className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xl">{getTipoIcon(itemSeleccionado)}</span>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getTipoColor(itemSeleccionado)}`}>
+                    {itemSeleccionado.tipo || itemSeleccionado.type}
+                  </span>
+                </div>
+                <h3 className="text-xl font-bold text-gray-900">{itemSeleccionado.title || itemSeleccionado.asunto}</h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  Creado: {itemSeleccionado.creado || new Date(itemSeleccionado.createdAt).toLocaleDateString("es-AR")}
+                  {itemSeleccionado.areaLegal && ` · ${itemSeleccionado.areaLegal.replace(/_/g, " ")}`}
+                </p>
+              </div>
+              <button
+                onClick={() => setItemSeleccionado(null)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="h-5 w-5 text-gray-500" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6">
+              {itemSeleccionado.memoData?.resumen && (
+                <div className="mb-4 p-4 bg-purple-50 rounded-lg">
+                  <h4 className="font-medium text-purple-900 mb-1">Resumen</h4>
+                  <p className="text-sm text-purple-800">{itemSeleccionado.memoData.resumen}</p>
+                </div>
+              )}
+              {itemSeleccionado.markdown && (
+                <div className="prose prose-sm max-w-none">
+                  <pre className="whitespace-pre-wrap text-sm text-gray-700 bg-gray-50 p-4 rounded-lg overflow-auto">
+                    {itemSeleccionado.markdown}
+                  </pre>
+                </div>
+              )}
+              {itemSeleccionado.citations && itemSeleccionado.citations.length > 0 && (
+                <div className="mt-4">
+                  <h4 className="font-medium text-gray-900 mb-2">Fuentes citadas</h4>
+                  <div className="space-y-2">
+                    {itemSeleccionado.citations.map((cita: any, i: number) => (
+                      <div key={i} className="p-3 bg-gray-50 rounded-lg text-sm">
+                        <span className="font-medium">{cita.title || cita.referencia}</span>
+                        {cita.url && (
+                          <a href={cita.url} target="_blank" rel="noopener noreferrer" className="ml-2 text-[#C026D3] hover:underline">
+                            Ver fuente →
+                          </a>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="p-4 border-t border-gray-200 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(itemSeleccionado.markdown || "");
+                  alert("Contenido copiado al portapapeles");
+                }}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                📋 Copiar
+              </button>
+              <button
+                onClick={() => setItemSeleccionado(null)}
+                className="px-4 py-2 text-sm font-medium text-white bg-[#C026D3] rounded-lg hover:bg-[#A21CAF] transition-colors"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
