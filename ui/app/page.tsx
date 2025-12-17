@@ -1828,6 +1828,11 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
         }
 
                     const data = await r.json();
+                    console.log("[DEBUG] Memo data recibido:", data);
+                    console.log("[DEBUG] Puntos tratados:", data.puntos_tratados);
+                    console.log("[DEBUG] Riesgos:", data.riesgos);
+                    console.log("[DEBUG] Citas:", data.citas);
+                    console.log("[DEBUG] Próximos pasos:", data.proximos_pasos);
                     setMemoResult(data);
                     // Convertir citas del memo al formato esperado por la bandeja
                     const citations = (data.citas || []).map((c: any) => ({
@@ -2146,6 +2151,15 @@ function MemoResultPanel({ memoResult }: { memoResult: any }) {
   const API = useMemo(() => getApiUrl(), []);
   const chatMessagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Debug: ver qué datos tenemos
+  useEffect(() => {
+    console.log("[MemoResultPanel] memoResult completo:", memoResult);
+    console.log("[MemoResultPanel] puntos_tratados:", memoResult?.puntos_tratados);
+    console.log("[MemoResultPanel] riesgos:", memoResult?.riesgos);
+    console.log("[MemoResultPanel] citas:", memoResult?.citas);
+    console.log("[MemoResultPanel] proximos_pasos:", memoResult?.proximos_pasos);
+  }, [memoResult]);
+
   // Construir memoContent desde memoResult para el chat
   const memoContent = useMemo(() => {
     if (!memoResult) return null;
@@ -2240,34 +2254,37 @@ function MemoResultPanel({ memoResult }: { memoResult: any }) {
         {activeTab === "resumen" && (
           <div className="space-y-4">
             <div>
-              <h4 className="font-semibold text-gray-900 mb-2">{memoResult.titulo || "Memo de Reunión"}</h4>
+              <h4 className="font-semibold text-gray-900 mb-2">{memoResult.titulo || memoResult.titulo || "Memo de Reunión"}</h4>
               <div className="text-sm text-gray-700 bg-gray-50 p-4 rounded-lg whitespace-pre-wrap">
-                {memoResult.resumen || memoResult.texto_formateado || "Sin resumen disponible"}
+                {memoResult.resumen || "Sin resumen disponible"}
               </div>
             </div>
             {memoResult.texto_formateado && (
               <div>
                 <h4 className="font-semibold text-gray-900 mb-2">Texto Completo</h4>
-                <div className="text-sm text-gray-700 bg-gray-50 p-4 rounded-lg whitespace-pre-wrap max-h-96 overflow-y-auto">
-                  {memoResult.texto_formateado}
-                </div>
+                <textarea
+                  className="w-full rounded-lg border border-slate-300 bg-white text-slate-900 p-2 text-xs font-mono"
+                  rows={15}
+                  readOnly
+                  value={memoResult.texto_formateado}
+                />
                 <button
-                  className="mt-2 text-xs text-[#C026D3] hover:underline"
+                  className="mt-2 btn-secondary text-xs"
                   onClick={() => {
                     navigator.clipboard.writeText(memoResult.texto_formateado);
                     alert("Texto copiado al portapapeles");
                   }}
                 >
-                  📋 Copiar texto completo
+                  Copiar texto
                 </button>
-              </div>
-            )}
+                </div>
+              )}
           </div>
         )}
 
         {activeTab === "puntos" && (
           <div className="space-y-3">
-            {memoResult.puntos_tratados && memoResult.puntos_tratados.length > 0 ? (
+            {(memoResult.puntos_tratados && Array.isArray(memoResult.puntos_tratados) && memoResult.puntos_tratados.length > 0) ? (
               memoResult.puntos_tratados.map((punto: string, i: number) => (
                 <div key={i} className="border border-gray-200 rounded-lg p-4">
                   <div className="flex items-start gap-2">
@@ -2277,17 +2294,19 @@ function MemoResultPanel({ memoResult }: { memoResult: any }) {
                 </div>
               ))
             ) : (
-              <p className="text-sm text-gray-500 text-center py-8">No hay puntos tratados</p>
+              <p className="text-sm text-gray-500 text-center py-8">
+                {memoResult.puntos_tratados ? "No hay puntos tratados" : "Puntos tratados no disponibles"}
+              </p>
             )}
           </div>
         )}
 
         {activeTab === "riesgos" && (
           <div className="space-y-3">
-            {memoResult.riesgos && memoResult.riesgos.length > 0 ? (
+            {(memoResult.riesgos && Array.isArray(memoResult.riesgos) && memoResult.riesgos.length > 0) ? (
               memoResult.riesgos.map((riesgo: string | any, i: number) => {
-                const riesgoText = typeof riesgo === "string" ? riesgo : riesgo.descripcion || riesgo;
-                const nivel = typeof riesgo === "object" ? riesgo.nivel : "medio";
+                const riesgoText = typeof riesgo === "string" ? riesgo : (riesgo.descripcion || riesgo.texto || riesgo);
+                const nivel = typeof riesgo === "object" && riesgo.nivel ? riesgo.nivel : "medio";
                 return (
                   <div key={i} className={`border-l-4 p-4 rounded-r-lg ${
                     nivel === "alto" ? "border-red-500 bg-red-50" :
@@ -2314,15 +2333,17 @@ function MemoResultPanel({ memoResult }: { memoResult: any }) {
                 );
               })
             ) : (
-              <p className="text-sm text-gray-500 text-center py-8">No se identificaron riesgos específicos</p>
+              <p className="text-sm text-gray-500 text-center py-8">
+                {memoResult.riesgos ? "No se identificaron riesgos específicos" : "Riesgos no disponibles"}
+              </p>
             )}
           </div>
         )}
 
         {activeTab === "recomendaciones" && (
           <div className="space-y-4">
-            {memoResult.recomendaciones && memoResult.recomendaciones.length > 0 && (
-              <div>
+            {(memoResult.recomendaciones && Array.isArray(memoResult.recomendaciones) && memoResult.recomendaciones.length > 0) && (
+                <div>
                 <h4 className="font-semibold text-gray-900 mb-3">Recomendaciones</h4>
                 <ul className="space-y-2">
                   {memoResult.recomendaciones.map((rec: string, i: number) => (
@@ -2334,7 +2355,7 @@ function MemoResultPanel({ memoResult }: { memoResult: any }) {
                   </ul>
                 </div>
               )}
-              {memoResult.proximos_pasos && memoResult.proximos_pasos.length > 0 && (
+            {(memoResult.proximos_pasos && Array.isArray(memoResult.proximos_pasos) && memoResult.proximos_pasos.length > 0) && (
                 <div>
                 <h4 className="font-semibold text-gray-900 mb-3">Próximos Pasos</h4>
                 <ul className="space-y-2">
@@ -2347,15 +2368,16 @@ function MemoResultPanel({ memoResult }: { memoResult: any }) {
                   </ul>
                 </div>
               )}
-            {!memoResult.recomendaciones?.length && !memoResult.proximos_pasos?.length && (
+            {(!memoResult.recomendaciones || !Array.isArray(memoResult.recomendaciones) || memoResult.recomendaciones.length === 0) && 
+             (!memoResult.proximos_pasos || !Array.isArray(memoResult.proximos_pasos) || memoResult.proximos_pasos.length === 0) && (
               <p className="text-sm text-gray-500 text-center py-8">No hay recomendaciones disponibles</p>
             )}
-          </div>
+            </div>
         )}
 
         {activeTab === "fuentes" && (
           <div className="space-y-3">
-            {memoResult.citas && memoResult.citas.length > 0 ? (
+            {(memoResult.citas && Array.isArray(memoResult.citas) && memoResult.citas.length > 0) ? (
               memoResult.citas.map((cita: any, i: number) => (
                 <div key={i} className="border border-gray-200 rounded-lg p-3">
                   <div className="flex items-center gap-2 mb-1">
@@ -2368,8 +2390,8 @@ function MemoResultPanel({ memoResult }: { memoResult: any }) {
                       {cita.tipo || cita.source || "otra"}
                     </span>
                   </div>
-                  <p className="text-sm font-medium text-gray-900">{cita.referencia || cita.title || cita.descripcion}</p>
-                  {cita.descripcion && cita.referencia && <p className="text-xs text-gray-600 mt-1">{cita.descripcion}</p>}
+                  <p className="text-sm font-medium text-gray-900">{cita.referencia || cita.title || cita.descripcion || "Sin referencia"}</p>
+                  {cita.descripcion && (cita.referencia || cita.title) && <p className="text-xs text-gray-600 mt-1">{cita.descripcion}</p>}
                   {cita.url && (
                     <a 
                       href={cita.url} 
@@ -2383,7 +2405,9 @@ function MemoResultPanel({ memoResult }: { memoResult: any }) {
                 </div>
               ))
             ) : (
-              <p className="text-sm text-gray-500 text-center py-8">No hay fuentes citadas</p>
+              <p className="text-sm text-gray-500 text-center py-8">
+                {memoResult.citas ? "No hay fuentes citadas" : "Fuentes no disponibles"}
+              </p>
             )}
           </div>
         )}
