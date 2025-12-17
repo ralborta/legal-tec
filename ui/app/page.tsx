@@ -41,7 +41,7 @@ export default function CentroGestionLegalPage() {
   const [items, setItems] = useState<Array<any>>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeView, setActiveView] = useState<"bandeja" | "analizar">("bandeja");
+  const [activeView, setActiveView] = useState<"bandeja" | "analizar" | "generar">("bandeja");
   const [lastGeneratedMemo, setLastGeneratedMemo] = useState<{
     content: string;
     resumen: string;
@@ -83,12 +83,14 @@ export default function CentroGestionLegalPage() {
             <div>
               <div className="mb-8">
                 <h2 className="text-3xl font-bold text-gray-900">
-                  {activeView === "bandeja" ? "Centro de Gestión" : "Analizar Documentos Legales"}
+                  {activeView === "bandeja" ? "Centro de Gestión" : activeView === "analizar" ? "Analizar Documentos Legales" : "Generar Documentos"}
                 </h2>
                 <p className="text-gray-500 mt-1">
                   {activeView === "bandeja" 
                     ? "Operación de agentes jurídicos · WNS & Asociados"
-                    : "Análisis automatizado de contratos y documentos legales"}
+                    : activeView === "analizar"
+                    ? "Análisis automatizado de contratos y documentos legales"
+                    : "Generación de memos, dictámenes, contratos y documentos legales"}
                 </p>
               </div>
 
@@ -139,8 +141,49 @@ export default function CentroGestionLegalPage() {
                     </div>
                   </div>
                 </>
-              ) : (
+              ) : activeView === "analizar" ? (
                 <AnalizarDocumentosPanel />
+              ) : (
+                /* Vista Generar - pantalla completa */
+                <div className="max-w-4xl mx-auto">
+                  <GenerarPanel
+                    onGenerated={(out) => {
+                      const newItem = {
+                        id: out.id || out.documentId || crypto.randomUUID(),
+                        type: out.type || "memo",
+                        tipo: (out.type || "memo").toUpperCase(),
+                        title: out.title,
+                        asunto: out.title,
+                        estado: "Listo para revisión",
+                        prioridad: "Media",
+                        createdAt: out.createdAt || new Date().toISOString(),
+                        creado: out.createdAt ? new Date(out.createdAt).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' ' + 
+                                 new Date(out.createdAt).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) :
+                                 new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' ' + 
+                                 new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
+                        agente: "Orquestador",
+                        markdown: out.markdown,
+                        citations: out.citations as any[],
+                        memoData: out.memoData,
+                        transcriptText: out.transcriptText,
+                        tipoDocumento: out.tipoDocumento || "Memo / Dictamen de reunión",
+                        areaLegal: out.areaLegal || out.memoData?.areaLegal || "civil_comercial"
+                      };
+                      pushItem(newItem);
+                      setLastGeneratedMemo({
+                        content: out.markdown,
+                        resumen: out.memoData?.resumen || "",
+                        titulo: out.title,
+                        areaLegal: out.memoData?.areaLegal || "civil_comercial"
+                      });
+                    }}
+                    setError={setError}
+                    setLoading={setLoading}
+                  />
+                  <div className="mt-6">
+                    <ChatPanel memoContent={lastGeneratedMemo} />
+                  </div>
+                </div>
               )}
 
               {error && (
@@ -165,7 +208,7 @@ export default function CentroGestionLegalPage() {
   );
 }
 
-function Sidebar({ activeView, setActiveView }: { activeView: string; setActiveView: (view: "bandeja" | "analizar") => void }) {
+function Sidebar({ activeView, setActiveView }: { activeView: string; setActiveView: (view: "bandeja" | "analizar" | "generar") => void }) {
   return (
     <aside className="hidden lg:flex w-64 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col p-4">
       <div className="flex items-center space-x-3 p-2 mb-6">
@@ -180,7 +223,7 @@ function Sidebar({ activeView, setActiveView }: { activeView: string; setActiveV
       <nav className="flex-grow flex flex-col space-y-2">
         <SideLink icon={Sparkles} label="Bandeja" active={activeView === "bandeja"} onClick={() => setActiveView("bandeja")} />
         <SideLink icon={FileText} label="Analizar Documentos" active={activeView === "analizar"} onClick={() => setActiveView("analizar")} />
-        <SideLink icon={Plus} label="Generar" />
+        <SideLink icon={Plus} label="Generar" active={activeView === "generar"} onClick={() => setActiveView("generar")} />
         <SideLink icon={History} label="Historial" />
         <h2 className="text-xs font-bold uppercase text-gray-400 pt-6 pb-1 px-4">Fuentes</h2>
         <SideLink icon={BookOpen} label="Normativa" />
@@ -1109,13 +1152,13 @@ function AnalysisResultPanel({ analysisResult, analyzing, documentId }: {
   return (
     <div className="bg-white p-6 rounded-xl border border-gray-200">
       <div className="flex items-center justify-between mb-4">
-        <div>
+            <div>
           <h3 className="font-bold text-lg text-gray-900">Resultado del Análisis</h3>
           <p className="text-sm text-gray-500">
             {report?.tipo_documento || analysisResult.analysis.type} • {report?.jurisdiccion || "Nacional"} • {report?.area_legal || ""}
           </p>
         </div>
-      </div>
+            </div>
 
       {/* Tabs */}
       <div className="flex gap-1 mb-4 overflow-x-auto pb-2 border-b border-gray-200">
@@ -1145,7 +1188,7 @@ function AnalysisResultPanel({ analysisResult, analyzing, documentId }: {
       <div className="max-h-[500px] overflow-y-auto">
         {activeTab === "resumen" && (
           <div className="space-y-4">
-            <div>
+              <div>
               <h4 className="font-semibold text-gray-900 mb-2">{report?.titulo || "Análisis del Documento"}</h4>
               <div className="text-sm text-gray-700 bg-gray-50 p-4 rounded-lg whitespace-pre-wrap">
                 {report?.resumen_ejecutivo || report?.texto_formateado || analysisResult.analysis.report}
@@ -1171,14 +1214,14 @@ function AnalysisResultPanel({ analysisResult, analyzing, documentId }: {
                     <span className="font-medium text-gray-900">
                       {clausula.numero} - {clausula.titulo}
                     </span>
-                    <span className={`text-xs px-2 py-1 rounded ${
+                        <span className={`text-xs px-2 py-1 rounded ${
                       clausula.riesgo === "alto" ? "bg-red-100 text-red-800" :
                       clausula.riesgo === "medio" ? "bg-yellow-100 text-yellow-800" :
                       "bg-green-100 text-green-800"
                     }`}>
                       Riesgo: {clausula.riesgo}
-                    </span>
-                  </div>
+                        </span>
+                      </div>
                   <p className="text-sm text-gray-600">{clausula.analisis}</p>
                 </div>
               ))
@@ -1188,20 +1231,20 @@ function AnalysisResultPanel({ analysisResult, analyzing, documentId }: {
                   <div className="flex items-center justify-between mb-1">
                     <span className="font-medium text-sm text-gray-900">{item.key}</span>
                     <span className={`text-xs px-2 py-1 rounded ${
-                      item.risk === "high" ? "bg-red-100 text-red-800" :
-                      item.risk === "medium" ? "bg-yellow-100 text-yellow-800" :
-                      "bg-green-100 text-green-800"
-                    }`}>
-                      Riesgo: {item.risk}
+                        item.risk === "high" ? "bg-red-100 text-red-800" :
+                        item.risk === "medium" ? "bg-yellow-100 text-yellow-800" :
+                        "bg-green-100 text-green-800"
+                      }`}>
+                        Riesgo: {item.risk}
                     </span>
-                  </div>
+                      </div>
                   {item.comment && <p className="text-xs text-gray-600 mt-2">{item.comment}</p>}
                 </div>
               ))
             ) : (
               <p className="text-sm text-gray-500 text-center py-8">No hay cláusulas analizadas</p>
-            )}
-          </div>
+                      )}
+                    </div>
         )}
 
         {activeTab === "riesgos" && (
@@ -1222,7 +1265,7 @@ function AnalysisResultPanel({ analysisResult, analyzing, documentId }: {
                     }`}>
                       {riesgo.nivel?.toUpperCase()}
                     </span>
-                  </div>
+                </div>
                   <p className="text-sm text-gray-800 font-medium mb-1">{riesgo.descripcion}</p>
                   {riesgo.recomendacion && (
                     <p className="text-sm text-gray-600">💡 {riesgo.recomendacion}</p>
@@ -1232,8 +1275,8 @@ function AnalysisResultPanel({ analysisResult, analyzing, documentId }: {
             ) : (
               <p className="text-sm text-gray-500 text-center py-8">No se identificaron riesgos específicos</p>
             )}
-          </div>
-        )}
+              </div>
+            )}
 
         {activeTab === "recomendaciones" && (
           <div className="space-y-4">
@@ -1248,7 +1291,7 @@ function AnalysisResultPanel({ analysisResult, analyzing, documentId }: {
                     </li>
                   ))}
                 </ul>
-              </div>
+                </div>
             )}
             {report?.proximos_pasos?.length > 0 && (
               <div>
@@ -1271,9 +1314,9 @@ function AnalysisResultPanel({ analysisResult, analyzing, documentId }: {
                     <div key={i} className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                       <p className="text-sm font-medium text-blue-900">{doc.tipo}</p>
                       <p className="text-xs text-blue-700">{doc.descripcion}</p>
-                    </div>
+          </div>
                   ))}
-                </div>
+          </div>
               </div>
             )}
             {!report?.recomendaciones?.length && !report?.proximos_pasos?.length && (
@@ -2274,10 +2317,10 @@ function GenerarDesdePlantilla({ onGenerated, setError, setLoading }: { onGenera
               }}
             >
               ⬇️ Descargar
-            </button>
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
     </div>
   );
 }
