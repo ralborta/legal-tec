@@ -2149,7 +2149,7 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
 
 // Componente para mostrar el resultado del memo con pestañas
 function MemoResultPanel({ memoResult }: { memoResult: any }) {
-  const [activeTab, setActiveTab] = useState<"resumen" | "puntos" | "riesgos" | "recomendaciones" | "fuentes" | "chat">("resumen");
+  const [activeTab, setActiveTab] = useState<"resumen" | "puntos" | "riesgos" | "recomendaciones" | "fuentes">("resumen");
   const [chatMessages, setChatMessages] = useState<Array<{role: "user" | "assistant"; content: string}>>([]);
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
@@ -2178,10 +2178,10 @@ function MemoResultPanel({ memoResult }: { memoResult: any }) {
 
   // Auto-scroll cuando cambian los mensajes o cuando termina de cargar
   useEffect(() => {
-    if (chatMessagesEndRef.current && activeTab === "chat") {
+    if (chatMessagesEndRef.current && memoContent) {
       chatMessagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
-  }, [chatMessages, chatLoading, activeTab]);
+  }, [chatMessages, chatLoading, memoContent]);
 
   const handleChatSubmit = async () => {
     if (!chatInput.trim() || !memoContent) return;
@@ -2238,7 +2238,6 @@ function MemoResultPanel({ memoResult }: { memoResult: any }) {
           { id: "riesgos", label: "Riesgos" },
           { id: "recomendaciones", label: "Recomendaciones" },
           { id: "fuentes", label: "Fuentes" },
-          { id: "chat", label: "💬 Chat" },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -2414,7 +2413,15 @@ function MemoResultPanel({ memoResult }: { memoResult: any }) {
           </div>
         )}
 
-        {activeTab === "chat" && (
+      </div>
+
+      {/* Chat debajo del contenido */}
+      {memoContent && (
+        <div className="mt-6 pt-6 border-t border-gray-200">
+          <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <span>💬</span>
+            <span>Chat sobre esta reunión</span>
+          </h4>
           <div className="flex flex-col h-[400px]">
             <div className="flex-1 overflow-y-auto space-y-3 mb-4">
               {chatMessages.length === 0 ? (
@@ -2463,8 +2470,8 @@ function MemoResultPanel({ memoResult }: { memoResult: any }) {
               </button>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
