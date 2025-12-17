@@ -2262,20 +2262,17 @@ function MemoResultPanel({ memoResult }: { memoResult: any }) {
             {memoResult.texto_formateado && (
               <div>
                 <h4 className="font-semibold text-gray-900 mb-2">Texto Completo</h4>
-                <textarea
-                  className="w-full rounded-lg border border-slate-300 bg-white text-slate-900 p-2 text-xs font-mono"
-                  rows={15}
-                  readOnly
-                  value={memoResult.texto_formateado}
-                />
+                <div className="text-sm text-gray-700 bg-white border border-gray-200 p-4 rounded-lg whitespace-pre-wrap font-mono max-h-[600px] overflow-y-auto">
+                  {memoResult.texto_formateado}
+                </div>
                 <button
-                  className="mt-2 btn-secondary text-xs"
+                  className="mt-2 text-xs text-[#C026D3] hover:underline"
                   onClick={() => {
                     navigator.clipboard.writeText(memoResult.texto_formateado);
                     alert("Texto copiado al portapapeles");
                   }}
                 >
-                  Copiar texto
+                  📋 Copiar texto completo
                 </button>
                 </div>
               )}
@@ -2371,7 +2368,7 @@ function MemoResultPanel({ memoResult }: { memoResult: any }) {
             {(!memoResult.recomendaciones || !Array.isArray(memoResult.recomendaciones) || memoResult.recomendaciones.length === 0) && 
              (!memoResult.proximos_pasos || !Array.isArray(memoResult.proximos_pasos) || memoResult.proximos_pasos.length === 0) && (
               <p className="text-sm text-gray-500 text-center py-8">No hay recomendaciones disponibles</p>
-            )}
+              )}
             </div>
         )}
 
