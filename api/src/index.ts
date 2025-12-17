@@ -1423,7 +1423,7 @@ Responde SOLO con un JSON válido con esta estructura:
   
   if (LEGAL_DOCS_URL) {
     const legalDocsTimeoutMs = Number(process.env.LEGAL_DOCS_TIMEOUT_MS || 110000); // Para rutas que pueden tardar (result, status)
-    const analyzeTimeoutMs = Number(process.env.LEGAL_DOCS_ANALYZE_TIMEOUT_MS || 10000); // 10s - solo necesita confirmación rápida
+    const analyzeTimeoutMs = Number(process.env.LEGAL_DOCS_ANALYZE_TIMEOUT_MS || 30000); // 30s - dar tiempo para cold start
     
     // Proxy para rutas específicas de /legal/* (EXCEPTO /legal/upload que se maneja directamente arriba)
     // Usar rutas específicas en vez de app.all para evitar conflictos

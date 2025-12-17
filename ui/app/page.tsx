@@ -781,6 +781,8 @@ function AnalizarDocumentosPanel() {
   const pollForResults = async (docId: string) => {
     const maxAttempts = 60; // ~3 min
     let attempts = 0;
+    let consecutive502s = 0;
+    const maxConsecutive502s = 5; // Si hay 5 502s seguidos, parar
 
     const poll = async () => {
       try {
@@ -804,7 +806,30 @@ function AnalizarDocumentosPanel() {
 
         // 2) Intentar obtener resultado
         const response = await fetchWithTimeout(`${API}/legal/result/${docId}`, {}, 15000);
-        if (!response.ok) throw new Error(`Error al obtener resultados (${response.status})`);
+        if (!response.ok) {
+          // Si es 502, puede ser cold start - continuar intentando
+          if (response.status === 502) {
+            consecutive502s++;
+            if (consecutive502s >= maxConsecutive502s) {
+              setError("El servicio de análisis no está disponible. Por favor, intenta más tarde o verifica el estado del servicio.");
+              setAnalyzing(false);
+              setPolling(false);
+              return;
+            }
+            // Continuar polling - puede ser un cold start temporal
+            if (attempts < maxAttempts) {
+              attempts++;
+              setStatusLabel(`Servicio iniciando... (intento ${attempts}/${maxAttempts})`);
+              setTimeout(poll, 5000); // Esperar un poco más en caso de cold start
+              return;
+            }
+          }
+          // Para otros errores, lanzar excepción
+          throw new Error(`Error al obtener resultados (${response.status})`);
+        }
+        
+        // Si llegamos aquí, la respuesta fue exitosa - resetear contador de 502s
+        consecutive502s = 0;
         const result = await response.json();
 
         if (result.analysis) {
@@ -822,9 +847,20 @@ function AnalizarDocumentosPanel() {
           setPolling(false);
         }
       } catch (err: any) {
+        // Solo detener si no es un 502 (ya manejado arriba)
+        if (!err.message?.includes("502")) {
         setError(err.message || "Error al obtener resultados");
         setAnalyzing(false);
         setPolling(false);
+        } else if (attempts < maxAttempts) {
+          // Si es un 502 y aún tenemos intentos, continuar
+          attempts++;
+          setTimeout(poll, 5000);
+        } else {
+          setError("El servicio no está respondiendo. Por favor, intenta más tarde.");
+          setAnalyzing(false);
+          setPolling(false);
+        }
       }
     };
 
@@ -2608,9 +2644,9 @@ function HistorialPanel({ items }: { items: Array<any> }) {
                 Cerrar
               </button>
             </div>
+            </div>
           </div>
-        </div>
-      )}
+        )}
     </div>
   );
 }
