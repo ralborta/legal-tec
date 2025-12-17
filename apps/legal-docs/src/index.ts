@@ -337,6 +337,49 @@ app.get("/status/:documentId", handleStatus);
 // ❌ ELIMINADO: app.get("/legal/status/:documentId", handleStatus);
 // El gateway ya maneja el prefijo /legal, el servicio NO debe tenerlo
 
+// Endpoint para obtener historial de documentos
+app.get("/history", async (_req, res) => {
+  try {
+    const documents = await legalDb.getAllDocumentsWithAnalysis(100);
+    
+    // Transformar al formato esperado por el frontend
+    const items = documents.map((doc: any) => {
+      let report = null;
+      try {
+        report = typeof doc.report === 'string' ? JSON.parse(doc.report) : doc.report;
+      } catch {}
+
+      return {
+        id: doc.id,
+        type: doc.analysis_type === 'legal' ? 'analysis' : (doc.analysis_type || 'document'),
+        tipo: doc.analysis_type === 'legal' ? 'ANÁLISIS' : 'DOCUMENTO',
+        title: report?.titulo || doc.filename || 'Sin título',
+        asunto: report?.titulo || doc.filename,
+        estado: doc.status === 'completed' ? 'Listo para revisión' : doc.status,
+        prioridad: 'Media',
+        createdAt: doc.created_at,
+        creado: new Date(doc.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+        agente: 'Orquestador',
+        markdown: report?.texto_formateado || report?.resumen_ejecutivo || '',
+        memoData: report ? {
+          resumen: report.resumen_ejecutivo || report.resumen || '',
+          puntos_tratados: report.clausulas_analizadas || [],
+          riesgos: report.riesgos || [],
+          proximos_pasos: report.proximos_pasos || report.recomendaciones || []
+        } : null,
+        citations: report?.citas || [],
+        areaLegal: report?.area_legal || 'civil_comercial',
+        filename: doc.filename
+      };
+    });
+
+    res.json({ items });
+  } catch (error: any) {
+    console.error("[HISTORY] Error:", error);
+    res.status(500).json({ error: "Error al obtener historial", message: error.message });
+  }
+});
+
 // Error handler
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error("Error:", err);

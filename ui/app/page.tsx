@@ -60,16 +60,47 @@ export default function CentroGestionLegalPage() {
     }
   };
 
-  // Cargar memos desde localStorage al montar
+  // Cargar historial desde API y localStorage
   useEffect(() => {
+    const API = getApiUrl();
+    
+    // Cargar desde localStorage primero (items locales)
+    let localItems: any[] = [];
     try {
       const saved = localStorage.getItem("legal-memos");
       if (saved) {
-        const parsed = JSON.parse(saved);
-        setItems(parsed);
+        localItems = JSON.parse(saved);
       }
     } catch (e) {
       console.warn("No se pudieron cargar memos desde localStorage:", e);
+    }
+
+    // Cargar desde la API (items de la DB)
+    if (API) {
+      fetch(`${API}/api/history`)
+        .then(r => r.json())
+        .then(data => {
+          const dbItems = data.items || [];
+          // Combinar items locales con los de la DB, evitando duplicados por ID
+          const localIds = new Set(localItems.map((i: any) => i.id));
+          const combinedItems = [
+            ...localItems,
+            ...dbItems.filter((i: any) => !localIds.has(i.id))
+          ];
+          // Ordenar por fecha
+          combinedItems.sort((a, b) => {
+            const fechaA = new Date(a.createdAt || 0).getTime();
+            const fechaB = new Date(b.createdAt || 0).getTime();
+            return fechaB - fechaA;
+          });
+          setItems(combinedItems);
+        })
+        .catch(err => {
+          console.warn("No se pudo cargar historial desde API:", err);
+          setItems(localItems);
+        });
+    } else {
+      setItems(localItems);
     }
   }, []);
 

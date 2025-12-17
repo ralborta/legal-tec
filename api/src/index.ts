@@ -134,6 +134,38 @@ async function start() {
     timestamp: new Date().toISOString()
   }));
 
+  // Endpoint para obtener historial de documentos desde legal-docs
+  app.get("/api/history", async (_req, rep) => {
+    const LEGAL_DOCS_URL = process.env.LEGAL_DOCS_URL;
+    if (!LEGAL_DOCS_URL) {
+      return rep.send({ items: [], error: "LEGAL_DOCS_URL no configurada" });
+    }
+
+    let baseUrl = LEGAL_DOCS_URL.trim();
+    if (!baseUrl.startsWith("http://") && !baseUrl.startsWith("https://")) {
+      baseUrl = `https://${baseUrl}`;
+    }
+    baseUrl = baseUrl.replace(/\/$/, "");
+
+    try {
+      const response = await fetch(`${baseUrl}/history`, {
+        method: "GET",
+        signal: AbortSignal.timeout(10000)
+      });
+
+      if (!response.ok) {
+        app.log.error(`Error fetching history: ${response.status}`);
+        return rep.send({ items: [], error: `Error ${response.status}` });
+      }
+
+      const data = await response.json();
+      return rep.send(data);
+    } catch (error) {
+      app.log.error(error, "Error fetching history");
+      return rep.send({ items: [], error: error instanceof Error ? error.message : "Error desconocido" });
+    }
+  });
+
   // Endpoint de diagnóstico para verificar configuración de legal-docs
   app.get("/api/legal-docs-status", async (_req, rep) => {
     const LEGAL_DOCS_URL = process.env.LEGAL_DOCS_URL;

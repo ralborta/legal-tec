@@ -205,6 +205,27 @@ export const legalDb = {
     return result.rows[0] || null;
   },
 
+  async getAllDocumentsWithAnalysis(limit = 100) {
+    const result = await db.query(
+      `SELECT 
+         d.id,
+         d.filename,
+         d.mime_type,
+         d.status,
+         d.created_at,
+         d.updated_at,
+         a.type as analysis_type,
+         a.report,
+         a.created_at as analyzed_at
+       FROM legal_documents d
+       LEFT JOIN legal_analysis a ON d.id = a.document_id
+       ORDER BY d.created_at DESC
+       LIMIT $1`,
+      [limit]
+    );
+    return result.rows;
+  },
+
   async updateAnalysisStatus(documentId: string, status: string, progress: number) {
     // Persistir en legal_documents para que /status y la UI puedan reportar progreso real
     try {
