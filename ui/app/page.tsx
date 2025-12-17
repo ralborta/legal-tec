@@ -858,63 +858,79 @@ function AnalizarDocumentosPanel() {
         </div>
       </div>
 
+      <AnalysisResultPanel 
+        analysisResult={analysisResult} 
+        analyzing={analyzing} 
+        documentId={documentId}
+      />
+    </div>
+  );
+}
+
+// Componente para mostrar el resultado del análisis con secciones
+function AnalysisResultPanel({ analysisResult, analyzing, documentId }: { 
+  analysisResult: any; 
+  analyzing: boolean;
+  documentId: string | null;
+}) {
+  const [activeTab, setActiveTab] = useState<"resumen" | "clausulas" | "riesgos" | "recomendaciones" | "fuentes" | "chat">("resumen");
+  const [chatMessages, setChatMessages] = useState<Array<{role: "user" | "assistant"; content: string}>>([]);
+  const [chatInput, setChatInput] = useState("");
+  const [chatLoading, setChatLoading] = useState(false);
+  const API = useMemo(() => getApiUrl(), []);
+
+  // Parsear el report si es string JSON
+  const report = useMemo(() => {
+    if (!analysisResult?.analysis?.report) return null;
+    const r = analysisResult.analysis.report;
+    if (typeof r === 'string') {
+      try {
+        return JSON.parse(r);
+      } catch {
+        // Si no es JSON, devolver estructura con texto_formateado
+        return { texto_formateado: r };
+      }
+    }
+    return r;
+  }, [analysisResult]);
+
+  const handleChatSubmit = async () => {
+    if (!chatInput.trim() || !documentId) return;
+    
+    const userMessage = chatInput.trim();
+    setChatInput("");
+    setChatMessages(prev => [...prev, { role: "user", content: userMessage }]);
+    setChatLoading(true);
+
+    try {
+      const response = await fetch(`${API}/api/memos/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          documentId,
+          message: userMessage,
+          context: report?.texto_formateado || analysisResult?.analysis?.report || "",
+          history: chatMessages
+        })
+      });
+
+      if (!response.ok) throw new Error("Error en el chat");
+      
+      const data = await response.json();
+      setChatMessages(prev => [...prev, { role: "assistant", content: data.response || data.message || "Sin respuesta" }]);
+    } catch (err) {
+      setChatMessages(prev => [...prev, { role: "assistant", content: "Error al procesar tu consulta. Intenta de nuevo." }]);
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
+  if (!analysisResult?.analysis) {
+    return (
       <div className="bg-white p-6 rounded-xl border border-gray-200">
         <h3 className="font-bold text-lg text-gray-900 mb-2">Resultado del Análisis</h3>
-        <p className="text-sm text-gray-500 mb-6">
-          {analysisResult ? "Análisis completado" : "Esperando análisis..."}
-        </p>
-
-        {analysisResult?.analysis ? (
-          <div className="space-y-4 max-h-[600px] overflow-y-auto">
-            <div>
-              <h4 className="font-semibold text-gray-900 mb-2">Tipo de Documento</h4>
-              <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg">
-                {analysisResult.analysis.type}
-              </p>
-            </div>
-
-            {analysisResult.analysis.checklist?.items && (
-              <div>
-                <h4 className="font-semibold text-gray-900 mb-2">Checklist de Análisis</h4>
-                <div className="space-y-2">
-                  {analysisResult.analysis.checklist.items.map((item: any, i: number) => (
-                    <div key={i} className="border border-gray-200 rounded-lg p-3">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-medium text-sm text-gray-900">{item.key}</span>
-                        <span className={`text-xs px-2 py-1 rounded ${
-                          item.found === "yes" ? "bg-green-100 text-green-800" :
-                          item.found === "no" ? "bg-red-100 text-red-800" :
-                          "bg-yellow-100 text-yellow-800"
-                        }`}>
-                          {item.found}
-                        </span>
-                      </div>
-                      <div className={`text-xs px-2 py-1 rounded inline-block mt-1 ${
-                        item.risk === "high" ? "bg-red-100 text-red-800" :
-                        item.risk === "medium" ? "bg-yellow-100 text-yellow-800" :
-                        "bg-green-100 text-green-800"
-                      }`}>
-                        Riesgo: {item.risk}
-                      </div>
-                      {item.comment && (
-                        <p className="text-xs text-gray-600 mt-2">{item.comment}</p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {analysisResult.analysis.report && (
-              <div>
-                <h4 className="font-semibold text-gray-900 mb-2">Reporte Completo</h4>
-                <div className="text-sm text-gray-700 bg-gray-50 p-4 rounded-lg whitespace-pre-wrap">
-                  {analysisResult.analysis.report}
-                </div>
-              </div>
-            )}
-          </div>
-        ) : analyzing ? (
+        <p className="text-sm text-gray-500 mb-6">Esperando análisis...</p>
+        {analyzing ? (
           <div className="flex flex-col items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-[#C026D3] mb-4" />
             <p className="text-sm text-gray-500">Procesando documento...</p>
@@ -923,6 +939,269 @@ function AnalizarDocumentosPanel() {
         ) : (
           <div className="text-sm text-gray-500 py-12 text-center">
             Sube un documento para comenzar el análisis
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white p-6 rounded-xl border border-gray-200">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h3 className="font-bold text-lg text-gray-900">Resultado del Análisis</h3>
+          <p className="text-sm text-gray-500">
+            {report?.tipo_documento || analysisResult.analysis.type} • {report?.jurisdiccion || "Nacional"} • {report?.area_legal || ""}
+          </p>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-1 mb-4 overflow-x-auto pb-2 border-b border-gray-200">
+        {[
+          { id: "resumen", label: "Resumen" },
+          { id: "clausulas", label: "Cláusulas" },
+          { id: "riesgos", label: "Riesgos" },
+          { id: "recomendaciones", label: "Recomendaciones" },
+          { id: "fuentes", label: "Fuentes" },
+          { id: "chat", label: "💬 Chat" },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id as any)}
+            className={`px-3 py-2 text-sm font-medium rounded-t-lg whitespace-nowrap transition-colors ${
+              activeTab === tab.id
+                ? "bg-[#C026D3] text-white"
+                : "text-gray-600 hover:bg-gray-100"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Content */}
+      <div className="max-h-[500px] overflow-y-auto">
+        {activeTab === "resumen" && (
+          <div className="space-y-4">
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-2">{report?.titulo || "Análisis del Documento"}</h4>
+              <div className="text-sm text-gray-700 bg-gray-50 p-4 rounded-lg whitespace-pre-wrap">
+                {report?.resumen_ejecutivo || report?.texto_formateado || analysisResult.analysis.report}
+              </div>
+            </div>
+            {report?.analisis_juridico && (
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-2">Análisis Jurídico</h4>
+                <div className="text-sm text-gray-700 bg-gray-50 p-4 rounded-lg whitespace-pre-wrap">
+                  {report.analisis_juridico}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === "clausulas" && (
+          <div className="space-y-3">
+            {report?.clausulas_analizadas?.length > 0 ? (
+              report.clausulas_analizadas.map((clausula: any, i: number) => (
+                <div key={i} className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium text-gray-900">
+                      {clausula.numero} - {clausula.titulo}
+                    </span>
+                    <span className={`text-xs px-2 py-1 rounded ${
+                      clausula.riesgo === "alto" ? "bg-red-100 text-red-800" :
+                      clausula.riesgo === "medio" ? "bg-yellow-100 text-yellow-800" :
+                      "bg-green-100 text-green-800"
+                    }`}>
+                      Riesgo: {clausula.riesgo}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-600">{clausula.analisis}</p>
+                </div>
+              ))
+            ) : analysisResult.analysis.checklist?.items ? (
+              analysisResult.analysis.checklist.items.map((item: any, i: number) => (
+                <div key={i} className="border border-gray-200 rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-medium text-sm text-gray-900">{item.key}</span>
+                    <span className={`text-xs px-2 py-1 rounded ${
+                      item.risk === "high" ? "bg-red-100 text-red-800" :
+                      item.risk === "medium" ? "bg-yellow-100 text-yellow-800" :
+                      "bg-green-100 text-green-800"
+                    }`}>
+                      Riesgo: {item.risk}
+                    </span>
+                  </div>
+                  {item.comment && <p className="text-xs text-gray-600 mt-2">{item.comment}</p>}
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-gray-500 text-center py-8">No hay cláusulas analizadas</p>
+            )}
+          </div>
+        )}
+
+        {activeTab === "riesgos" && (
+          <div className="space-y-3">
+            {report?.riesgos?.length > 0 ? (
+              report.riesgos.map((riesgo: any, i: number) => (
+                <div key={i} className={`border-l-4 p-4 rounded-r-lg ${
+                  riesgo.nivel === "alto" ? "border-red-500 bg-red-50" :
+                  riesgo.nivel === "medio" ? "border-yellow-500 bg-yellow-50" :
+                  "border-green-500 bg-green-50"
+                }`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-lg">⚠️</span>
+                    <span className={`text-xs px-2 py-1 rounded font-medium ${
+                      riesgo.nivel === "alto" ? "bg-red-200 text-red-800" :
+                      riesgo.nivel === "medio" ? "bg-yellow-200 text-yellow-800" :
+                      "bg-green-200 text-green-800"
+                    }`}>
+                      {riesgo.nivel?.toUpperCase()}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-800 font-medium mb-1">{riesgo.descripcion}</p>
+                  {riesgo.recomendacion && (
+                    <p className="text-sm text-gray-600">💡 {riesgo.recomendacion}</p>
+                  )}
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-gray-500 text-center py-8">No se identificaron riesgos específicos</p>
+            )}
+          </div>
+        )}
+
+        {activeTab === "recomendaciones" && (
+          <div className="space-y-4">
+            {report?.recomendaciones?.length > 0 && (
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-3">Recomendaciones</h4>
+                <ul className="space-y-2">
+                  {report.recomendaciones.map((rec: string, i: number) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                      <span className="text-[#C026D3]">✓</span>
+                      {rec}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {report?.proximos_pasos?.length > 0 && (
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-3">Próximos Pasos</h4>
+                <ul className="space-y-2">
+                  {report.proximos_pasos.map((paso: string, i: number) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                      <span className="text-blue-600">{i + 1}.</span>
+                      {paso}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {report?.documentos_sugeridos?.length > 0 && (
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-3">Documentos Sugeridos</h4>
+                <div className="space-y-2">
+                  {report.documentos_sugeridos.map((doc: any, i: number) => (
+                    <div key={i} className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                      <p className="text-sm font-medium text-blue-900">{doc.tipo}</p>
+                      <p className="text-xs text-blue-700">{doc.descripcion}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {!report?.recomendaciones?.length && !report?.proximos_pasos?.length && (
+              <p className="text-sm text-gray-500 text-center py-8">No hay recomendaciones disponibles</p>
+            )}
+          </div>
+        )}
+
+        {activeTab === "fuentes" && (
+          <div className="space-y-3">
+            {report?.citas?.length > 0 ? (
+              report.citas.map((cita: any, i: number) => (
+                <div key={i} className="border border-gray-200 rounded-lg p-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className={`text-xs px-2 py-1 rounded ${
+                      cita.tipo === "normativa" ? "bg-blue-100 text-blue-800" :
+                      cita.tipo === "jurisprudencia" ? "bg-purple-100 text-purple-800" :
+                      cita.tipo === "doctrina" ? "bg-green-100 text-green-800" :
+                      "bg-gray-100 text-gray-800"
+                    }`}>
+                      {cita.tipo}
+                    </span>
+                  </div>
+                  <p className="text-sm font-medium text-gray-900">{cita.referencia}</p>
+                  {cita.descripcion && <p className="text-xs text-gray-600 mt-1">{cita.descripcion}</p>}
+                  {cita.url && (
+                    <a 
+                      href={cita.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-xs text-[#C026D3] hover:underline mt-1 inline-block"
+                    >
+                      🔗 Ver fuente
+                    </a>
+                  )}
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-gray-500 text-center py-8">No hay fuentes citadas</p>
+            )}
+          </div>
+        )}
+
+        {activeTab === "chat" && (
+          <div className="flex flex-col h-[400px]">
+            <div className="flex-1 overflow-y-auto space-y-3 mb-4">
+              {chatMessages.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-sm text-gray-500 mb-2">💬 Chat con Asistente</p>
+                  <p className="text-xs text-gray-400">Hacé preguntas sobre el documento analizado</p>
+                </div>
+              ) : (
+                chatMessages.map((msg, i) => (
+                  <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                    <div className={`max-w-[80%] p-3 rounded-lg text-sm ${
+                      msg.role === "user" 
+                        ? "bg-[#C026D3] text-white" 
+                        : "bg-gray-100 text-gray-800"
+                    }`}>
+                      {msg.content}
+                    </div>
+                  </div>
+                ))
+              )}
+              {chatLoading && (
+                <div className="flex justify-start">
+                  <div className="bg-gray-100 p-3 rounded-lg">
+                    <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleChatSubmit()}
+                placeholder="Preguntá sobre el documento..."
+                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#C026D3]"
+              />
+              <button
+                onClick={handleChatSubmit}
+                disabled={!chatInput.trim() || chatLoading}
+                className="bg-[#C026D3] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#A21CAF] disabled:opacity-50"
+              >
+                Enviar
+              </button>
+            </div>
           </div>
         )}
       </div>
