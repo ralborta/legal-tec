@@ -12,30 +12,91 @@ interface ReportInput {
   checklist: { items?: DistributionChecklistItem[] } | null;
 }
 
-const prompt = `You are a legal report generator for WNS & Asociados.
+// Fuentes legales organizadas por jurisdicción y área
+const FUENTES_LEGALES = `
+## FUENTES DE CONSULTA OBLIGATORIAS
 
-Generate a comprehensive legal analysis report in Spanish based on:
+### NIVEL NACIONAL
+- Boletín Oficial: https://www.boletinoficial.gob.ar/
+- InfoLEG (Normativa): https://www.argentina.gob.ar/normativa
+- SAIJ (Jurisprudencia): https://www.argentina.gob.ar/justicia/saij
+- SIPROJUD (CSJN): http://www.csjn.gov.ar/siprojur/
+- Código Civil y Comercial: http://www.bibliotecadigital.gob.ar/items/show/2690
+- Constitución Nacional: https://servicios.infoleg.gob.ar/infolegInternet/anexos/0-4999/804/norma.htm
 
-1. Original document text (English)
-2. Translated clauses (Spanish)
-3. Document type classification
-4. Analysis checklist (if available)
-5. Relevant jurisprudence and legal precedents (if available)
+### ORGANISMOS NACIONALES
+- ANSES (Previsional): https://www.anses.gob.ar/institucional/normativa
+- BCRA (Financiero): http://www.bcra.gov.ar/BCRAyVos/Normativa.asp
+- AFIP/ARCA (Tributario): https://www.afip.gob.ar/normativa/
+- Ministerio de Trabajo: https://www.argentina.gob.ar/trabajo/normativa
+- Ministerio de Salud: https://www.argentina.gob.ar/salud/normativas
 
-The report should include:
+### LEGISLATIVO
+- Cámara de Diputados: https://www.hcdn.gob.ar/
+- Senado: https://www.senado.gob.ar/
 
-- Executive summary
-- Document type and key characteristics
-- Critical clauses analysis
-- Risk assessment (considering relevant jurisprudence)
-- Legal precedents and jurisprudence analysis (if available)
-- Recommendations for the client (DISTRIBUTOR perspective)
-- Action items
+### DOCTRINA Y RECURSOS ACADÉMICOS
+- SAIJ (Doctrina): https://www.saij.gob.ar/
+- UBA Derecho: https://www.derecho.uba.ar/investigacion/publicaciones.php
+- UNLP: https://www.bibliojuridica.laplata.edu.ar/
 
-Format: Professional legal report in Spanish, structured with clear sections.
-When citing jurisprudence, include the source and URL if available.
+### PROVINCIAS - Usar según jurisdicción del documento:
 
-Return ONLY the report text, no JSON, no markdown headers.`;
+**CABA:**
+- Boletín Oficial CABA: https://boletinoficial.buenosaires.gob.ar/
+- Código Procesal CABA: https://www.argentina.gob.ar/normativa/provincial/ley-189-123456789-0abc-defg-981-0000xvorpyel/actualizacion
+
+**Buenos Aires:**
+- Boletín Oficial PBA: https://normas.gba.gob.ar/
+- SIND PBA: https://www.gob.gba.gov.ar/legislacion/
+
+**Córdoba:**
+- Boletín Oficial: https://boletinoficial.cba.gov.ar/
+- Legislatura: https://www.legislaturacba.gov.ar/
+
+**Santa Fe:**
+- Boletín Oficial: https://boletinoficial.santafe.gob.ar/
+- Normativa: https://www.santafe.gov.ar/index.php/web/content/view/full/208678
+
+**Mendoza:**
+- Boletín Oficial: https://www.boletinoficial.mendoza.gov.ar/
+- Poder Judicial: https://www.jus.mendoza.gov.ar
+
+**Otras provincias:** Consultar en SAIJ la normativa provincial correspondiente.
+`;
+
+const prompt = `Eres un generador de reportes legales para WNS & Asociados.
+
+INSTRUCCIONES IMPORTANTES:
+1. PRIMERO: Detecta la JURISDICCIÓN del documento (Nacional, CABA, Buenos Aires, Córdoba, Santa Fe, Mendoza, u otra provincia)
+2. SEGUNDO: Identifica el ÁREA LEGAL (Civil, Comercial, Laboral, Tributario, Penal, Administrativo, etc.)
+3. TERCERO: Genera el análisis completo
+4. CUARTO: OBLIGATORIO incluir sección "FUENTES Y REFERENCIAS" al final con las URLs relevantes
+
+Genera un reporte de análisis legal completo en español basado en:
+
+1. Texto original del documento
+2. Cláusulas traducidas (español)
+3. Clasificación del tipo de documento
+4. Checklist de análisis (si disponible)
+5. Jurisprudencia y precedentes legales (si disponible)
+
+El reporte DEBE incluir:
+
+- **Resumen Ejecutivo**
+- **Jurisdicción y Área Legal Identificada**
+- **Tipo de documento y características clave**
+- **Análisis de cláusulas críticas**
+- **Evaluación de riesgos** (considerando jurisprudencia relevante)
+- **Precedentes legales y análisis jurisprudencial** (si disponible)
+- **Recomendaciones para el cliente** (perspectiva del DISTRIBUIDOR)
+- **Acciones a tomar**
+- **FUENTES Y REFERENCIAS** (OBLIGATORIO - incluir URLs de las fuentes consultadas según jurisdicción y área legal)
+
+Formato: Reporte legal profesional en español, estructurado con secciones claras.
+Al citar jurisprudencia o normativa, incluir la fuente y URL.
+
+Devuelve SOLO el texto del reporte, sin JSON, sin headers markdown.`;
 
 export async function generateReport(input: ReportInput): Promise<string> {
   const startTime = Date.now();
@@ -73,21 +134,23 @@ export async function generateReport(input: ReportInput): Promise<string> {
               `### ${j.title} (${j.source})\n${j.text}${j.url ? `\nFuente: ${j.url}` : ""}`
           )
           .join("\n\n")
-      : "No se encontró jurisprudencia relevante para este documento.";
+      : "No se encontró jurisprudencia en la base de datos. Usar las fuentes de referencia proporcionadas.";
 
     const response = await Promise.race([
       openai.chat.completions.create({
         model: "gpt-4o-mini",
         temperature: 0.3,
-        max_tokens: 2000, // Limitar tokens de respuesta
+        max_tokens: 3000, // Aumentado para incluir fuentes
         messages: [
           {
             role: "system",
-            content: "You are a legal report generator. Return ONLY the report text in Spanish, professional format.",
+            content: "Eres un generador de reportes legales. Devuelve SOLO el texto del reporte en español, formato profesional. SIEMPRE incluye una sección de FUENTES Y REFERENCIAS al final con URLs relevantes.",
           },
           {
             role: "user",
             content: `${prompt}
+
+${FUENTES_LEGALES}
 
 TIPO DE DOCUMENTO: ${input.type}
 
@@ -120,4 +183,3 @@ ${jurisprudenceText}`,
     return `Error al generar reporte: ${error instanceof Error ? error.message : "Error desconocido"}`;
   }
 }
-
