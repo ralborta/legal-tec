@@ -13,6 +13,7 @@ import { generarMemoJuridico } from "./memos/generate-memo.js";
 import { generarMemoJuridicoDirect } from "./memos/generate-memo-direct.js";
 import { queryMemo } from "./memos/query-memo.js";
 import { chatMemo } from "./memos/chat-memo.js";
+import { chatAnalysis } from "./memos/chat-analysis.js";
 import * as knowledgeBases from "./knowledge-bases.js";
 import { scrapeAndIngestUrls, scrapeUrl } from "./url-scraper.js";
 import { createReadStream, existsSync, readFileSync } from "fs";
@@ -468,6 +469,48 @@ async function start() {
     }
   });
 
+  // Chat sobre análisis de documentos legales (contratos, acuerdos, etc.)
+  app.post("/api/analysis/chat", async (req, rep) => {
+    try {
+      const body = z.object({
+        analysisText: z.string().optional(),
+        messages: z.array(z.object({
+          role: z.enum(["user", "assistant"]),
+          content: z.string()
+        })),
+        areaLegal: z.string().optional(),
+        jurisdiccion: z.string().optional(),
+        tipoDocumento: z.string().optional(),
+        citas: z.array(z.object({
+          tipo: z.string(),
+          referencia: z.string(),
+          descripcion: z.string().optional(),
+          url: z.string().optional()
+        })).optional(),
+        riesgos: z.array(z.object({
+          descripcion: z.string(),
+          nivel: z.string(),
+          recomendacion: z.string().optional()
+        })).optional()
+      }).parse(req.body);
+
+      const openaiKey = process.env.OPENAI_API_KEY;
+      if (!openaiKey) {
+        return rep.status(500).send({ error: "OPENAI_API_KEY no configurada" });
+      }
+
+      const result = await chatAnalysis(openaiKey, body);
+      return rep.send(result);
+
+    } catch (error) {
+      app.log.error(error, "Error en /api/analysis/chat");
+      return rep.status(500).send({
+        error: "Error interno en el chat de análisis",
+        message: error instanceof Error ? error.message : "Error desconocido"
+      });
+    }
+  });
+
   // Sugerir templates según el contenido del memo (con validación por IA)
   app.post("/api/templates/suggest", async (req, rep) => {
     try {
@@ -851,13 +894,13 @@ Responde SOLO con un JSON válido con esta estructura:
 
   app.get("/api/knowledge-bases/:id", async (req, rep) => {
     try {
-      const { id } = req.params as { id: string };
-      const kb = await knowledgeBases.getKnowledgeBase(process.env.DATABASE_URL!, id);
-      if (!kb) {
-        return rep.status(404).send({ error: "Base de conocimiento no encontrada" });
-      }
-      const stats = await knowledgeBases.getKnowledgeBaseStats(process.env.DATABASE_URL!, id);
-      return rep.send({ ...kb, stats });
+    const { id } = req.params as { id: string };
+    const kb = await knowledgeBases.getKnowledgeBase(process.env.DATABASE_URL!, id);
+    if (!kb) {
+      return rep.status(404).send({ error: "Base de conocimiento no encontrada" });
+    }
+    const stats = await knowledgeBases.getKnowledgeBaseStats(process.env.DATABASE_URL!, id);
+    return rep.send({ ...kb, stats });
     } catch (error) {
       app.log.error(error, "Error al obtener knowledge base");
       // ✅ Si la tabla no existe, devolver 404 (no crashear)
@@ -873,26 +916,26 @@ Responde SOLO con un JSON válido con esta estructura:
 
   app.post("/api/knowledge-bases", async (req, rep) => {
     try {
-      const body = z.object({
-        id: z.string().min(1),
-        name: z.string().min(1),
-        description: z.string().optional(),
-        sourceType: z.string(),
-        enabled: z.boolean().optional(),
-        metadata: z.record(z.any()).optional()
-      }).parse(req.body);
+    const body = z.object({
+      id: z.string().min(1),
+      name: z.string().min(1),
+      description: z.string().optional(),
+      sourceType: z.string(),
+      enabled: z.boolean().optional(),
+      metadata: z.record(z.any()).optional()
+    }).parse(req.body);
 
-      const kbData: Omit<knowledgeBases.KnowledgeBase, "createdAt" | "updatedAt"> = {
-        id: body.id,
-        name: body.name,
-        description: body.description,
-        sourceType: body.sourceType,
-        enabled: body.enabled ?? true,  // Default true si no se especifica
-        metadata: body.metadata ?? {}
-      };
+    const kbData: Omit<knowledgeBases.KnowledgeBase, "createdAt" | "updatedAt"> = {
+      id: body.id,
+      name: body.name,
+      description: body.description,
+      sourceType: body.sourceType,
+      enabled: body.enabled ?? true,  // Default true si no se especifica
+      metadata: body.metadata ?? {}
+    };
 
-      const kb = await knowledgeBases.upsertKnowledgeBase(process.env.DATABASE_URL!, kbData);
-      return rep.send(kb);
+    const kb = await knowledgeBases.upsertKnowledgeBase(process.env.DATABASE_URL!, kbData);
+    return rep.send(kb);
     } catch (error) {
       app.log.error(error, "Error al crear/actualizar knowledge base");
       // ✅ Si la tabla no existe, devolver error claro (no crashear)
@@ -911,13 +954,13 @@ Responde SOLO con un JSON válido con esta estructura:
 
   app.patch("/api/knowledge-bases/:id/toggle", async (req, rep) => {
     try {
-      const { id } = req.params as { id: string };
-      const body = z.object({
-        enabled: z.boolean()
-      }).parse(req.body);
+    const { id } = req.params as { id: string };
+    const body = z.object({
+      enabled: z.boolean()
+    }).parse(req.body);
 
-      await knowledgeBases.toggleKnowledgeBase(process.env.DATABASE_URL!, id, body.enabled);
-      return rep.send({ ok: true });
+    await knowledgeBases.toggleKnowledgeBase(process.env.DATABASE_URL!, id, body.enabled);
+    return rep.send({ ok: true });
     } catch (error) {
       app.log.error(error, "Error al toggle knowledge base");
       // ✅ Si la tabla no existe, devolver error claro (no crashear)
@@ -1461,15 +1504,15 @@ Responde SOLO con un JSON válido con esta estructura:
         let response: Response;
         try {
           response = await fetch(targetUrl, {
-            method: req.method,
-            headers: {
-              ...headers,
-              // Copiar otros headers importantes
-              ...(req.headers.authorization && { Authorization: req.headers.authorization }),
-            },
-            body: body,
+          method: req.method,
+          headers: {
+            ...headers,
+            // Copiar otros headers importantes
+            ...(req.headers.authorization && { Authorization: req.headers.authorization }),
+          },
+          body: body,
             signal: controller.signal,
-          });
+        });
         } finally {
           clearTimeout(t);
         }

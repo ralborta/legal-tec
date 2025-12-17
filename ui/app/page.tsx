@@ -914,18 +914,29 @@ function AnalysisResultPanel({ analysisResult, analyzing, documentId }: {
         url: c.url
       })) || [];
 
-      const response = await fetch(`${API}/api/memos/chat`, {
+      // Preparar riesgos
+      const riesgos = report?.riesgos?.map((r: any) => ({
+        descripcion: r.descripcion || "",
+        nivel: r.nivel || "medio",
+        recomendacion: r.recomendacion
+      })) || [];
+
+      // Usar endpoint específico para análisis de documentos
+      const response = await fetch(`${API}/api/analysis/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          // Usar el texto formateado como contexto principal
-          memoText: report?.texto_formateado || (typeof analysisResult?.analysis?.report === 'string' ? analysisResult.analysis.report : JSON.stringify(analysisResult?.analysis?.report)),
-          // Historial de mensajes incluyendo el nuevo
+          // Texto completo del análisis
+          analysisText: report?.texto_formateado || (typeof analysisResult?.analysis?.report === 'string' ? analysisResult.analysis.report : JSON.stringify(analysisResult?.analysis?.report)),
+          // Historial de mensajes
           messages: newMessages,
-          // Área legal si está disponible
-          areaLegal: report?.area_legal || analysisResult?.analysis?.type || "",
-          // Citas del análisis
-          citas: citas
+          // Metadata del documento
+          areaLegal: report?.area_legal || "",
+          jurisdiccion: report?.jurisdiccion || "",
+          tipoDocumento: report?.tipo_documento || analysisResult?.analysis?.type || "",
+          // Citas y riesgos para contexto
+          citas: citas,
+          riesgos: riesgos
         })
       });
 
@@ -935,7 +946,7 @@ function AnalysisResultPanel({ analysisResult, analyzing, documentId }: {
       }
       
       const data = await response.json();
-      setChatMessages(prev => [...prev, { role: "assistant", content: data.message || data.response || "Sin respuesta" }]);
+      setChatMessages(prev => [...prev, { role: "assistant", content: data.message || "Sin respuesta" }]);
     } catch (err: any) {
       console.error("Error en chat:", err);
       setChatMessages(prev => [...prev, { role: "assistant", content: `Error al procesar tu consulta: ${err.message || "Intenta de nuevo."}` }]);
