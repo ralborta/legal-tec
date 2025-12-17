@@ -586,6 +586,95 @@ Generá el documento "${body.tipoDocumento}" completo, profesional y listo para 
     }
   });
 
+  // Generar documento legal desde plantilla con campos completados
+  app.post("/api/generate-from-template", async (req, rep) => {
+    try {
+      const body = req.body as {
+        templateId: string;
+        templateName: string;
+        campos: Record<string, string>;
+      };
+
+      const { templateId, templateName, campos } = body;
+
+      if (!templateId || !templateName || !campos) {
+        return rep.status(400).send({ error: "Faltan datos requeridos: templateId, templateName, campos" });
+      }
+
+      const openaiKey = process.env.OPENAI_API_KEY;
+      if (!openaiKey) {
+        return rep.status(500).send({ error: "OPENAI_API_KEY no configurada" });
+      }
+
+      // Construir el prompt con los datos del formulario
+      const camposFormateados = Object.entries(campos)
+        .map(([key, value]) => `- ${key}: ${value}`)
+        .join("\n");
+
+      const systemPrompt = `Eres un abogado argentino experto en redacción de documentos legales. 
+Tu tarea es generar un documento legal completo, profesional y listo para usar.
+
+REGLAS IMPORTANTES:
+1. El documento debe estar en español argentino formal y legal
+2. Debe incluir todas las cláusulas estándar para este tipo de documento según la legislación argentina vigente
+3. Debe ser completo y profesional, no un borrador
+4. Incluir lugar y fecha al inicio
+5. Incluir espacio para firmas al final
+6. Usar terminología jurídica apropiada
+7. Referenciar artículos del Código Civil y Comercial de la Nación u otras leyes aplicables cuando corresponda
+8. Incluir cláusulas de jurisdicción y domicilios constituidos
+9. Para contratos: incluir cláusulas de rescisión, mora, y resolución de conflictos`;
+
+      const userPrompt = `Generá un "${templateName}" completo con los siguientes datos:
+
+${camposFormateados}
+
+El documento debe:
+1. Estar completo y listo para firmar
+2. Incluir todas las cláusulas legales necesarias según el tipo de documento
+3. Ser profesional y formalmente correcto
+4. Incluir referencias a la normativa aplicable (CCyCN, leyes especiales, etc.)
+5. Tener formato adecuado con numeración de cláusulas
+
+Generá el documento completo:`;
+
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${openaiKey}`
+        },
+        body: JSON.stringify({
+          model: "gpt-4o",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt }
+          ],
+          temperature: 0.3,
+          max_tokens: 4000
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        app.log.error(`Error de OpenAI: ${errorText}`);
+        throw new Error(`Error de OpenAI: ${response.status}`);
+      }
+
+      const data = await response.json() as { choices: Array<{ message: { content: string } }> };
+      const documento = data.choices[0]?.message?.content || "No se pudo generar el documento.";
+
+      return rep.send({ documento });
+
+    } catch (error) {
+      app.log.error(error, "Error en /api/generate-from-template");
+      return rep.status(500).send({
+        error: "Error al generar documento desde plantilla",
+        message: error instanceof Error ? error.message : "Error desconocido"
+      });
+    }
+  });
+
   // Sugerir templates según el contenido del memo (con validación por IA)
   app.post("/api/templates/suggest", async (req, rep) => {
     try {

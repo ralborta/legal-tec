@@ -1467,8 +1467,176 @@ function ProgressIndicator() {
   );
 }
 
+// Definición de plantillas de documentos
+const PLANTILLAS_DOCUMENTOS = [
+  {
+    id: "locacion",
+    nombre: "Contrato de Locación",
+    descripcion: "Alquiler de inmuebles residenciales o comerciales",
+    campos: [
+      { id: "locador", label: "Nombre del Locador", tipo: "text", placeholder: "Juan Pérez" },
+      { id: "locador_dni", label: "DNI del Locador", tipo: "text", placeholder: "12.345.678" },
+      { id: "locador_domicilio", label: "Domicilio del Locador", tipo: "text", placeholder: "Av. Corrientes 1234, CABA" },
+      { id: "locatario", label: "Nombre del Locatario", tipo: "text", placeholder: "María García" },
+      { id: "locatario_dni", label: "DNI del Locatario", tipo: "text", placeholder: "23.456.789" },
+      { id: "locatario_domicilio", label: "Domicilio del Locatario", tipo: "text", placeholder: "Av. Santa Fe 5678, CABA" },
+      { id: "inmueble", label: "Dirección del Inmueble", tipo: "text", placeholder: "Calle Falsa 123, Piso 4, Depto A" },
+      { id: "destino", label: "Destino (vivienda/comercial)", tipo: "select", opciones: ["Vivienda única y permanente", "Comercial", "Profesional"] },
+      { id: "plazo", label: "Plazo (meses)", tipo: "number", placeholder: "36" },
+      { id: "precio", label: "Precio mensual inicial", tipo: "text", placeholder: "$150.000" },
+      { id: "ajuste", label: "Índice de ajuste", tipo: "select", opciones: ["ICL (Índice de Contratos de Locación)", "IPC", "Otro a convenir"] },
+      { id: "deposito", label: "Depósito en garantía", tipo: "text", placeholder: "1 mes de alquiler" },
+    ]
+  },
+  {
+    id: "trabajo",
+    nombre: "Contrato de Trabajo",
+    descripcion: "Relación laboral en relación de dependencia",
+    campos: [
+      { id: "empleador", label: "Razón Social del Empleador", tipo: "text", placeholder: "Empresa S.A." },
+      { id: "empleador_cuit", label: "CUIT del Empleador", tipo: "text", placeholder: "30-12345678-9" },
+      { id: "empleador_domicilio", label: "Domicilio del Empleador", tipo: "text", placeholder: "Av. Libertador 1000, CABA" },
+      { id: "empleado", label: "Nombre del Empleado", tipo: "text", placeholder: "Carlos López" },
+      { id: "empleado_dni", label: "DNI del Empleado", tipo: "text", placeholder: "34.567.890" },
+      { id: "empleado_domicilio", label: "Domicilio del Empleado", tipo: "text", placeholder: "Calle 10 N° 500, La Plata" },
+      { id: "puesto", label: "Puesto/Categoría", tipo: "text", placeholder: "Analista Senior" },
+      { id: "tareas", label: "Descripción de Tareas", tipo: "textarea", placeholder: "Análisis de datos, elaboración de informes..." },
+      { id: "remuneracion", label: "Remuneración Bruta Mensual", tipo: "text", placeholder: "$500.000" },
+      { id: "jornada", label: "Jornada Laboral", tipo: "select", opciones: ["Tiempo completo (8hs)", "Tiempo parcial (4hs)", "Otro"] },
+      { id: "modalidad", label: "Modalidad", tipo: "select", opciones: ["Presencial", "Remoto", "Híbrido"] },
+      { id: "convenio", label: "Convenio Colectivo Aplicable", tipo: "text", placeholder: "CCT 130/75 Comercio" },
+    ]
+  },
+  {
+    id: "nda",
+    nombre: "Acuerdo de Confidencialidad (NDA)",
+    descripcion: "Protección de información confidencial entre partes",
+    campos: [
+      { id: "parte_reveladora", label: "Parte Reveladora", tipo: "text", placeholder: "Tech Solutions S.A." },
+      { id: "parte_reveladora_cuit", label: "CUIT Parte Reveladora", tipo: "text", placeholder: "30-12345678-9" },
+      { id: "parte_receptora", label: "Parte Receptora", tipo: "text", placeholder: "Consultor Externo S.R.L." },
+      { id: "parte_receptora_cuit", label: "CUIT Parte Receptora", tipo: "text", placeholder: "30-98765432-1" },
+      { id: "objeto", label: "Objeto/Propósito del NDA", tipo: "textarea", placeholder: "Evaluación de potencial alianza comercial..." },
+      { id: "info_confidencial", label: "Tipo de Información Confidencial", tipo: "textarea", placeholder: "Datos técnicos, financieros, comerciales, know-how..." },
+      { id: "vigencia", label: "Vigencia (años)", tipo: "number", placeholder: "3" },
+      { id: "jurisdiccion", label: "Jurisdicción", tipo: "text", placeholder: "Tribunales de la Ciudad de Buenos Aires" },
+    ]
+  },
+  {
+    id: "servicios",
+    nombre: "Contrato de Prestación de Servicios",
+    descripcion: "Servicios profesionales independientes (no relación de dependencia)",
+    campos: [
+      { id: "cliente", label: "Cliente (Contratante)", tipo: "text", placeholder: "Empresa Contratante S.A." },
+      { id: "cliente_cuit", label: "CUIT del Cliente", tipo: "text", placeholder: "30-12345678-9" },
+      { id: "prestador", label: "Prestador del Servicio", tipo: "text", placeholder: "Profesional Independiente" },
+      { id: "prestador_cuit", label: "CUIT/CUIL del Prestador", tipo: "text", placeholder: "20-12345678-9" },
+      { id: "servicio", label: "Descripción del Servicio", tipo: "textarea", placeholder: "Consultoría en sistemas, desarrollo de software..." },
+      { id: "honorarios", label: "Honorarios", tipo: "text", placeholder: "$200.000 mensuales + IVA" },
+      { id: "forma_pago", label: "Forma de Pago", tipo: "text", placeholder: "Mensual, dentro de los 10 días de presentada la factura" },
+      { id: "plazo", label: "Plazo del Contrato", tipo: "text", placeholder: "12 meses" },
+      { id: "preaviso", label: "Preaviso para Rescisión", tipo: "text", placeholder: "30 días" },
+    ]
+  },
+  {
+    id: "poder",
+    nombre: "Poder General/Especial",
+    descripcion: "Otorgamiento de facultades de representación",
+    campos: [
+      { id: "poderdante", label: "Poderdante (quien otorga)", tipo: "text", placeholder: "Juan Pérez" },
+      { id: "poderdante_dni", label: "DNI del Poderdante", tipo: "text", placeholder: "12.345.678" },
+      { id: "poderdante_domicilio", label: "Domicilio del Poderdante", tipo: "text", placeholder: "Av. Corrientes 1234, CABA" },
+      { id: "apoderado", label: "Apoderado (quien recibe)", tipo: "text", placeholder: "Dr. Carlos Abogado" },
+      { id: "apoderado_dni", label: "DNI del Apoderado", tipo: "text", placeholder: "23.456.789" },
+      { id: "tipo_poder", label: "Tipo de Poder", tipo: "select", opciones: ["General de Administración", "Especial para Juicio", "Especial para Venta de Inmueble", "Especial para Trámites Bancarios"] },
+      { id: "facultades", label: "Facultades Específicas", tipo: "textarea", placeholder: "Representar en juicio, cobrar, percibir, dar recibos..." },
+      { id: "vigencia", label: "Vigencia", tipo: "select", opciones: ["Hasta revocación", "1 año", "2 años", "Acto específico"] },
+    ]
+  },
+  {
+    id: "compraventa",
+    nombre: "Contrato de Compraventa",
+    descripcion: "Venta de bienes muebles o inmuebles",
+    campos: [
+      { id: "vendedor", label: "Vendedor", tipo: "text", placeholder: "Vendedor S.A." },
+      { id: "vendedor_cuit", label: "CUIT/DNI del Vendedor", tipo: "text", placeholder: "30-12345678-9" },
+      { id: "comprador", label: "Comprador", tipo: "text", placeholder: "Comprador S.R.L." },
+      { id: "comprador_cuit", label: "CUIT/DNI del Comprador", tipo: "text", placeholder: "30-98765432-1" },
+      { id: "tipo_bien", label: "Tipo de Bien", tipo: "select", opciones: ["Inmueble", "Automotor", "Muebles/Equipos", "Fondo de Comercio"] },
+      { id: "descripcion_bien", label: "Descripción del Bien", tipo: "textarea", placeholder: "Departamento de 3 ambientes ubicado en..." },
+      { id: "precio", label: "Precio de Venta", tipo: "text", placeholder: "USD 100.000" },
+      { id: "forma_pago", label: "Forma de Pago", tipo: "textarea", placeholder: "50% a la firma, 50% contra escritura..." },
+      { id: "entrega", label: "Fecha/Condiciones de Entrega", tipo: "text", placeholder: "A los 30 días de la firma" },
+    ]
+  },
+  {
+    id: "carta_documento",
+    nombre: "Carta Documento",
+    descripcion: "Intimaciones, notificaciones y reclamos formales",
+    campos: [
+      { id: "remitente", label: "Remitente", tipo: "text", placeholder: "Juan Pérez" },
+      { id: "remitente_dni", label: "DNI/CUIT del Remitente", tipo: "text", placeholder: "12.345.678" },
+      { id: "remitente_domicilio", label: "Domicilio del Remitente", tipo: "text", placeholder: "Av. Corrientes 1234, CABA" },
+      { id: "destinatario", label: "Destinatario", tipo: "text", placeholder: "Empresa Deudora S.A." },
+      { id: "destinatario_domicilio", label: "Domicilio del Destinatario", tipo: "text", placeholder: "Av. Libertador 5678, CABA" },
+      { id: "tipo_intimacion", label: "Tipo de Intimación", tipo: "select", opciones: ["Pago de deuda", "Cumplimiento de contrato", "Cese de conducta", "Reclamo laboral", "Desalojo", "Otro"] },
+      { id: "hechos", label: "Hechos/Antecedentes", tipo: "textarea", placeholder: "Con fecha X se celebró contrato... hasta la fecha no se ha cumplido..." },
+      { id: "plazo_intimacion", label: "Plazo para Cumplir", tipo: "text", placeholder: "48 horas" },
+      { id: "consecuencias", label: "Consecuencias por Incumplimiento", tipo: "textarea", placeholder: "Se iniciarán acciones legales, se reclamarán daños y perjuicios..." },
+    ]
+  },
+  {
+    id: "sociedad",
+    nombre: "Contrato de Sociedad (SAS/SRL)",
+    descripcion: "Constitución de sociedad comercial",
+    campos: [
+      { id: "tipo_sociedad", label: "Tipo de Sociedad", tipo: "select", opciones: ["SAS (Sociedad por Acciones Simplificada)", "SRL (Sociedad de Responsabilidad Limitada)", "SA (Sociedad Anónima)"] },
+      { id: "denominacion", label: "Denominación Social", tipo: "text", placeholder: "Nueva Empresa S.A.S." },
+      { id: "objeto", label: "Objeto Social", tipo: "textarea", placeholder: "Desarrollo de software, consultoría informática..." },
+      { id: "capital", label: "Capital Social", tipo: "text", placeholder: "$1.000.000" },
+      { id: "socios", label: "Socios y Participación", tipo: "textarea", placeholder: "Juan Pérez (50%), María García (50%)" },
+      { id: "domicilio_social", label: "Domicilio Social", tipo: "text", placeholder: "Av. Corrientes 1234, CABA" },
+      { id: "duracion", label: "Duración", tipo: "text", placeholder: "99 años" },
+      { id: "administracion", label: "Administración", tipo: "textarea", placeholder: "Administrador único: Juan Pérez" },
+      { id: "ejercicio", label: "Cierre de Ejercicio", tipo: "text", placeholder: "31 de diciembre" },
+    ]
+  },
+  {
+    id: "acuerdo_partes",
+    nombre: "Acuerdo de Partes / Transacción",
+    descripcion: "Acuerdo para resolver conflictos o establecer condiciones",
+    campos: [
+      { id: "parte_a", label: "Primera Parte", tipo: "text", placeholder: "Juan Pérez / Empresa A S.A." },
+      { id: "parte_a_datos", label: "Datos de Primera Parte (DNI/CUIT)", tipo: "text", placeholder: "DNI 12.345.678" },
+      { id: "parte_b", label: "Segunda Parte", tipo: "text", placeholder: "María García / Empresa B S.R.L." },
+      { id: "parte_b_datos", label: "Datos de Segunda Parte (DNI/CUIT)", tipo: "text", placeholder: "CUIT 30-12345678-9" },
+      { id: "antecedentes", label: "Antecedentes del Conflicto/Situación", tipo: "textarea", placeholder: "Las partes mantienen un conflicto respecto de..." },
+      { id: "acuerdos", label: "Puntos Acordados", tipo: "textarea", placeholder: "1) La Parte A pagará $X... 2) La Parte B desistirá de..." },
+      { id: "confidencialidad", label: "Cláusula de Confidencialidad", tipo: "select", opciones: ["Sí, confidencial", "No, público"] },
+      { id: "jurisdiccion", label: "Jurisdicción", tipo: "text", placeholder: "Tribunales de la Ciudad de Buenos Aires" },
+    ]
+  },
+  {
+    id: "mutuo",
+    nombre: "Contrato de Mutuo (Préstamo)",
+    descripcion: "Préstamo de dinero entre partes",
+    campos: [
+      { id: "mutuante", label: "Mutuante (quien presta)", tipo: "text", placeholder: "Banco/Persona que presta" },
+      { id: "mutuante_cuit", label: "CUIT/DNI del Mutuante", tipo: "text", placeholder: "30-12345678-9" },
+      { id: "mutuario", label: "Mutuario (quien recibe)", tipo: "text", placeholder: "Persona/Empresa que recibe" },
+      { id: "mutuario_cuit", label: "CUIT/DNI del Mutuario", tipo: "text", placeholder: "20-12345678-9" },
+      { id: "monto", label: "Monto del Préstamo", tipo: "text", placeholder: "$1.000.000 / USD 10.000" },
+      { id: "moneda", label: "Moneda", tipo: "select", opciones: ["Pesos Argentinos", "Dólares Estadounidenses", "Otra"] },
+      { id: "interes", label: "Tasa de Interés", tipo: "text", placeholder: "5% mensual / TNA 60%" },
+      { id: "plazo", label: "Plazo de Devolución", tipo: "text", placeholder: "12 meses" },
+      { id: "cuotas", label: "Forma de Pago", tipo: "text", placeholder: "12 cuotas mensuales de $X" },
+      { id: "garantia", label: "Garantía", tipo: "textarea", placeholder: "Pagaré, hipoteca, prenda, fianza personal..." },
+    ]
+  }
+];
+
 function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out: any)=>void; setError: (e:string|null)=>void; setLoading: (b:boolean)=>void; }) {
-  
+  const [modoGeneracion, setModoGeneracion] = useState<"memo" | "plantilla">("memo");
   const [title, setTitle] = useState("");
   const [instructions, setInstructions] = useState("");
   const [type, setType] = useState<"dictamen"|"contrato"|"memo"|"escrito">("memo"); // Cambiar default a "memo"
@@ -1595,7 +1763,38 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
   return (
     <div className="bg-white p-6 rounded-xl border border-gray-200">
       <h3 className="font-bold text-lg text-gray-900">Generar Documento</h3>
-      <p className="text-sm text-gray-500 mb-6">Orquesta agentes Normativo + Jurisprudencial</p>
+      <p className="text-sm text-gray-500 mb-4">Orquesta agentes Normativo + Jurisprudencial</p>
+      
+      {/* Tabs para elegir modo */}
+      <div className="flex gap-2 mb-6 border-b border-gray-200 pb-2">
+        <button
+          type="button"
+          onClick={() => setModoGeneracion("memo")}
+          className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+            modoGeneracion === "memo"
+              ? "bg-[#C026D3] text-white"
+              : "text-gray-600 hover:bg-gray-100"
+          }`}
+        >
+          📝 Memos / Dictámenes
+        </button>
+        <button
+          type="button"
+          onClick={() => setModoGeneracion("plantilla")}
+          className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+            modoGeneracion === "plantilla"
+              ? "bg-[#C026D3] text-white"
+              : "text-gray-600 hover:bg-gray-100"
+          }`}
+        >
+          📄 Contratos / Plantillas
+        </button>
+      </div>
+
+      {modoGeneracion === "plantilla" ? (
+        <GenerarDesdePlantilla onGenerated={onGenerated} setError={setError} setLoading={setLoading} />
+      ) : (
+      <>
       <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
         <div>
           <label className="text-sm font-medium text-gray-600">Tipo de documento</label>
@@ -1862,6 +2061,223 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
             </div>
           </div>
         )}
+      </>
+      )}
+    </div>
+  );
+}
+
+// Componente para generar documentos desde plantillas
+function GenerarDesdePlantilla({ onGenerated, setError, setLoading }: { onGenerated: (out: any)=>void; setError: (e:string|null)=>void; setLoading: (b:boolean)=>void; }) {
+  const [plantillaSeleccionada, setPlantillaSeleccionada] = useState<typeof PLANTILLAS_DOCUMENTOS[0] | null>(null);
+  const [camposValores, setCamposValores] = useState<Record<string, string>>({});
+  const [loadingLocal, setLoadingLocal] = useState(false);
+  const [resultado, setResultado] = useState<string | null>(null);
+  const API = useMemo(() => getApiUrl(), []);
+
+  const handleSelectPlantilla = (plantilla: typeof PLANTILLAS_DOCUMENTOS[0]) => {
+    setPlantillaSeleccionada(plantilla);
+    setCamposValores({});
+    setResultado(null);
+  };
+
+  const handleCampoChange = (campoId: string, valor: string) => {
+    setCamposValores(prev => ({ ...prev, [campoId]: valor }));
+  };
+
+  const handleGenerar = async () => {
+    if (!plantillaSeleccionada || !API) return;
+    
+    // Verificar campos requeridos
+    const camposFaltantes = plantillaSeleccionada.campos.filter(c => !camposValores[c.id]?.trim());
+    if (camposFaltantes.length > 0) {
+      setError(`Faltan completar: ${camposFaltantes.map(c => c.label).join(", ")}`);
+      return;
+    }
+
+    setLoadingLocal(true);
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`${API}/api/generate-from-template`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          templateId: plantillaSeleccionada.id,
+          templateName: plantillaSeleccionada.nombre,
+          campos: camposValores
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || `Error ${response.status}`);
+      }
+
+      const data = await response.json();
+      setResultado(data.documento);
+      
+      onGenerated({
+        id: crypto.randomUUID(),
+        type: "contrato",
+        title: `${plantillaSeleccionada.nombre} - ${new Date().toLocaleDateString()}`,
+        markdown: data.documento,
+        createdAt: new Date().toISOString()
+      });
+
+    } catch (e: any) {
+      setError(e.message || "Error al generar documento");
+    } finally {
+      setLoadingLocal(false);
+      setLoading(false);
+    }
+  };
+
+  // Vista de selección de plantilla
+  if (!plantillaSeleccionada) {
+    return (
+      <div className="space-y-4">
+        <p className="text-sm text-gray-600 mb-4">Seleccioná una plantilla para comenzar:</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {PLANTILLAS_DOCUMENTOS.map((plantilla) => (
+            <button
+              key={plantilla.id}
+              onClick={() => handleSelectPlantilla(plantilla)}
+              className="p-4 border border-gray-200 rounded-lg hover:border-[#C026D3] hover:bg-[#C026D3]/5 transition-all text-left group"
+            >
+              <div className="font-medium text-gray-900 group-hover:text-[#C026D3]">{plantilla.nombre}</div>
+              <div className="text-xs text-gray-500 mt-1">{plantilla.descripcion}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Vista de formulario de plantilla
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h4 className="font-medium text-gray-900">{plantillaSeleccionada.nombre}</h4>
+          <p className="text-xs text-gray-500">{plantillaSeleccionada.descripcion}</p>
+        </div>
+        <button
+          onClick={() => {
+            setPlantillaSeleccionada(null);
+            setCamposValores({});
+            setResultado(null);
+          }}
+          className="text-sm text-gray-500 hover:text-gray-700"
+        >
+          ← Cambiar plantilla
+        </button>
+      </div>
+
+      <div className="border-t border-gray-100 pt-4 space-y-3 max-h-[400px] overflow-y-auto">
+        {plantillaSeleccionada.campos.map((campo) => (
+          <div key={campo.id}>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{campo.label}</label>
+            {campo.tipo === "textarea" ? (
+              <textarea
+                className="w-full bg-gray-50 border border-gray-300 rounded-md text-sm p-2 focus:ring-[#C026D3] focus:border-[#C026D3]"
+                placeholder={campo.placeholder}
+                rows={3}
+                value={camposValores[campo.id] || ""}
+                onChange={(e) => handleCampoChange(campo.id, e.target.value)}
+              />
+            ) : campo.tipo === "select" ? (
+              <select
+                className="w-full bg-gray-50 border border-gray-300 rounded-md text-sm p-2 focus:ring-[#C026D3] focus:border-[#C026D3]"
+                value={camposValores[campo.id] || ""}
+                onChange={(e) => handleCampoChange(campo.id, e.target.value)}
+              >
+                <option value="">Seleccionar...</option>
+                {campo.opciones?.map((opcion) => (
+                  <option key={opcion} value={opcion}>{opcion}</option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type={campo.tipo}
+                className="w-full bg-gray-50 border border-gray-300 rounded-md text-sm p-2 focus:ring-[#C026D3] focus:border-[#C026D3]"
+                placeholder={campo.placeholder}
+                value={camposValores[campo.id] || ""}
+                onChange={(e) => handleCampoChange(campo.id, e.target.value)}
+              />
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div className="flex items-center justify-end space-x-4 pt-4 border-t border-gray-100">
+        <button
+          type="button"
+          onClick={() => setCamposValores({})}
+          className="flex items-center space-x-1.5 text-sm text-gray-500 hover:text-gray-800 font-medium"
+          disabled={loadingLocal}
+        >
+          <X className="text-base" />
+          <span>Limpiar</span>
+        </button>
+        <button
+          onClick={handleGenerar}
+          disabled={loadingLocal}
+          className="flex items-center space-x-2 bg-[#C026D3] text-white font-semibold py-2.5 px-5 rounded-lg hover:bg-[#A21CAF] transition-colors shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {loadingLocal ? (
+            <>
+              <Loader2 className="text-base animate-spin" />
+              <span>Generando...</span>
+            </>
+          ) : (
+            <>
+              <Send className="text-base" />
+              <span>Generar Documento</span>
+            </>
+          )}
+        </button>
+      </div>
+
+      {loadingLocal && <ProgressIndicator />}
+
+      {resultado && (
+        <div className="mt-4 rounded-lg border border-gray-200 bg-white p-4 space-y-3">
+          <div className="text-sm font-medium text-gray-900">Documento Generado</div>
+          <textarea
+            className="w-full rounded-lg border border-gray-300 bg-white text-gray-900 p-3 text-sm font-mono"
+            rows={15}
+            readOnly
+            value={resultado}
+          />
+          <div className="flex gap-2">
+            <button
+              className="btn-secondary text-xs"
+              onClick={() => {
+                navigator.clipboard.writeText(resultado);
+                alert("Documento copiado al portapapeles");
+              }}
+            >
+              📋 Copiar
+            </button>
+            <button
+              className="btn-secondary text-xs"
+              onClick={() => {
+                const blob = new Blob([resultado], { type: "text/plain" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `${plantillaSeleccionada.nombre.replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}.txt`;
+                a.click();
+                URL.revokeObjectURL(url);
+              }}
+            >
+              ⬇️ Descargar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
