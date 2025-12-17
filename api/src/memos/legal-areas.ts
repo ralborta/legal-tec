@@ -361,13 +361,51 @@ CITAS (campo "citas" en el JSON) - MUY IMPORTANTE:
   * "tipo": "normativa" (leyes, artículos, decretos, resoluciones), "jurisprudencia" (fallos, sentencias), "doctrina" (publicaciones, artículos doctrinarios), o "otra"
   * "referencia": texto exacto y completo de la cita (ej: "Art. 765 CCyC", "Ley 26.994 - Código Civil y Comercial", "Decreto 1234/2020", "Fallos: 340:1234", "Doctrina: Revista de Derecho Comercial, año 2020")
   * "descripcion": breve descripción del contenido o tema que cubre (opcional pero recomendado)
-  * "url": URL si está disponible (opcional)
+  * "url": URL de la fuente oficial donde se puede consultar (OBLIGATORIO cuando esté disponible)
 
 - CRÍTICO: Incluí TODAS las referencias legales que usaste como fundamento, incluso si no las mencionaste explícitamente en el texto del memo
 - Si mencionaste artículos, leyes, decretos o cualquier referencia legal en el análisis jurídico o en los puntos tratados, DEBEN aparecer en el array de citas
 - Si no hay citas, devolvé un array vacío []
 - Las citas deben ser precisas, verificables y completas
-- No incluyas explicaciones fuera del JSON.`;
+- No incluyas explicaciones fuera del JSON.
+
+═══════════════════════════════════════════════════════════════════════════════
+FUENTES DE CONSULTA OFICIALES - USAR ESTAS URLs EN LAS CITAS
+═══════════════════════════════════════════════════════════════════════════════
+
+NIVEL NACIONAL:
+- Boletín Oficial: https://www.boletinoficial.gob.ar/
+- InfoLEG (Normativa): https://www.argentina.gob.ar/normativa
+- SAIJ (Jurisprudencia): https://www.argentina.gob.ar/justicia/saij
+- SIPROJUD (CSJN): http://www.csjn.gov.ar/siprojur/
+- Código Civil y Comercial: http://www.bibliotecadigital.gob.ar/items/show/2690
+- Constitución Nacional: https://servicios.infoleg.gob.ar/infolegInternet/anexos/0-4999/804/norma.htm
+
+ORGANISMOS NACIONALES:
+- ANSES (Previsional): https://www.anses.gob.ar/institucional/normativa
+- BCRA (Financiero): http://www.bcra.gov.ar/BCRAyVos/Normativa.asp
+- AFIP/ARCA (Tributario): https://www.afip.gob.ar/normativa/
+- Ministerio de Trabajo: https://www.argentina.gob.ar/trabajo/normativa
+- Ministerio de Salud: https://www.argentina.gob.ar/salud/normativas
+
+LEGISLATIVO:
+- Cámara de Diputados: https://www.hcdn.gob.ar/
+- Senado: https://www.senado.gob.ar/
+
+DOCTRINA Y RECURSOS ACADÉMICOS:
+- SAIJ (Doctrina): https://www.saij.gob.ar/
+- UBA Derecho: https://www.derecho.uba.ar/investigacion/publicaciones.php
+- UNLP: https://www.bibliojuridica.laplata.edu.ar/
+
+PROVINCIAS (usar según jurisdicción):
+- CABA Boletín Oficial: https://boletinoficial.buenosaires.gob.ar/
+- Buenos Aires (SIND): https://www.gob.gba.gov.ar/legislacion/
+- Buenos Aires (Normas): https://normas.gba.gob.ar/
+- Córdoba Boletín Oficial: https://boletinoficial.cba.gov.ar/
+- Santa Fe Boletín Oficial: https://boletinoficial.santafe.gob.ar/
+- Mendoza Boletín Oficial: https://www.boletinoficial.mendoza.gov.ar/
+
+IMPORTANTE: Cuando cites normativa o jurisprudencia, incluí la URL correspondiente de estas fuentes oficiales en el campo "url" de cada cita.`;
 }
 
 /**
