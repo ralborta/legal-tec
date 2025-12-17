@@ -134,7 +134,7 @@ export const legalDb = {
     original: any;
     translated: any;
     checklist: any;
-    report: string;
+    report: any; // string o AnalysisReport object
   }) {
     const result = await db.query(
       `INSERT INTO legal_analysis (document_id, type, original, translated, checklist, report, created_at)
