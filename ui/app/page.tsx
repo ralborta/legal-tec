@@ -858,8 +858,8 @@ function AnalizarDocumentosPanel() {
           setTimeout(poll, 5000);
         } else {
           setError("El servicio no está respondiendo. Por favor, intenta más tarde.");
-          setAnalyzing(false);
-          setPolling(false);
+        setAnalyzing(false);
+        setPolling(false);
         }
       }
     };
@@ -2129,63 +2129,316 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
       )}
 
       {memoResult && (
-        <div className="mt-4 rounded-lg border border-gray-200 bg-white p-4 space-y-3 max-h-[400px] overflow-auto">
-            <div className="text-sm font-medium text-slate-900">Resultado del Memo</div>
-            <div className="text-xs text-slate-600 space-y-2">
-              <div><strong>Resumen:</strong> {memoResult.resumen}</div>
-              {memoResult.puntos_tratados && memoResult.puntos_tratados.length > 0 && (
+        <MemoResultPanel memoResult={memoResult} />
+      )}
+      </>
+      )}
+    </div>
+  );
+}
+
+// Componente para mostrar el resultado del memo con pestañas
+function MemoResultPanel({ memoResult }: { memoResult: any }) {
+  const [activeTab, setActiveTab] = useState<"resumen" | "puntos" | "riesgos" | "recomendaciones" | "fuentes" | "chat">("resumen");
+  const [chatMessages, setChatMessages] = useState<Array<{role: "user" | "assistant"; content: string}>>([]);
+  const [chatInput, setChatInput] = useState("");
+  const [chatLoading, setChatLoading] = useState(false);
+  const API = useMemo(() => getApiUrl(), []);
+  const chatMessagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Construir memoContent desde memoResult para el chat
+  const memoContent = useMemo(() => {
+    if (!memoResult) return null;
+    return {
+      content: memoResult.texto_formateado || memoResult.markdown || "",
+      resumen: memoResult.resumen || "",
+      titulo: memoResult.titulo || "Memo de Reunión",
+      areaLegal: memoResult.areaLegal || "civil_comercial"
+    };
+  }, [memoResult]);
+
+  // Auto-scroll cuando cambian los mensajes o cuando termina de cargar
+  useEffect(() => {
+    if (chatMessagesEndRef.current && activeTab === "chat") {
+      chatMessagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [chatMessages, chatLoading, activeTab]);
+
+  const handleChatSubmit = async () => {
+    if (!chatInput.trim() || !memoContent) return;
+    
+    const userMessage = chatInput.trim();
+    setChatInput("");
+    
+    const newMessages = [...chatMessages, { role: "user" as const, content: userMessage }];
+    setChatMessages(newMessages);
+    setChatLoading(true);
+
+    try {
+      const response = await fetch(`${API}/api/memos/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          transcriptText: memoContent.content,
+          messages: newMessages,
+          areaLegal: memoContent.areaLegal
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Error en el chat: ${errorText}`);
+      }
+      
+      const data = await response.json();
+      setChatMessages(prev => [...prev, { role: "assistant", content: data.message || "Sin respuesta" }]);
+    } catch (err: any) {
+      console.error("Error en chat:", err);
+      setChatMessages(prev => [...prev, { role: "assistant", content: `Error al procesar tu consulta: ${err.message || "Intenta de nuevo."}` }]);
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
+  return (
+    <div className="mt-4 bg-white p-6 rounded-xl border border-gray-200">
+      <div className="flex items-center justify-between mb-4">
                 <div>
-                  <strong>Puntos tratados:</strong>
-                  <ul className="list-disc list-inside ml-2">
-                    {memoResult.puntos_tratados.map((p: string, i: number) => (
-                      <li key={i}>{p}</li>
+          <h3 className="font-bold text-lg text-gray-900">Resultado del Memo</h3>
+          <p className="text-sm text-gray-500">
+            {memoResult.titulo || "Memo de Reunión"} • {memoResult.areaLegal?.replace(/_/g, " ") || ""}
+          </p>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-1 mb-4 overflow-x-auto pb-2 border-b border-gray-200">
+        {[
+          { id: "resumen", label: "Resumen" },
+          { id: "puntos", label: "Puntos Tratados" },
+          { id: "riesgos", label: "Riesgos" },
+          { id: "recomendaciones", label: "Recomendaciones" },
+          { id: "fuentes", label: "Fuentes" },
+          { id: "chat", label: "💬 Chat" },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id as any)}
+            className={`px-3 py-2 text-sm font-medium rounded-t-lg whitespace-nowrap transition-colors ${
+              activeTab === tab.id
+                ? "bg-[#C026D3] text-white"
+                : "text-gray-600 hover:bg-gray-100"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Content */}
+      <div className="max-h-[500px] overflow-y-auto">
+        {activeTab === "resumen" && (
+          <div className="space-y-4">
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-2">{memoResult.titulo || "Memo de Reunión"}</h4>
+              <div className="text-sm text-gray-700 bg-gray-50 p-4 rounded-lg whitespace-pre-wrap">
+                {memoResult.resumen || memoResult.texto_formateado || "Sin resumen disponible"}
+              </div>
+            </div>
+            {memoResult.texto_formateado && (
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-2">Texto Completo</h4>
+                <div className="text-sm text-gray-700 bg-gray-50 p-4 rounded-lg whitespace-pre-wrap max-h-96 overflow-y-auto">
+                  {memoResult.texto_formateado}
+                </div>
+                <button
+                  className="mt-2 text-xs text-[#C026D3] hover:underline"
+                  onClick={() => {
+                    navigator.clipboard.writeText(memoResult.texto_formateado);
+                    alert("Texto copiado al portapapeles");
+                  }}
+                >
+                  📋 Copiar texto completo
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === "puntos" && (
+          <div className="space-y-3">
+            {memoResult.puntos_tratados && memoResult.puntos_tratados.length > 0 ? (
+              memoResult.puntos_tratados.map((punto: string, i: number) => (
+                <div key={i} className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex items-start gap-2">
+                    <span className="text-[#C026D3] font-bold">{i + 1}.</span>
+                    <p className="text-sm text-gray-700 flex-1">{punto}</p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-gray-500 text-center py-8">No hay puntos tratados</p>
+            )}
+          </div>
+        )}
+
+        {activeTab === "riesgos" && (
+          <div className="space-y-3">
+            {memoResult.riesgos && memoResult.riesgos.length > 0 ? (
+              memoResult.riesgos.map((riesgo: string | any, i: number) => {
+                const riesgoText = typeof riesgo === "string" ? riesgo : riesgo.descripcion || riesgo;
+                const nivel = typeof riesgo === "object" ? riesgo.nivel : "medio";
+                return (
+                  <div key={i} className={`border-l-4 p-4 rounded-r-lg ${
+                    nivel === "alto" ? "border-red-500 bg-red-50" :
+                    nivel === "medio" ? "border-yellow-500 bg-yellow-50" :
+                    "border-green-500 bg-green-50"
+                  }`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-lg">⚠️</span>
+                      {typeof riesgo === "object" && riesgo.nivel && (
+                        <span className={`text-xs px-2 py-1 rounded font-medium ${
+                          riesgo.nivel === "alto" ? "bg-red-200 text-red-800" :
+                          riesgo.nivel === "medio" ? "bg-yellow-200 text-yellow-800" :
+                          "bg-green-200 text-green-800"
+                        }`}>
+                          {riesgo.nivel.toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-800 font-medium">{riesgoText}</p>
+                    {typeof riesgo === "object" && riesgo.recomendacion && (
+                      <p className="text-sm text-gray-600 mt-2">💡 {riesgo.recomendacion}</p>
+                    )}
+                  </div>
+                );
+              })
+            ) : (
+              <p className="text-sm text-gray-500 text-center py-8">No se identificaron riesgos específicos</p>
+            )}
+          </div>
+        )}
+
+        {activeTab === "recomendaciones" && (
+          <div className="space-y-4">
+            {memoResult.recomendaciones && memoResult.recomendaciones.length > 0 && (
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-3">Recomendaciones</h4>
+                <ul className="space-y-2">
+                  {memoResult.recomendaciones.map((rec: string, i: number) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                      <span className="text-[#C026D3]">✓</span>
+                      {rec}
+                    </li>
                     ))}
                   </ul>
                 </div>
               )}
               {memoResult.proximos_pasos && memoResult.proximos_pasos.length > 0 && (
                 <div>
-                  <strong>Próximos pasos:</strong>
-                  <ul className="list-disc list-inside ml-2">
-                    {memoResult.proximos_pasos.map((p: string, i: number) => (
-                      <li key={i}>{p}</li>
+                <h4 className="font-semibold text-gray-900 mb-3">Próximos Pasos</h4>
+                <ul className="space-y-2">
+                  {memoResult.proximos_pasos.map((paso: string, i: number) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                      <span className="text-blue-600">{i + 1}.</span>
+                      {paso}
+                    </li>
                     ))}
                   </ul>
                 </div>
               )}
-              {memoResult.riesgos && memoResult.riesgos.length > 0 && (
-                <div>
-                  <strong>Riesgos:</strong>
-                  <ul className="list-disc list-inside ml-2">
-                    {memoResult.riesgos.map((r: string, i: number) => (
-                      <li key={i}>{r}</li>
-                    ))}
-                  </ul>
+            {!memoResult.recomendaciones?.length && !memoResult.proximos_pasos?.length && (
+              <p className="text-sm text-gray-500 text-center py-8">No hay recomendaciones disponibles</p>
+            )}
+          </div>
+        )}
+
+        {activeTab === "fuentes" && (
+          <div className="space-y-3">
+            {memoResult.citas && memoResult.citas.length > 0 ? (
+              memoResult.citas.map((cita: any, i: number) => (
+                <div key={i} className="border border-gray-200 rounded-lg p-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className={`text-xs px-2 py-1 rounded ${
+                      cita.tipo === "normativa" || cita.source === "normativa" ? "bg-blue-100 text-blue-800" :
+                      cita.tipo === "jurisprudencia" || cita.source === "jurisprudencia" ? "bg-purple-100 text-purple-800" :
+                      cita.tipo === "doctrina" || cita.source === "doctrina" ? "bg-green-100 text-green-800" :
+                      "bg-gray-100 text-gray-800"
+                    }`}>
+                      {cita.tipo || cita.source || "otra"}
+                    </span>
+                  </div>
+                  <p className="text-sm font-medium text-gray-900">{cita.referencia || cita.title || cita.descripcion}</p>
+                  {cita.descripcion && cita.referencia && <p className="text-xs text-gray-600 mt-1">{cita.descripcion}</p>}
+                  {cita.url && (
+                    <a 
+                      href={cita.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-xs text-[#C026D3] hover:underline mt-1 inline-block"
+                    >
+                      🔗 Ver fuente
+                    </a>
+                  )}
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-gray-500 text-center py-8">No hay fuentes citadas</p>
+            )}
+          </div>
+        )}
+
+        {activeTab === "chat" && (
+          <div className="flex flex-col h-[400px]">
+            <div className="flex-1 overflow-y-auto space-y-3 mb-4">
+              {chatMessages.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-sm text-gray-500 mb-2">💬 Chat con Asistente</p>
+                  <p className="text-xs text-gray-400">Hacé preguntas sobre el memo generado</p>
+                </div>
+              ) : (
+                chatMessages.map((msg, i) => (
+                  <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                    <div className={`max-w-[80%] p-3 rounded-lg text-sm ${
+                      msg.role === "user" 
+                        ? "bg-[#C026D3] text-white" 
+                        : "bg-gray-100 text-gray-800"
+                    }`}>
+                      {msg.content}
+                    </div>
+                  </div>
+                ))
+              )}
+              {chatLoading && (
+                <div className="flex justify-start">
+                  <div className="bg-gray-100 p-3 rounded-lg">
+                    <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
+                  </div>
                 </div>
               )}
+              <div ref={chatMessagesEndRef} />
             </div>
-            <div className="mt-3">
-              <div className="text-xs font-medium text-slate-900 mb-1">Texto completo:</div>
-              <textarea
-                className="w-full rounded-lg border border-slate-300 bg-white text-slate-900 p-2 text-xs font-mono"
-                rows={8}
-                readOnly
-                value={memoResult.texto_formateado}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleChatSubmit()}
+                placeholder="Preguntá sobre el memo..."
+                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#C026D3]"
+                disabled={!memoContent || chatLoading}
               />
               <button
-                className="mt-2 btn-secondary text-xs"
-                onClick={() => {
-                  navigator.clipboard.writeText(memoResult.texto_formateado);
-                  alert("Texto copiado al portapapeles");
-                }}
+                onClick={handleChatSubmit}
+                disabled={!chatInput.trim() || chatLoading || !memoContent}
+                className="bg-[#C026D3] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#A21CAF] disabled:opacity-50"
               >
-                Copiar texto
+                Enviar
               </button>
             </div>
           </div>
         )}
-      </>
-      )}
+      </div>
     </div>
   );
 }
@@ -2273,7 +2526,7 @@ function GenerarDesdePlantilla({ onGenerated, setError, setLoading }: { onGenera
               <div className="text-xs text-gray-500 mt-1">{plantilla.descripcion}</div>
             </button>
           ))}
-        </div>
+                </div>
       </div>
     );
   }
@@ -2282,10 +2535,10 @@ function GenerarDesdePlantilla({ onGenerated, setError, setLoading }: { onGenera
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div>
+                <div>
           <h4 className="font-medium text-gray-900">{plantillaSeleccionada.nombre}</h4>
           <p className="text-xs text-gray-500">{plantillaSeleccionada.descripcion}</p>
-        </div>
+                </div>
         <button
           onClick={() => {
             setPlantillaSeleccionada(null);
@@ -2330,9 +2583,9 @@ function GenerarDesdePlantilla({ onGenerated, setError, setLoading }: { onGenera
                 onChange={(e) => handleCampoChange(campo.id, e.target.value)}
               />
             )}
-          </div>
+                </div>
         ))}
-      </div>
+                </div>
 
       <div className="flex items-center justify-end space-x-4 pt-4 border-t border-gray-100">
         <button
@@ -2361,23 +2614,23 @@ function GenerarDesdePlantilla({ onGenerated, setError, setLoading }: { onGenera
             </>
           )}
         </button>
-      </div>
+            </div>
 
       {loadingLocal && <ProgressIndicator />}
 
       {resultado && (
         <div className="mt-4 rounded-lg border border-gray-200 bg-white p-4 space-y-3">
           <div className="text-sm font-medium text-gray-900">Documento Generado</div>
-          <textarea
+              <textarea
             className="w-full rounded-lg border border-gray-300 bg-white text-gray-900 p-3 text-sm font-mono"
             rows={15}
-            readOnly
+                readOnly
             value={resultado}
-          />
+              />
           <div className="flex gap-2">
-            <button
+              <button
               className="btn-secondary text-xs"
-              onClick={() => {
+                onClick={() => {
                 navigator.clipboard.writeText(resultado);
                 alert("Documento copiado al portapapeles");
               }}
