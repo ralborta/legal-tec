@@ -2079,7 +2079,10 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
                       title: c.referencia || c.descripcion || "(sin título)",
                       source: c.tipo || "otra",
                       url: c.url || undefined,
-                      descripcion: c.descripcion || undefined
+                      descripcion: c.descripcion || undefined,
+                      // Mantener también el formato original para compatibilidad
+                      tipo: c.tipo || "otra",
+                      referencia: c.referencia || c.descripcion || "(sin título)"
                     }));
                     const memoId = crypto.randomUUID();
                     onGenerated({ 
@@ -2090,7 +2093,9 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
                       memoData: {
                         ...data,
                         areaLegal: areaLegal,
-                        transcriptText: transcriptText || (file ? "PDF subido" : "") // Guardar transcriptText para el chat
+                        transcriptText: transcriptText || (file ? "PDF subido" : ""), // Guardar transcriptText para el chat
+                        // Asegurar que las citas estén en memoData.citas también
+                        citas: data.citas || []
                       },
                       citations: citations,
                       transcriptText: transcriptText || (file ? "PDF subido" : ""), // Guardar para usar en chat

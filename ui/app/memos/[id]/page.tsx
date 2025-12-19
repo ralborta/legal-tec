@@ -298,16 +298,36 @@ export default function MemoDetailPage() {
               {activeTab === "fuentes" && (
                 <div>
                   {(() => {
-                    const fuentes = (memo.citations && memo.citations.length > 0) 
-                      ? memo.citations 
-                      : (memoData.citas && memoData.citas.length > 0) 
-                        ? memoData.citas 
-                        : [];
+                    // Combinar todas las fuentes disponibles de ambas ubicaciones
+                    const fuentesCitations = memo.citations || [];
+                    const fuentesCitas = memoData.citas || [];
+                    
+                    // Crear un Set para evitar duplicados basado en referencia/título
+                    const fuentesUnicas = new Map();
+                    
+                    // Agregar citas de memo.citations
+                    fuentesCitations.forEach((f: any) => {
+                      const key = f.title || f.referencia || f.descripcion || "";
+                      if (key && !fuentesUnicas.has(key)) {
+                        fuentesUnicas.set(key, f);
+                      }
+                    });
+                    
+                    // Agregar citas de memoData.citas (pueden tener formato diferente)
+                    fuentesCitas.forEach((f: any) => {
+                      const key = f.referencia || f.title || f.descripcion || "";
+                      if (key && !fuentesUnicas.has(key)) {
+                        fuentesUnicas.set(key, f);
+                      }
+                    });
+                    
+                    const fuentes = Array.from(fuentesUnicas.values());
                     
                     if (fuentes.length === 0) {
                       return (
                         <div className="text-center py-8 bg-slate-50 rounded-xl border border-slate-200">
-                          <p className="text-slate-500 text-sm">No hay fuentes consultadas registradas.</p>
+                          <p className="text-slate-500 text-sm">No hay fuentes jurídicas registradas.</p>
+                          <p className="text-slate-400 text-xs mt-2">Las fuentes legales (normativa, jurisprudencia, doctrina) aparecerán aquí cuando se generen memos con referencias legales.</p>
                         </div>
                       );
                     }
