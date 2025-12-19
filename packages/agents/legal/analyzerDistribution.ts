@@ -2,6 +2,16 @@ import OpenAI from "openai";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+// Helper para timeout
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`Timeout after ${timeoutMs}ms`)), timeoutMs)
+    ),
+  ]);
+}
+
 export interface DistributionChecklistItem {
   key: string;
   found: "yes" | "no" | "partial";
@@ -49,11 +59,12 @@ export async function runDistributionAnalyzer(
     const documentText = translatedClauses
       .map((c) => `${c.clause_number}. ${c.title_es}\n${c.body_es}`)
       .join("\n\n")
-      .substring(0, 12000);
+      .substring(0, 8000); // Reducido de 12000 a 8000
 
-    const response = await openai.chat.completions.create({
+    const responsePromise = openai.chat.completions.create({
       model: "gpt-4o-mini",
       temperature: 0.2,
+      max_tokens: 3000, // Limitar respuesta (8 items con análisis)
       messages: [
         {
           role: "system",
@@ -66,6 +77,9 @@ export async function runDistributionAnalyzer(
       ],
       response_format: { type: "json_object" },
     });
+
+    // Timeout de 45 segundos (análisis más complejo)
+    const response = await withTimeout(responsePromise, 45000);
 
     const content = response.choices[0]?.message?.content;
     if (!content) {

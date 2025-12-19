@@ -16,37 +16,55 @@ Input: legal document clauses in English.
 
 Task: translate to Spanish preserving structure, clause numbers and titles.
 
-Return JSON array:
+Return JSON object with "clauses" array:
 
-[
-  {
-    "clause_number": "1.1",
-    "title_en": "...",
-    "title_es": "...",
-    "body_en": "...",
-    "body_es": "..."
-  }
-]
+{
+  "clauses": [
+    {
+      "clause_number": "1.1",
+      "title_en": "...",
+      "title_es": "...",
+      "body_en": "...",
+      "body_es": "..."
+    }
+  ]
+}
 
 Do NOT summarize. Do NOT omit content. Preserve all legal terminology and structure.`;
 
+// Helper para timeout
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`Timeout after ${timeoutMs}ms`)), timeoutMs)
+    ),
+  ]);
+}
+
 export async function translatorAgent(originalText: string): Promise<TranslatedClause[]> {
   try {
-    const response = await openai.chat.completions.create({
+    const textToProcess = originalText.substring(0, 5000); // Reducido de 8000 a 5000
+    
+    const responsePromise = openai.chat.completions.create({
       model: "gpt-4o-mini",
       temperature: 0.2,
+      max_tokens: 4000, // Limitar respuesta para acelerar
       messages: [
         {
           role: "system",
-          content: "You are a professional legal translator. Return ONLY valid JSON array, no additional text.",
+          content: "You are a professional legal translator. Return ONLY valid JSON object with 'clauses' array, no additional text.",
         },
         {
           role: "user",
-          content: `${prompt}\n\nDOCUMENT:\n${originalText.substring(0, 8000)}`,
+          content: `${prompt}\n\nDOCUMENT:\n${textToProcess}`,
         },
       ],
       response_format: { type: "json_object" },
     });
+
+    // Timeout de 40 segundos
+    const response = await withTimeout(responsePromise, 40000);
 
     const content = response.choices[0]?.message?.content;
     if (!content) {
@@ -63,20 +81,34 @@ export async function translatorAgent(originalText: string): Promise<TranslatedC
 
     const parsed = JSON.parse(jsonText);
     
-    // Si viene como objeto con clave "clauses" o similar
-    const clauses = parsed.clauses || parsed.items || (Array.isArray(parsed) ? parsed : [parsed]);
+    // Extraer clauses del objeto JSON
+    const clauses = parsed.clauses || parsed.items || [];
+    
+    if (!Array.isArray(clauses) || clauses.length === 0) {
+      // Fallback: crear una cláusula simple
+      return [
+        {
+          clause_number: "1",
+          title_en: "Document",
+          title_es: "Documento",
+          body_en: textToProcess.substring(0, 500),
+          body_es: textToProcess.substring(0, 500),
+        },
+      ];
+    }
     
     return clauses as TranslatedClause[];
   } catch (error) {
     console.error("Error en traducción:", error);
     // Fallback: retornar estructura básica
+    const textToProcess = originalText.substring(0, 500);
     return [
       {
         clause_number: "1",
         title_en: "Document",
         title_es: "Documento",
-        body_en: originalText.substring(0, 500),
-        body_es: originalText.substring(0, 500),
+        body_en: textToProcess,
+        body_es: textToProcess,
       },
     ];
   }
