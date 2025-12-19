@@ -109,7 +109,7 @@ export default function CentroGestionLegalPage() {
       <div className="flex h-screen">
         <Sidebar activeView={activeView} setActiveView={setActiveView} />
         <div className="flex-1 min-w-0 flex flex-col bg-gray-50">
-          <Topbar />
+          <Topbar activeView={activeView} setActiveView={setActiveView} />
           <main className="flex-1 p-8 overflow-y-auto">
             <div>
               <div className="mb-8">
@@ -129,54 +129,54 @@ export default function CentroGestionLegalPage() {
 
               {activeView === "bandeja" ? (
                 <>
-                  <KPIGrid />
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <div className="lg:col-span-2 flex flex-col gap-8">
-                      <BandejaLocal items={items} />
-                    </div>
-                    <div className="lg:col-span-1">
-                      <GenerarPanel
-                        onGenerated={(out) => {
-                          const newItem = {
-                            id: out.id || out.documentId || crypto.randomUUID(),
-                            type: out.type || "memo",
-                            tipo: (out.type || "memo").toUpperCase(),
-                            title: out.title,
-                            asunto: out.title,
-                            estado: "Listo para revisión",
-                            prioridad: "Media",
-                            createdAt: out.createdAt || new Date().toISOString(),
-                            creado: out.createdAt ? new Date(out.createdAt).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' ' + 
-                                     new Date(out.createdAt).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) :
-                                     new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' ' + 
-                                     new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
-                            agente: "Orquestador",
-                            markdown: out.markdown,
-                            citations: out.citations as any[],
-                            memoData: out.memoData,
-                            transcriptText: out.transcriptText,
-                            tipoDocumento: out.tipoDocumento || "Memo / Dictamen de reunión",
-                            areaLegal: out.areaLegal || out.memoData?.areaLegal || "civil_comercial"
-                          };
-                          pushItem(newItem);
-                          // Pasar el memo al chat
-                          setLastGeneratedMemo({
-                            content: out.markdown,
-                            resumen: out.memoData?.resumen || "",
-                            titulo: out.title,
-                            areaLegal: out.memoData?.areaLegal || "civil_comercial"
-                          });
-                        }}
-                        setError={setError}
-                        setLoading={setLoading}
-                      />
+              <KPIGrid />
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-2 flex flex-col gap-8">
+                  <BandejaLocal items={items} />
+                </div>
+                <div className="lg:col-span-1">
+                  <GenerarPanel
+                    onGenerated={(out) => {
+                      const newItem = {
+                        id: out.id || out.documentId || crypto.randomUUID(),
+                        type: out.type || "memo",
+                        tipo: (out.type || "memo").toUpperCase(),
+                        title: out.title,
+                        asunto: out.title,
+                        estado: "Listo para revisión",
+                        prioridad: "Media",
+                        createdAt: out.createdAt || new Date().toISOString(),
+                        creado: out.createdAt ? new Date(out.createdAt).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' ' + 
+                                 new Date(out.createdAt).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) :
+                                 new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' ' + 
+                                 new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
+                        agente: "Orquestador",
+                        markdown: out.markdown,
+                        citations: out.citations as any[],
+                        memoData: out.memoData,
+                        transcriptText: out.transcriptText,
+                        tipoDocumento: out.tipoDocumento || "Memo / Dictamen de reunión",
+                        areaLegal: out.areaLegal || out.memoData?.areaLegal || "civil_comercial"
+                      };
+                      pushItem(newItem);
+                      // Pasar el memo al chat
+                      setLastGeneratedMemo({
+                        content: out.markdown,
+                        resumen: out.memoData?.resumen || "",
+                        titulo: out.title,
+                        areaLegal: out.memoData?.areaLegal || "civil_comercial"
+                      });
+                    }}
+                    setError={setError}
+                    setLoading={setLoading}
+                  />
                     </div>
                   </div>
                   {/* Chat debajo del contenido cuando hay un memo generado */}
                   {lastGeneratedMemo && (
                     <div className="mt-8">
-                      <ChatPanel memoContent={lastGeneratedMemo} />
-                    </div>
+                  <ChatPanel memoContent={lastGeneratedMemo} />
+                </div>
                   )}
                 </>
               ) : activeView === "analizar" ? (
@@ -220,7 +220,7 @@ export default function CentroGestionLegalPage() {
                   />
                   <div className="mt-6">
                     <ChatPanel memoContent={lastGeneratedMemo} />
-                  </div>
+              </div>
                 </div>
               ) : activeView === "historial" ? (
                 <HistorialPanel items={items} />
@@ -250,25 +250,16 @@ export default function CentroGestionLegalPage() {
 
 function Sidebar({ activeView, setActiveView }: { activeView: string; setActiveView: (view: "bandeja" | "analizar" | "generar" | "historial") => void }) {
   return (
-    <aside className="hidden lg:flex w-64 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col p-4">
-      <div className="flex items-center space-x-3 p-2 mb-6">
-        <div className="w-10 h-10 bg-[#7E22CE] flex items-center justify-center rounded-lg">
-          <span className="text-xl font-bold text-white">IA</span>
-        </div>
-        <div>
-          <h1 className="font-bold text-base text-gray-900">Centro de Gestión</h1>
-          <p className="text-sm text-gray-500">Legal Agents</p>
-        </div>
-      </div>
-      <nav className="flex-grow flex flex-col space-y-2">
+    <aside className="hidden lg:flex w-64 flex-shrink-0 bg-gray-800 border-r border-gray-700 flex flex-col">
+      <nav className="flex-grow flex flex-col p-4 space-y-1">
         <SideLink icon={Sparkles} label="Bandeja" active={activeView === "bandeja"} onClick={() => setActiveView("bandeja")} />
         <SideLink icon={FileText} label="Analizar Documentos" active={activeView === "analizar"} onClick={() => setActiveView("analizar")} />
         <SideLink icon={Plus} label="Generar" active={activeView === "generar"} onClick={() => setActiveView("generar")} />
         <SideLink icon={History} label="Historial" active={activeView === "historial"} onClick={() => setActiveView("historial")} />
-        <h2 className="text-xs font-bold uppercase text-gray-400 pt-6 pb-1 px-4">Fuentes</h2>
+        <h2 className="text-xs font-bold uppercase text-gray-400 pt-6 pb-2 px-4">FUENTES</h2>
         <SideLink icon={BookOpen} label="Normativa" />
         <SideLink icon={Gavel} label="Jurisprudencia" />
-        <div className="mt-auto space-y-2">
+        <div className="mt-auto space-y-1 pt-4 border-t border-gray-700">
           <SideLink icon={CheckCircle2} label="Calidad" />
           <SideLink icon={Settings} label="Configuración" />
         </div>
@@ -280,20 +271,24 @@ function Sidebar({ activeView, setActiveView }: { activeView: string; setActiveV
 function SideLink({ icon: Icon, label, active, className = "", onClick }: any) {
   return (
     <a 
-      className={`flex items-center space-x-3 px-4 py-2.5 rounded-lg transition-colors cursor-pointer ${active ? "bg-[#C026D3] text-white font-medium" : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"} ${className}`} 
+      className={`flex items-center space-x-3 px-4 py-2.5 rounded-lg transition-colors cursor-pointer ${
+        active 
+          ? "bg-blue-600 text-white font-medium" 
+          : "text-gray-300 hover:bg-gray-700 hover:text-white"
+      } ${className}`} 
       href="#"
       onClick={(e) => {
         e.preventDefault();
         if (onClick) onClick();
       }}
     >
-      <Icon className="text-xl" />
-      <span>{label}</span>
+      <Icon className="h-5 w-5" />
+      <span className="text-sm">{label}</span>
     </a>
   );
 }
 
-function Topbar() {
+function Topbar({ activeView, setActiveView }: { activeView: string; setActiveView: (view: "bandeja" | "analizar" | "generar" | "historial") => void }) {
   // Evitar hydration mismatch: calcular fecha solo en cliente
   const [today, setToday] = React.useState("");
 
@@ -308,8 +303,17 @@ function Topbar() {
   }, []);
 
   return (
-    <header className="flex items-center justify-between p-6 border-b border-gray-200 bg-white">
-      <div className="flex items-center gap-4">
+    <header className="flex items-center justify-between p-4 border-b border-gray-200 bg-white">
+      {/* Logo y Estado */}
+      <div className="flex items-center gap-6">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-[#7E22CE] flex items-center justify-center rounded-lg">
+            <span className="text-xl font-bold text-white">IA</span>
+          </div>
+          <div>
+            <h1 className="font-bold text-base text-gray-900">Centro de Gestión</h1>
+          </div>
+        </div>
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-gray-500">Estado:</span>
           <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
@@ -318,14 +322,50 @@ function Topbar() {
           </span>
         </div>
       </div>
+
+      {/* Barra de búsqueda */}
       <div className="flex-1 max-w-lg mx-4">
         <div className="relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input className="w-full bg-gray-100 border-transparent rounded-lg pl-12 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-[#C026D3] focus:border-transparent placeholder-gray-500" placeholder="Buscar por asunto, ID o cliente..." type="text"/>
         </div>
       </div>
-      <div className="text-right text-sm text-gray-500 font-medium">
-        {today || ""}
+
+      {/* Botones de acción y fecha */}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => setActiveView("analizar")}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            activeView === "analizar" 
+              ? "bg-[#C026D3] text-white" 
+              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+          }`}
+        >
+          Analizar Documentos
+        </button>
+        <button
+          onClick={() => setActiveView("generar")}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            activeView === "generar" 
+              ? "bg-[#C026D3] text-white" 
+              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+          }`}
+        >
+          Generar Documento
+        </button>
+        <button
+          onClick={() => setActiveView("historial")}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            activeView === "historial" 
+              ? "bg-[#C026D3] text-white" 
+              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+          }`}
+        >
+          Ver Historial
+        </button>
+        <div className="text-right text-sm text-gray-500 font-medium ml-4">
+          {today || ""}
+        </div>
       </div>
     </header>
   );
@@ -367,27 +407,92 @@ function KPIGrid() {
 function BandejaLocal({ items }: { items: any[] }) {
   const memos = items.filter(item => item.type === "memo" || item.memoData);
   
+  const getAreaLegalLabel = (area: string) => {
+    const labels: Record<string, string> = {
+      civil_comercial: "Civil, Comercial y Societario",
+      laboral: "Laboral",
+      corporativo: "Corporativo",
+      compliance: "Compliance",
+      marcas: "Marcas y Propiedad Intelectual",
+      consumidor: "Consumidor",
+      traducir: "Traducir"
+    };
+    return labels[area] || area;
+  };
+
+  const formatFecha = (fecha: string) => {
+    try {
+      const date = new Date(fecha);
+      if (!isNaN(date.getTime())) {
+        return date.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      }
+    } catch {}
+    return fecha || new Date().toLocaleDateString('es-AR');
+  };
+  
   return (
     <div className="bg-white p-6 rounded-xl border border-gray-200 flex flex-col">
       <div className="flex justify-between items-center mb-4">
         <div>
           <h3 className="font-bold text-lg text-gray-900">Bandeja de Solicitudes</h3>
-          <p className="text-sm text-gray-500">Documentos generados en esta sesión</p>
+          <p className="text-sm text-gray-500">Documentos generados a sesión</p>
         </div>
         <button className="text-gray-500 hover:text-gray-800 p-2 rounded-md hover:bg-gray-100">
           <Filter className="h-5 w-5" />
         </button>
       </div>
-      <div className="flex-grow flex flex-col gap-6">
+      
+      {/* Tabla de solicitudes */}
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-gray-200">
+              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Documento</th>
+              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Tipo</th>
+              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Área</th>
+              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Estado</th>
+              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Fecha</th>
+              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
         {memos.length === 0 ? (
-          <div className="text-sm text-gray-500 py-8 text-center">
+              <tr>
+                <td colSpan={6} className="text-sm text-gray-500 py-8 text-center">
             Aún no hay documentos generados. Creá un memo de reunión desde la derecha.
-          </div>
+                </td>
+              </tr>
         ) : (
           memos.map((row) => (
-            <MemoCard key={row.id} memo={row} />
-          ))
-        )}
+                <tr key={row.id} className="border-b border-gray-100 hover:bg-gray-50">
+                  <td className="py-3 px-4 text-sm text-gray-900 font-medium">{row.title || row.asunto}</td>
+                  <td className="py-3 px-4 text-sm text-gray-600">{row.tipoDocumento || "Memo"}</td>
+                  <td className="py-3 px-4 text-sm text-gray-600">{getAreaLegalLabel(row.areaLegal || "civil_comercial")}</td>
+                  <td className="py-3 px-4">
+                    <span className="inline-flex items-center text-sm text-gray-600">
+                      <span className="w-2 h-2 mr-2 bg-amber-500 rounded-full"></span>
+                      Pendiente
+                    </span>
+                  </td>
+                  <td className="py-3 px-4 text-sm text-gray-600">{formatFecha(row.createdAt || row.creado || new Date().toISOString())}</td>
+                  <td className="py-3 px-4">
+                    <div className="flex items-center gap-2">
+                      <button 
+                        className="p-1.5 rounded-md hover:bg-gray-100 text-gray-600 hover:text-[#C026D3]"
+                        onClick={() => window.location.href = `/memos/${row.id}`}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
+                      <button className="p-1.5 rounded-md hover:bg-gray-100 text-gray-600 hover:text-[#C026D3]">
+                        <Download className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );
@@ -873,7 +978,8 @@ function AnalizarDocumentosPanel() {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div className="space-y-8">
+      {/* Sección de subir documento */}
       <div className="bg-white p-6 rounded-xl border border-gray-200">
         <h3 className="font-bold text-lg text-gray-900 mb-2">Subir Documento Legal</h3>
         <p className="text-sm text-gray-500 mb-6">
@@ -962,13 +1068,6 @@ function AnalizarDocumentosPanel() {
             </div>
           )}
 
-          {analyzing && (
-            <div className="text-xs text-gray-600 text-center space-y-1">
-              <div>{statusLabel || "Procesando…"}</div>
-              <div>Progreso: {progress}%</div>
-            </div>
-          )}
-
           {error && (
             <div className="rounded-lg border border-rose-200 bg-rose-50 text-rose-700 p-3 text-sm">
               {error}
@@ -979,6 +1078,142 @@ function AnalizarDocumentosPanel() {
         {/* Documentos Sugeridos - Solo mostrar cuando hay análisis */}
         <DocumentosSugeridosPanel analysisResult={analysisResult} />
       </div>
+
+      {/* Panel de progreso del análisis */}
+      {analyzing && (
+        <div className="bg-white p-6 rounded-xl border border-gray-200">
+          <h3 className="font-bold text-lg text-gray-900 mb-4">Analizando documento...</h3>
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${
+                progress >= 10 ? "bg-green-500" : "bg-gray-300"
+              }`}>
+                {progress >= 10 && <CheckCircle2 className="h-4 w-4 text-white" />}
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-900">
+                  Extrayendo texto y preparando análisis...
+                </p>
+                {progress < 10 && (
+                  <div className="mt-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div className="h-full bg-[#C026D3] rounded-full" style={{ width: `${progress}%` }}></div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${
+                progress >= 25 ? "bg-green-500" : progress >= 10 ? "bg-amber-500" : "bg-gray-300"
+              }`}>
+                {progress >= 25 ? (
+                  <CheckCircle2 className="h-4 w-4 text-white" />
+                ) : progress >= 10 ? (
+                  <Loader2 className="h-4 w-4 text-white animate-spin" />
+                ) : null}
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-900">
+                  Traduciendo y estructurando cláusulas...
+                </p>
+                {progress >= 10 && progress < 25 && (
+                  <div className="mt-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div className="h-full bg-[#C026D3] rounded-full" style={{ width: `${((progress - 10) / 15) * 100}%` }}></div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${
+                progress >= 40 ? "bg-green-500" : progress >= 25 ? "bg-amber-500" : "bg-gray-300"
+              }`}>
+                {progress >= 40 ? (
+                  <CheckCircle2 className="h-4 w-4 text-white" />
+                ) : progress >= 25 ? (
+                  <Loader2 className="h-4 w-4 text-white animate-spin" />
+                ) : null}
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-900">
+                  Clasificando tipo de documento...
+                </p>
+                {progress >= 25 && progress < 40 && (
+                  <div className="mt-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div className="h-full bg-[#C026D3] rounded-full" style={{ width: `${((progress - 25) / 15) * 100}%` }}></div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${
+                progress >= 60 ? "bg-green-500" : progress >= 40 ? "bg-amber-500" : "bg-gray-300"
+              }`}>
+                {progress >= 60 ? (
+                  <CheckCircle2 className="h-4 w-4 text-white" />
+                ) : progress >= 40 ? (
+                  <Loader2 className="h-4 w-4 text-white animate-spin" />
+                ) : null}
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-900">
+                  Analizando cláusulas específicas...
+                </p>
+                {progress >= 40 && progress < 60 && (
+                  <div className="mt-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div className="h-full bg-[#C026D3] rounded-full" style={{ width: `${((progress - 40) / 20) * 100}%` }}></div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${
+                progress >= 80 ? "bg-green-500" : progress >= 60 ? "bg-amber-500" : "bg-gray-300"
+              }`}>
+                {progress >= 80 ? (
+                  <CheckCircle2 className="h-4 w-4 text-white" />
+                ) : progress >= 60 ? (
+                  <Loader2 className="h-4 w-4 text-white animate-spin" />
+                ) : null}
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-900">
+                  Generando reporte final...
+                </p>
+                {progress >= 60 && progress < 80 && (
+                  <div className="mt-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div className="h-full bg-[#C026D3] rounded-full" style={{ width: `${((progress - 60) / 20) * 100}%` }}></div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${
+                progress >= 100 ? "bg-green-500" : progress >= 80 ? "bg-amber-500" : "bg-gray-300"
+              }`}>
+                {progress >= 100 ? (
+                  <CheckCircle2 className="h-4 w-4 text-white" />
+                ) : progress >= 80 ? (
+                  <Loader2 className="h-4 w-4 text-white animate-spin" />
+                ) : null}
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-900">
+                  Guardando resultados...
+                </p>
+                {progress >= 80 && progress < 100 && (
+                  <div className="mt-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div className="h-full bg-[#C026D3] rounded-full" style={{ width: `${((progress - 80) / 20) * 100}%` }}></div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <AnalysisResultPanel 
         analysisResult={analysisResult} 
@@ -1895,65 +2130,63 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
 
   return (
     <div className="bg-white p-6 rounded-xl border border-gray-200">
-      <h3 className="font-bold text-lg text-gray-900">Generar Documento</h3>
-      <p className="text-sm text-gray-500 mb-4">Orquesta agentes Normativo + Jurisprudencial</p>
+      <h3 className="font-bold text-lg text-gray-900 mb-1">Generar Documento</h3>
+      <p className="text-sm text-gray-500 mb-6">Guide for Normative - Jurisprudential agents</p>
       
       {/* Tabs para elegir modo */}
-      <div className="flex gap-2 mb-6 border-b border-gray-200 pb-2">
+      <div className="flex gap-1 mb-6 border-b border-gray-200">
         <button
           type="button"
           onClick={() => setModoGeneracion("memo")}
-          className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+          className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
             modoGeneracion === "memo"
-              ? "bg-[#C026D3] text-white"
-              : "text-gray-600 hover:bg-gray-100"
+              ? "border-[#C026D3] text-[#C026D3]"
+              : "border-transparent text-gray-600 hover:text-gray-900"
           }`}
         >
-          📝 Memos / Dictámenes
+          Memos / Dictámenes
         </button>
         <button
           type="button"
           onClick={() => setModoGeneracion("plantilla")}
-          className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+          className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
             modoGeneracion === "plantilla"
-              ? "bg-[#C026D3] text-white"
-              : "text-gray-600 hover:bg-gray-100"
+              ? "border-[#C026D3] text-[#C026D3]"
+              : "border-transparent text-gray-600 hover:text-gray-900"
           }`}
         >
-          📄 Contratos / Plantillas
+          Contratos / Plantillas
         </button>
       </div>
 
       {modoGeneracion === "plantilla" ? (
         <GenerarDesdePlantilla onGenerated={onGenerated} setError={setError} setLoading={setLoading} />
       ) : (
-      <>
-      <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
-        <div>
-          <label className="text-sm font-medium text-gray-600">Tipo de documento</label>
-          <div className="relative mt-1">
-            <select className="w-full bg-gray-50 border-gray-300 rounded-md py-2 pl-3 pr-10 text-sm focus:ring-[#C026D3] focus:border-[#C026D3]" value={type} onChange={e=>setType(e.target.value as any)}>
-              <option value="memo">Memo</option>
-              <option value="dictamen">Dictamen</option>
-              <option value="contrato">Contrato</option>
-              <option value="escrito">Escrito</option>
-            </select>
-          </div>
-        </div>
-        <div>
-          <label className="text-sm font-medium text-gray-600">Área legal</label>
-          <div className="relative mt-1">
-            <select className="w-full bg-gray-50 border-gray-300 rounded-md py-2 pl-3 pr-10 text-sm focus:ring-[#C026D3] focus:border-[#C026D3]" value={areaLegal} onChange={e=>setAreaLegal(e.target.value as any)}>
-              <option value="civil_comercial">Civil, Comercial y Societario</option>
-              <option value="laboral">Laboral</option>
-              <option value="corporativo">Corporativo</option>
-              <option value="compliance">Compliance</option>
-              <option value="marcas">Marcas y Propiedad Intelectual</option>
-              <option value="consumidor">Consumidor</option>
-              <option value="traducir">Traducir</option>
-            </select>
-          </div>
-        </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Columna izquierda: Formulario */}
+        <div className="space-y-4">
+          <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de documento</label>
+              <select className="w-full bg-white border border-gray-300 rounded-md py-2 px-3 text-sm focus:ring-[#C026D3] focus:border-[#C026D3]" value={type} onChange={e=>setType(e.target.value as any)}>
+                <option value="memo">Memo</option>
+                <option value="dictamen">Dictamen</option>
+                <option value="contrato">Contrato</option>
+                <option value="escrito">Escrito</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Área legal</label>
+              <select className="w-full bg-white border border-gray-300 rounded-md py-2 px-3 text-sm focus:ring-[#C026D3] focus:border-[#C026D3]" value={areaLegal} onChange={e=>setAreaLegal(e.target.value as any)}>
+                <option value="civil_comercial">Civil, Comercial y Societario</option>
+                <option value="laboral">Laboral</option>
+                <option value="corporativo">Corporativo</option>
+                <option value="compliance">Compliance</option>
+                <option value="marcas">Marcas y Propiedad Intelectual</option>
+                <option value="consumidor">Consumidor</option>
+                <option value="traducir">Traducir</option>
+              </select>
+            </div>
         
         {/* Selector de bases de conocimiento (solo para RAG, no para memos) */}
         {generationMode === "dictamen_rag" && !file && !transcriptText && knowledgeBases.length > 0 && (
@@ -2085,63 +2318,91 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
             )}
           </div>
         </div>
-        <div className="flex items-center">
-          <input checked={generationMode === "memo"} className="h-4 w-4 rounded border-gray-300 text-[#C026D3] focus:ring-[#C026D3]" id="use-rag" type="checkbox" onChange={() => setGenerationMode("memo")} />
-          <label className="ml-2 block text-sm text-gray-800" htmlFor="use-rag">Usar generador de memos (sin RAG)</label>
-        </div>
-        {file && (
-          <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm">
-            <div className="text-blue-900 font-medium mb-1">💡 Modo Chat disponible</div>
-            <div className="text-blue-700 text-xs">Con el archivo subido, también podés usar el modo chat para consultar paso a paso cómo proceder.</div>
-          </div>
-        )}
-        <div className="flex items-center justify-end space-x-4 pt-4">
-          <button 
-            className="flex items-center space-x-1.5 text-sm text-gray-500 hover:text-gray-800 font-medium" 
-            type="button"
-            onClick={()=>{ 
-              setTitle(""); 
-              setInstructions(""); 
-              setFile(null);
-              setTranscriptText("");
-              setShowTranscriptText(false);
-              setMemoResult(null);
-              setGenerationMode("memo");
-            }}
-            disabled={loadingLocal}
-          >
-            <X className="text-base" />
-            <span>Limpiar</span>
-          </button>
-          <button 
-            className="flex items-center space-x-2 bg-[#C026D3] text-white font-semibold py-2.5 px-5 rounded-lg hover:bg-[#A21CAF] transition-colors shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed" 
-            type="submit"
-            disabled={loadingLocal}
-          >
-            {loadingLocal ? (
-              <>
-                <Loader2 className="text-base animate-spin" />
-                <span>Generando...</span>
-              </>
-            ) : (
-              <>
-                <Send className="text-base" />
-                <span>Generar</span>
-              </>
+            <div className="flex items-center">
+              <input checked={generationMode === "memo"} className="h-4 w-4 rounded border-gray-300 text-[#C026D3] focus:ring-[#C026D3]" id="use-rag" type="checkbox" onChange={() => setGenerationMode("memo")} />
+              <label className="ml-2 block text-sm text-gray-800" htmlFor="use-rag">Usar generador de memos sin RAG</label>
+            </div>
+            {file && (
+              <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm">
+                <div className="text-blue-900 font-medium mb-1">💡 Modo Chat disponible</div>
+                <div className="text-blue-700 text-xs">Con el archivo subido, también podés usar el modo chat para consultar paso a paso cómo proceder.</div>
+              </div>
             )}
-          </button>
+            <div className="flex items-center justify-end space-x-4 pt-4">
+              <button 
+                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 font-medium" 
+                type="button"
+                onClick={()=>{ 
+                  setTitle(""); 
+                  setInstructions(""); 
+                  setFile(null);
+                  setTranscriptText("");
+                  setShowTranscriptText(false);
+                  setMemoResult(null);
+                  setGenerationMode("memo");
+                }}
+                disabled={loadingLocal}
+              >
+                Salir
+              </button>
+              <button 
+                className="flex items-center space-x-2 bg-[#C026D3] text-white font-semibold py-2.5 px-5 rounded-lg hover:bg-[#A21CAF] transition-colors shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed" 
+                type="submit"
+                disabled={loadingLocal}
+              >
+                {loadingLocal ? (
+                  <>
+                    <Loader2 className="text-base animate-spin" />
+                    <span>Generando...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="text-base" />
+                    <span>Generar</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
         </div>
-      </form>
 
-      {/* Indicador de progreso moderno */}
-      {loadingLocal && (
-        <ProgressIndicator />
-      )}
+        {/* Columna derecha: Preview del Dictamen */}
+        <div className="bg-gray-50 rounded-xl border border-gray-200 p-6">
+          <h4 className="font-bold text-lg text-gray-900 mb-4">Dictamen Jurídico</h4>
+          <div className="bg-white rounded-lg border border-gray-300 p-4 min-h-[400px] relative">
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-10">
+              <span className="text-6xl font-bold text-gray-400">DRAFT</span>
+            </div>
+            <div className="relative z-10 space-y-4">
+              {title && (
+                <div>
+                  <h5 className="font-semibold text-gray-900 mb-2">{title}</h5>
+                </div>
+              )}
+              {instructions ? (
+                <div className="text-sm text-gray-700 whitespace-pre-wrap">
+                  <p className="font-medium mb-2">1. Contexto y consulta</p>
+                  <p className="text-gray-600">{instructions}</p>
+                </div>
+              ) : (
+                <div className="text-sm text-gray-400 italic">
+                  <p className="font-medium mb-2">1. Contexto y consulta</p>
+                  <p>Completá el formulario para ver el preview del dictamen...</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
 
-      {memoResult && (
-        <MemoResultPanel memoResult={memoResult} />
-      )}
-      </>
+        {/* Indicador de progreso moderno */}
+        {loadingLocal && (
+          <ProgressIndicator />
+        )}
+
+        {memoResult && (
+          <MemoResultPanel memoResult={memoResult} />
+        )}
+      </div>
       )}
     </div>
   );
