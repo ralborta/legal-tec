@@ -228,6 +228,12 @@ Referencia: [REFERENCIA O NÚMERO SI CORRESPONDE]
 
 [Resumen ejecutivo completo de 3-5 párrafos que sintetice los aspectos más relevantes del memo. Debe ser claro, directo y permitir una comprensión rápida del contenido. Incluye los temas principales tratados y las decisiones más importantes tomadas.]
 
+IMPORTANTE SOBRE FUENTES EN EL RESUMEN:
+- Si en el análisis jurídico o en los puntos tratados se mencionan referencias legales (leyes, artículos, decretos, fallos, doctrina), DEBÉS incluirlas en el resumen ejecutivo cuando sean relevantes para la comprensión del caso.
+- Mencioná las fuentes legales principales de forma natural en el resumen, por ejemplo: "El análisis se basa en el Art. 765 del CCyC y la jurisprudencia de la CSJN sobre el tema..."
+- Si hay normativa específica aplicable, mencionala en el resumen para dar contexto legal inmediato.
+- Las citas completas se detallarán en la sección de ANÁLISIS JURÍDICO y en el campo "citas" del JSON, pero el resumen debe incluir las referencias más importantes cuando sean relevantes para la comprensión del caso.
+
 
 ═══════════════════════════════════════════════════════════════════════════════
                           II. PUNTOS TRATADOS
@@ -323,6 +329,30 @@ NOTA: Esta sección es OBLIGATORIA y debe ser ESPECÍFICA. Si no hay próximos p
 
 
 ═══════════════════════════════════════════════════════════════════════════════
+                        VII. FUENTES Y REFERENCIAS LEGALES
+═══════════════════════════════════════════════════════════════════════════════
+
+[Esta sección es OBLIGATORIA si hay citas legales. Listá todas las referencias legales utilizadas en el análisis, organizadas por tipo:
+
+NORMATIVA:
+• [Referencia completa, ej: "Art. 765 del Código Civil y Comercial de la Nación (Ley 26.994)"]
+• [Otra referencia normativa si aplica]
+
+JURISPRUDENCIA:
+• [Referencia completa, ej: "CSJN, Fallos: 340:1234, caso [nombre del caso], fecha"]
+• [Otra referencia jurisprudencial si aplica]
+
+DOCTRINA:
+• [Referencia completa, ej: "Revista de Derecho Comercial, año 2020, artículo sobre [tema]"]
+• [Otra referencia doctrinaria si aplica]
+
+OTRAS FUENTES:
+• [Cualquier otra fuente legal relevante]
+
+IMPORTANTE: Esta sección debe incluir TODAS las citas que aparecen en el campo "citas" del JSON. Si no hay citas, podés omitir esta sección o indicar "No se aplicaron referencias legales específicas en este caso."]
+
+
+═══════════════════════════════════════════════════════════════════════════════
 
 
 Atentamente,
@@ -368,6 +398,13 @@ CITAS (campo "citas" en el JSON) - MUY IMPORTANTE:
 - Si no hay citas, devolvé un array vacío []
 - Las citas deben ser precisas, verificables y completas
 - No incluyas explicaciones fuera del JSON.
+
+IMPORTANTE SOBRE INCLUSIÓN DE FUENTES EN EL TEXTO:
+- Las fuentes legales DEBEN aparecer mencionadas en el RESUMEN EJECUTIVO cuando sean relevantes para la comprensión del caso
+- En el RESUMEN EJECUTIVO, mencioná las referencias legales principales de forma natural, por ejemplo: "El análisis se basa en el Art. 765 del CCyC y la jurisprudencia de la CSJN sobre el tema..."
+- La sección VII "FUENTES Y REFERENCIAS LEGALES" debe incluir TODAS las citas del campo "citas" del JSON, organizadas por tipo (Normativa, Jurisprudencia, Doctrina, Otras)
+- Si hay citas en el JSON, la sección VII es OBLIGATORIA y debe estar completa
+- Las fuentes deben aparecer tanto en el resumen (cuando sean relevantes) como en la sección dedicada de fuentes
 
 ═══════════════════════════════════════════════════════════════════════════════
 FUENTES DE CONSULTA OFICIALES - USAR ESTAS URLs EN LAS CITAS
