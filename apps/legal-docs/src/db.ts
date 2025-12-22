@@ -136,65 +136,114 @@ export const legalDb = {
     checklist: any;
     report: any; // string o AnalysisReport object
   }) {
-    const result = await db.query(
-      `INSERT INTO legal_analysis (document_id, type, original, translated, checklist, report, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, NOW())
-       ON CONFLICT (document_id) 
-       DO UPDATE SET 
-         type = EXCLUDED.type,
-         original = EXCLUDED.original,
-         translated = EXCLUDED.translated,
-         checklist = EXCLUDED.checklist,
-         report = EXCLUDED.report,
-         created_at = NOW()
-       RETURNING *`,
-      [
-        data.documentId,
-        data.type,
-        JSON.stringify(data.original),
-        JSON.stringify(data.translated),
-        JSON.stringify(data.checklist),
-        typeof data.report === 'string' ? data.report : JSON.stringify(data.report),
-      ]
-    );
-    return result.rows[0];
+    try {
+      // Preparar report: si es objeto, convertir a JSON string
+      let reportValue: string;
+      if (typeof data.report === 'string') {
+        reportValue = data.report;
+      } else {
+        reportValue = JSON.stringify(data.report);
+      }
+      
+      console.log(`[DB] Guardando análisis para ${data.documentId}, tipo: ${data.type}, report length: ${reportValue.length}`);
+      
+      const result = await db.query(
+        `INSERT INTO legal_analysis (document_id, type, original, translated, checklist, report, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, NOW())
+         ON CONFLICT (document_id) 
+         DO UPDATE SET 
+           type = EXCLUDED.type,
+           original = EXCLUDED.original,
+           translated = EXCLUDED.translated,
+           checklist = EXCLUDED.checklist,
+           report = EXCLUDED.report,
+           created_at = NOW()
+         RETURNING *`,
+        [
+          data.documentId,
+          data.type,
+          JSON.stringify(data.original),
+          JSON.stringify(data.translated),
+          JSON.stringify(data.checklist),
+          reportValue,
+        ]
+      );
+      
+      console.log(`[DB] ✅ Análisis guardado correctamente para ${data.documentId}`);
+      return result.rows[0];
+    } catch (error: any) {
+      console.error(`[DB] ❌ Error guardando análisis para ${data.documentId}:`, error.message);
+      throw error;
+    }
   },
 
   async getFullResult(documentId: string) {
-    const result = await db.query(
-      `SELECT 
-         d.*,
-         a.type as analysis_type,
-         a.original,
-         a.translated,
-         a.checklist,
-         a.report,
-         a.created_at as analyzed_at
-       FROM legal_documents d
-       LEFT JOIN legal_analysis a ON d.id = a.document_id
-       WHERE d.id = $1`,
-      [documentId]
-    );
-    
-    if (result.rows.length === 0) {
-      return null;
+    try {
+      const result = await db.query(
+        `SELECT 
+           d.*,
+           a.type as analysis_type,
+           a.original,
+           a.translated,
+           a.checklist,
+           a.report,
+           a.created_at as analyzed_at
+         FROM legal_documents d
+         LEFT JOIN legal_analysis a ON d.id = a.document_id
+         WHERE d.id = $1`,
+        [documentId]
+      );
+      
+      if (result.rows.length === 0) {
+        console.log(`[DB] Documento ${documentId} no encontrado`);
+        return null;
+      }
+      
+      const row = result.rows[0];
+      
+      if (!row.analysis_type) {
+        console.log(`[DB] Documento ${documentId} existe pero no tiene análisis`);
+        // Retornar documento sin análisis
+        return {
+          documentId: row.id,
+          filename: row.filename,
+          mimeType: row.mime_type,
+          uploadedAt: row.created_at,
+          analysis: null,
+        };
+      }
+      
+      console.log(`[DB] ✅ Análisis encontrado para ${documentId}, tipo: ${row.analysis_type}`);
+      
+      // Parsear report si es string JSON
+      let report = row.report;
+      if (report && typeof report === 'string') {
+        try {
+          report = JSON.parse(report);
+        } catch (e) {
+          console.warn(`[DB] No se pudo parsear report como JSON para ${row.id}:`, e.message);
+          // Si no es JSON válido, mantener como string
+        }
+      }
+      
+      return {
+        documentId: row.id,
+        filename: row.filename,
+        mimeType: row.mime_type,
+        uploadedAt: row.created_at,
+        analysis: {
+          type: row.analysis_type,
+          original: row.original,
+          translated: row.translated,
+          checklist: row.checklist,
+          report: report,
+          analyzedAt: row.analyzed_at,
+        },
+      };
+    } catch (error: any) {
+      console.error(`[DB] ❌ Error obteniendo resultado para ${documentId}:`, error.message);
+      throw error;
     }
-
-    const row = result.rows[0];
-    return {
-      documentId: row.id,
-      filename: row.filename,
-      mimeType: row.mime_type,
-      uploadedAt: row.created_at,
-      analysis: row.analysis_type ? {
-        type: row.analysis_type,
-        original: row.original,
-        translated: row.translated,
-        checklist: row.checklist,
-        report: row.report,
-        analyzedAt: row.analyzed_at,
-      } : null,
-    };
   },
 
   async getAnalysis(documentId: string) {
