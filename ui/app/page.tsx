@@ -332,17 +332,7 @@ function Topbar({ activeView, setActiveView }: { activeView: string; setActiveVi
       {/* Logo y Estado */}
       <div className="flex items-center gap-6">
         {/* Logo WNS */}
-        <div className="flex items-center">
-          <img 
-            src="/wns-logo.png" 
-            alt="WNS & Asociados" 
-            className="h-7 w-auto object-contain"
-            onError={(e) => {
-              // Fallback si no existe el logo
-              (e.target as HTMLImageElement).style.display = 'none';
-            }}
-          />
-        </div>
+        <WNSLogo />
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-[#7E22CE] flex items-center justify-center rounded-lg">
             <span className="text-xl font-bold text-white">IA</span>
