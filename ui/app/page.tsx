@@ -289,26 +289,56 @@ function SideLink({ icon: Icon, label, active, className = "", onClick }: any) {
   );
 }
 
+function WNSLogo() {
+  const [logoExists, setLogoExists] = React.useState<boolean | null>(null);
+  
+  React.useEffect(() => {
+    // Verificar si el logo existe antes de intentar cargarlo
+    const img = new Image();
+    img.onload = () => setLogoExists(true);
+    img.onerror = () => setLogoExists(false);
+    img.src = '/wns-logo.png';
+  }, []);
+  
+  if (logoExists === false) {
+    return null; // No mostrar nada si el logo no existe
+  }
+  
+  return (
+    <div className="flex items-center">
+      <img 
+        src="/wns-logo.png" 
+        alt="WNS & Asociados" 
+        className="h-7 w-auto object-contain"
+        style={{ display: logoExists === true ? 'block' : 'none' }}
+      />
+    </div>
+  );
+}
+
 function Footer() {
+  const [showIASolutionsLogo, setShowIASolutionsLogo] = React.useState<boolean | null>(null);
+  
+  React.useEffect(() => {
+    // Verificar si el logo existe antes de intentar cargarlo
+    const img = new Image();
+    img.onload = () => setShowIASolutionsLogo(true);
+    img.onerror = () => setShowIASolutionsLogo(false);
+    img.src = '/ia-solutions-logo.png';
+  }, []);
+  
   return (
     <footer className="border-t border-gray-200 bg-white px-6 py-3 flex items-center justify-center gap-2">
       <span className="text-xs text-gray-500">Powered by</span>
-      <img 
-        src="/ia-solutions-logo.png" 
-        alt="IA Solutions" 
-        className="h-5 w-auto object-contain"
-        onError={(e) => {
-          // Fallback si no existe el logo, mostrar texto
-          (e.target as HTMLImageElement).style.display = 'none';
-          const parent = (e.target as HTMLImageElement).parentElement;
-          if (parent && !parent.querySelector('.fallback-text')) {
-            const fallback = document.createElement('span');
-            fallback.className = 'fallback-text text-xs font-semibold text-gray-700';
-            fallback.textContent = 'IA Solutions';
-            parent.appendChild(fallback);
-          }
-        }}
-      />
+      {showIASolutionsLogo === true ? (
+        <img 
+          src="/ia-solutions-logo.png" 
+          alt="IA Solutions" 
+          className="h-5 w-auto object-contain"
+        />
+      ) : (
+        <span className="text-xs font-semibold text-gray-700">IA Solutions</span>
+      )}
     </footer>
   );
 }
