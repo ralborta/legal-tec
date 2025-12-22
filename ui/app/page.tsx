@@ -105,8 +105,8 @@ export default function CentroGestionLegalPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-800 antialiased font-display">
-      <div className="flex h-screen">
+    <div className="min-h-screen bg-gray-50 text-gray-800 antialiased font-display flex flex-col">
+      <div className="flex flex-1 min-h-0">
         <Sidebar activeView={activeView} setActiveView={setActiveView} />
         <div className="flex-1 min-w-0 flex flex-col bg-gray-50">
           <Topbar activeView={activeView} setActiveView={setActiveView} />
@@ -231,6 +231,7 @@ export default function CentroGestionLegalPage() {
               )}
             </div>
           </main>
+          <Footer />
         </div>
       </div>
 
@@ -288,6 +289,30 @@ function SideLink({ icon: Icon, label, active, className = "", onClick }: any) {
   );
 }
 
+function Footer() {
+  return (
+    <footer className="border-t border-gray-200 bg-white px-6 py-3 flex items-center justify-center gap-2">
+      <span className="text-xs text-gray-500">Powered by</span>
+      <img 
+        src="/ia-solutions-logo.png" 
+        alt="IA Solutions" 
+        className="h-5 w-auto object-contain"
+        onError={(e) => {
+          // Fallback si no existe el logo, mostrar texto
+          (e.target as HTMLImageElement).style.display = 'none';
+          const parent = (e.target as HTMLImageElement).parentElement;
+          if (parent && !parent.querySelector('.fallback-text')) {
+            const fallback = document.createElement('span');
+            fallback.className = 'fallback-text text-xs font-semibold text-gray-700';
+            fallback.textContent = 'IA Solutions';
+            parent.appendChild(fallback);
+          }
+        }}
+      />
+    </footer>
+  );
+}
+
 function Topbar({ activeView, setActiveView }: { activeView: string; setActiveView: (view: "bandeja" | "analizar" | "generar" | "historial") => void }) {
   // Evitar hydration mismatch: calcular fecha solo en cliente
   const [today, setToday] = React.useState("");
@@ -306,6 +331,18 @@ function Topbar({ activeView, setActiveView }: { activeView: string; setActiveVi
     <header className="flex items-center justify-between p-4 border-b border-gray-200 bg-white">
       {/* Logo y Estado */}
       <div className="flex items-center gap-6">
+        {/* Logo WNS */}
+        <div className="flex items-center">
+          <img 
+            src="/wns-logo.png" 
+            alt="WNS & Asociados" 
+            className="h-7 w-auto object-contain"
+            onError={(e) => {
+              // Fallback si no existe el logo
+              (e.target as HTMLImageElement).style.display = 'none';
+            }}
+          />
+        </div>
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-[#7E22CE] flex items-center justify-center rounded-lg">
             <span className="text-xl font-bold text-white">IA</span>
