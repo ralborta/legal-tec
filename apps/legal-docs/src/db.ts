@@ -216,14 +216,23 @@ export const legalDb = {
       console.log(`[DB] ✅ Análisis encontrado para ${documentId}, tipo: ${row.analysis_type}`);
       
       // Parsear report si es string JSON
+      // PostgreSQL puede devolver JSONB como objeto o como string dependiendo del driver
       let report = row.report;
-      if (report && typeof report === 'string') {
-        try {
-          report = JSON.parse(report);
-        } catch (e) {
-          console.warn(`[DB] No se pudo parsear report como JSON para ${row.id}:`, e.message);
-          // Si no es JSON válido, mantener como string
+      if (report) {
+        // Si es string, intentar parsear
+        if (typeof report === 'string') {
+          try {
+            // Si es un string JSON válido, parsearlo
+            if (report.trim().startsWith('{') || report.trim().startsWith('[')) {
+              report = JSON.parse(report);
+            }
+            // Si no es JSON, mantener como string (texto plano)
+          } catch (e) {
+            console.warn(`[DB] No se pudo parsear report como JSON para ${row.id}:`, e.message);
+            // Si no es JSON válido, mantener como string
+          }
         }
+        // Si ya es objeto (JSONB devuelto como objeto), usarlo directamente
       }
       
       return {

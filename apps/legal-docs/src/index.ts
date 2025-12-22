@@ -281,15 +281,33 @@ console.log("[ROUTES] ✅ POST /legal/analyze/:documentId registrada");
 async function handleResult(req: express.Request, res: express.Response, next: express.NextFunction) {
   try {
     const { documentId } = req.params;
+    console.log(`[RESULT] Obteniendo resultado para documento: ${documentId}`);
+    
     const result = await getFullResult(documentId);
 
     if (!result) {
+      console.log(`[RESULT] Documento ${documentId} no encontrado`);
       return res.status(404).json({ error: "not found" });
+    }
+
+    console.log(`[RESULT] Documento encontrado: ${result.filename}`);
+    console.log(`[RESULT] Tiene análisis: ${result.analysis ? 'SÍ' : 'NO'}`);
+    
+    if (result.analysis) {
+      console.log(`[RESULT] Tipo de análisis: ${result.analysis.type}`);
+      console.log(`[RESULT] Report existe: ${result.analysis.report ? 'SÍ' : 'NO'}`);
+      if (result.analysis.report) {
+        console.log(`[RESULT] Tipo de report: ${typeof result.analysis.report}`);
+        if (typeof result.analysis.report === 'object') {
+          console.log(`[RESULT] Report tiene campos: ${Object.keys(result.analysis.report).join(', ')}`);
+        }
+      }
     }
 
     // Si el análisis está en progreso, retornar estado parcial
     const analysis = await legalDb.getDocument(documentId);
     if (analysis && !result.analysis) {
+      console.log(`[RESULT] Análisis en progreso para ${documentId}`);
       return res.json({
         documentId,
         status: "processing",
@@ -297,8 +315,10 @@ async function handleResult(req: express.Request, res: express.Response, next: e
       });
     }
 
+    console.log(`[RESULT] ✅ Devolviendo resultado completo para ${documentId}`);
     res.json(result);
   } catch (err) {
+    console.error(`[RESULT] ❌ Error obteniendo resultado para ${req.params.documentId}:`, err);
     next(err);
   }
 }
@@ -345,9 +365,27 @@ app.get("/history", async (_req, res) => {
     // Transformar al formato esperado por el frontend
     const items = documents.map((doc: any) => {
       let report = null;
-      try {
-        report = typeof doc.report === 'string' ? JSON.parse(doc.report) : doc.report;
-      } catch {}
+      if (doc.report) {
+        try {
+          // PostgreSQL puede devolver JSONB como objeto o como string
+          if (typeof doc.report === 'string') {
+            // Si es string, intentar parsear si parece JSON
+            if (doc.report.trim().startsWith('{') || doc.report.trim().startsWith('[')) {
+              report = JSON.parse(doc.report);
+            } else {
+              // Si no es JSON, mantener como string (texto plano)
+              report = { texto_formateado: doc.report };
+            }
+          } else {
+            // Ya es objeto (JSONB devuelto como objeto)
+            report = doc.report;
+          }
+        } catch (e) {
+          console.warn(`[HISTORY] Error parseando report para ${doc.id}:`, e.message);
+          // Si falla el parseo, intentar usar como texto plano
+          report = { texto_formateado: typeof doc.report === 'string' ? doc.report : JSON.stringify(doc.report) };
+        }
+      }
 
       return {
         id: doc.id,
