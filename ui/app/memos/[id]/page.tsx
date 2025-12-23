@@ -333,32 +333,46 @@ export default function MemoDetailPage() {
                           <h3 className="text-lg font-bold text-slate-800">Plan de acción sugerido</h3>
                         </div>
                         <ul className="space-y-3">
-                          {memoData.proximos_pasos.map((paso: string, i: number) => (
-                            <li key={i} className="flex items-start gap-3">
-                              <input
-                                type="checkbox"
-                                className="mt-1 h-4 w-4 rounded border-emerald-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
-                                id={`paso-${i}`}
-                              />
-                              <label htmlFor={`paso-${i}`} className="text-slate-800 font-medium flex-1 cursor-pointer leading-relaxed">
-                                {paso}
-                              </label>
-                            </li>
-                          ))}
+                          {memoData.proximos_pasos.map((paso: string | any, i: number) => {
+                            // Convertir objeto a string si es necesario
+                            const pasoText = typeof paso === "string" 
+                              ? paso 
+                              : (paso.descripcion || paso.texto || paso.accion || JSON.stringify(paso));
+                            
+                            return (
+                              <li key={i} className="flex items-start gap-3">
+                                <input
+                                  type="checkbox"
+                                  className="mt-1 h-4 w-4 rounded border-emerald-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                                  id={`paso-${i}`}
+                                />
+                                <label htmlFor={`paso-${i}`} className="text-slate-800 font-medium flex-1 cursor-pointer leading-relaxed">
+                                  {pasoText}
+                                </label>
+                              </li>
+                            );
+                          })}
                         </ul>
                       </div>
                       
                       {/* Lista adicional con iconos (opcional, para referencia visual) */}
                       <div className="space-y-3">
                         <h4 className="text-sm font-semibold text-slate-600 mb-2">Detalle de próximos pasos:</h4>
-                        {memoData.proximos_pasos.map((paso: string, i: number) => (
-                          <div key={i} className="flex items-start gap-3 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-4 border border-emerald-100 hover:shadow-md transition-shadow">
-                            <div className="mt-0.5 p-1.5 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 shrink-0">
-                              <TrendingUp className="h-3 w-3 text-white" />
+                        {memoData.proximos_pasos.map((paso: string | any, i: number) => {
+                          // Convertir objeto a string si es necesario
+                          const pasoText = typeof paso === "string" 
+                            ? paso 
+                            : (paso.descripcion || paso.texto || paso.accion || JSON.stringify(paso));
+                          
+                          return (
+                            <div key={i} className="flex items-start gap-3 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-4 border border-emerald-100 hover:shadow-md transition-shadow">
+                              <div className="mt-0.5 p-1.5 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 shrink-0">
+                                <TrendingUp className="h-3 w-3 text-white" />
+                              </div>
+                              <span className="text-slate-800 font-medium flex-1">{pasoText}</span>
                             </div>
-                            <span className="text-slate-800 font-medium flex-1">{paso}</span>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </>
                   ) : (
