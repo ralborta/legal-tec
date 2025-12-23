@@ -309,7 +309,7 @@ function WNSLogo() {
       <img 
         src="/wns-logo.png" 
         alt="WNS & Asociados" 
-        className="h-16 w-auto object-contain"
+        className="h-32 w-auto object-contain"
         style={{ display: logoExists === true ? 'block' : 'none' }}
       />
     </div>
@@ -2227,28 +2227,28 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Columna izquierda: Formulario */}
         <div className="space-y-4">
-          <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
-            <div>
+      <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
+        <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de documento</label>
               <select className="w-full bg-white border border-gray-300 rounded-md py-2 px-3 text-sm focus:ring-[#C026D3] focus:border-[#C026D3]" value={type} onChange={e=>setType(e.target.value as any)}>
-                <option value="memo">Memo</option>
-                <option value="dictamen">Dictamen</option>
-                <option value="contrato">Contrato</option>
-                <option value="escrito">Escrito</option>
-              </select>
-            </div>
-            <div>
+              <option value="memo">Memo</option>
+              <option value="dictamen">Dictamen</option>
+              <option value="contrato">Contrato</option>
+              <option value="escrito">Escrito</option>
+            </select>
+        </div>
+        <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Área legal</label>
               <select className="w-full bg-white border border-gray-300 rounded-md py-2 px-3 text-sm focus:ring-[#C026D3] focus:border-[#C026D3]" value={areaLegal} onChange={e=>setAreaLegal(e.target.value as any)}>
-                <option value="civil_comercial">Civil, Comercial y Societario</option>
-                <option value="laboral">Laboral</option>
-                <option value="corporativo">Corporativo</option>
-                <option value="compliance">Compliance</option>
-                <option value="marcas">Marcas y Propiedad Intelectual</option>
-                <option value="consumidor">Consumidor</option>
-                <option value="traducir">Traducir</option>
-              </select>
-            </div>
+              <option value="civil_comercial">Civil, Comercial y Societario</option>
+              <option value="laboral">Laboral</option>
+              <option value="corporativo">Corporativo</option>
+              <option value="compliance">Compliance</option>
+              <option value="marcas">Marcas y Propiedad Intelectual</option>
+              <option value="consumidor">Consumidor</option>
+              <option value="traducir">Traducir</option>
+            </select>
+        </div>
         
         {/* Selector de bases de conocimiento (solo para RAG, no para memos) */}
         {generationMode === "dictamen_rag" && !file && !transcriptText && knowledgeBases.length > 0 && (
@@ -2380,52 +2380,52 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
             )}
           </div>
         </div>
-            <div className="flex items-center">
-              <input checked={generationMode === "memo"} className="h-4 w-4 rounded border-gray-300 text-[#C026D3] focus:ring-[#C026D3]" id="use-rag" type="checkbox" onChange={() => setGenerationMode("memo")} />
+        <div className="flex items-center">
+          <input checked={generationMode === "memo"} className="h-4 w-4 rounded border-gray-300 text-[#C026D3] focus:ring-[#C026D3]" id="use-rag" type="checkbox" onChange={() => setGenerationMode("memo")} />
               <label className="ml-2 block text-sm text-gray-800" htmlFor="use-rag">Usar generador de memos sin RAG</label>
-            </div>
-            {file && (
-              <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm">
-                <div className="text-blue-900 font-medium mb-1">💡 Modo Chat disponible</div>
-                <div className="text-blue-700 text-xs">Con el archivo subido, también podés usar el modo chat para consultar paso a paso cómo proceder.</div>
-              </div>
-            )}
-            <div className="flex items-center justify-end space-x-4 pt-4">
-              <button 
+        </div>
+        {file && (
+          <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm">
+            <div className="text-blue-900 font-medium mb-1">💡 Modo Chat disponible</div>
+            <div className="text-blue-700 text-xs">Con el archivo subido, también podés usar el modo chat para consultar paso a paso cómo proceder.</div>
+          </div>
+        )}
+        <div className="flex items-center justify-end space-x-4 pt-4">
+          <button 
                 className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 font-medium" 
-                type="button"
-                onClick={()=>{ 
-                  setTitle(""); 
-                  setInstructions(""); 
-                  setFile(null);
-                  setTranscriptText("");
-                  setShowTranscriptText(false);
-                  setMemoResult(null);
-                  setGenerationMode("memo");
-                }}
-                disabled={loadingLocal}
-              >
+            type="button"
+            onClick={()=>{ 
+              setTitle(""); 
+              setInstructions(""); 
+              setFile(null);
+              setTranscriptText("");
+              setShowTranscriptText(false);
+              setMemoResult(null);
+              setGenerationMode("memo");
+            }}
+            disabled={loadingLocal}
+          >
                 Salir
-              </button>
-              <button 
-                className="flex items-center space-x-2 bg-[#C026D3] text-white font-semibold py-2.5 px-5 rounded-lg hover:bg-[#A21CAF] transition-colors shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed" 
-                type="submit"
-                disabled={loadingLocal}
-              >
-                {loadingLocal ? (
-                  <>
-                    <Loader2 className="text-base animate-spin" />
-                    <span>Generando...</span>
-                  </>
-                ) : (
-                  <>
+          </button>
+          <button 
+            className="flex items-center space-x-2 bg-[#C026D3] text-white font-semibold py-2.5 px-5 rounded-lg hover:bg-[#A21CAF] transition-colors shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed" 
+            type="submit"
+            disabled={loadingLocal}
+          >
+            {loadingLocal ? (
+              <>
+                <Loader2 className="text-base animate-spin" />
+                <span>Generando...</span>
+              </>
+            ) : (
+              <>
                     <CheckCircle2 className="text-base" />
-                    <span>Generar</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
+                <span>Generar</span>
+              </>
+            )}
+          </button>
+        </div>
+      </form>
         </div>
 
         {/* Columna derecha: Preview del Dictamen */}
@@ -2456,12 +2456,12 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
           </div>
         </div>
 
-        {/* Indicador de progreso moderno */}
-        {loadingLocal && (
-          <ProgressIndicator />
-        )}
+      {/* Indicador de progreso moderno */}
+      {loadingLocal && (
+        <ProgressIndicator />
+      )}
 
-        {memoResult && (
+      {memoResult && (
           <MemoResultPanel memoResult={memoResult} />
         )}
       </div>
