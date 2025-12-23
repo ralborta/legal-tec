@@ -462,7 +462,13 @@ function KPIGrid() {
 }
 
 function BandejaLocal({ items }: { items: any[] }) {
-  const memos = items.filter(item => item.type === "memo" || item.memoData);
+  // Mostrar tanto memos como análisis
+  const memos = items.filter(item => 
+    item.type === "memo" || 
+    item.type === "analysis" || 
+    item.memoData || 
+    item.markdown // Si tiene markdown, es un documento válido
+  );
   
   const getAreaLegalLabel = (area: string) => {
     const labels: Record<string, string> = {
@@ -523,12 +529,18 @@ function BandejaLocal({ items }: { items: any[] }) {
           memos.map((row) => (
                 <tr key={row.id} className="border-b border-gray-100 hover:bg-gray-50">
                   <td className="py-3 px-4 text-sm text-gray-900 font-medium">{row.title || row.asunto}</td>
-                  <td className="py-3 px-4 text-sm text-gray-600">{row.tipoDocumento || "Memo"}</td>
+                  <td className="py-3 px-4 text-sm text-gray-600">
+                    {row.type === "analysis" ? "Análisis" : (row.tipoDocumento || row.tipo || "Memo")}
+                  </td>
                   <td className="py-3 px-4 text-sm text-gray-600">{getAreaLegalLabel(row.areaLegal || "civil_comercial")}</td>
                   <td className="py-3 px-4">
                     <span className="inline-flex items-center text-sm text-gray-600">
-                      <span className="w-2 h-2 mr-2 bg-amber-500 rounded-full"></span>
-                      Pendiente
+                      <span className={`w-2 h-2 mr-2 rounded-full ${
+                        row.estado === "Listo para revisión" || row.status === "completed" 
+                          ? "bg-green-500" 
+                          : "bg-amber-500"
+                      }`}></span>
+                      {row.estado || row.status || "Pendiente"}
                     </span>
                   </td>
                   <td className="py-3 px-4 text-sm text-gray-600">{formatFecha(row.createdAt || row.creado || new Date().toISOString())}</td>
