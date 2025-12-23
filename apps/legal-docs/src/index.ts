@@ -387,13 +387,18 @@ app.get("/history", async (_req, res) => {
         }
       }
 
+      // Determinar tipo: si tiene analysis_type y report, es un análisis
+      const hasAnalysis = doc.analysis_type && doc.report;
+      const itemType = hasAnalysis ? 'analysis' : (doc.analysis_type || 'document');
+      const itemTipo = hasAnalysis ? 'ANÁLISIS' : 'DOCUMENTO';
+
       return {
         id: doc.id,
-        type: doc.analysis_type === 'legal' ? 'analysis' : (doc.analysis_type || 'document'),
-        tipo: doc.analysis_type === 'legal' ? 'ANÁLISIS' : 'DOCUMENTO',
+        type: itemType,
+        tipo: itemTipo,
         title: report?.titulo || doc.filename || 'Sin título',
         asunto: report?.titulo || doc.filename,
-        estado: doc.status === 'completed' ? 'Listo para revisión' : doc.status,
+        estado: doc.status === 'completed' ? 'Listo para revisión' : (doc.status || 'uploaded'),
         prioridad: 'Media',
         createdAt: doc.created_at,
         creado: new Date(doc.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }),
