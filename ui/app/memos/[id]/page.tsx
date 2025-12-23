@@ -471,13 +471,24 @@ export default function MemoDetailPage() {
                     <ul className="space-y-3">
                       {memoData.riesgos.map((riesgo: string | any, i: number) => {
                         // Manejar tanto strings como objetos con { descripcion, nivel, recomendacion }
-                        const riesgoText = typeof riesgo === "string" 
-                          ? riesgo 
-                          : (riesgo.descripcion || riesgo.texto || "");
-                        const nivel = typeof riesgo === "object" && riesgo.nivel 
+                        let riesgoText: string;
+                        if (typeof riesgo === "string") {
+                          riesgoText = riesgo;
+                        } else if (typeof riesgo === "object" && riesgo !== null) {
+                          // Intentar extraer texto de campos comunes
+                          riesgoText = riesgo.descripcion || riesgo.texto || riesgo.riesgo || riesgo.nombre || "";
+                          // Si no hay texto, convertir a string seguro
+                          if (!riesgoText) {
+                            riesgoText = JSON.stringify(riesgo);
+                          }
+                        } else {
+                          riesgoText = String(riesgo || "");
+                        }
+                        
+                        const nivel = typeof riesgo === "object" && riesgo !== null && riesgo.nivel 
                           ? riesgo.nivel 
                           : "medio";
-                        const recomendacion = typeof riesgo === "object" ? riesgo.recomendacion : null;
+                        const recomendacion = typeof riesgo === "object" && riesgo !== null ? riesgo.recomendacion : null;
                         
                         return (
                           <li key={i} className={`flex items-start gap-3 rounded-xl p-4 border hover:shadow-md transition-shadow ${
@@ -495,7 +506,7 @@ export default function MemoDetailPage() {
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
                                 <span className="text-slate-800 font-medium">{riesgoText}</span>
-                                {typeof riesgo === "object" && riesgo.nivel && (
+                                {typeof riesgo === "object" && riesgo !== null && riesgo.nivel && (
                                   <span className={`text-xs px-2 py-1 rounded font-medium ${
                                     nivel === "alto" ? "bg-red-200 text-red-800" :
                                     nivel === "medio" ? "bg-yellow-200 text-yellow-800" :
