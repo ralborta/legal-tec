@@ -569,9 +569,9 @@ async function start() {
 
       // Paso 1: Extraer datos estructurados del análisis
       const extractResponse = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        temperature: 0.2,
-        max_tokens: 2000,
+        model: "gpt-4o", // Modelo más potente para extracción precisa de datos
+        temperature: 0.1, // Muy baja temperatura para máxima precisión
+        max_tokens: 3000, // Más tokens para extraer más datos
         response_format: { type: "json_object" },
         messages: [
           {
@@ -586,32 +586,48 @@ IMPORTANTE:
           },
           {
             role: "user",
-            content: `Analizá el siguiente documento y extraé todos los datos relevantes en formato JSON:
+            content: `Analizá el siguiente documento legal y extraé TODOS los datos relevantes en formato JSON.
 
 ANÁLISIS DEL DOCUMENTO:
-${body.contextoAnalisis.substring(0, 6000)}
+${body.contextoAnalisis.substring(0, 8000)}
 
-Extraé estos campos (si están disponibles):
+IMPORTANTE: Extraé TODOS los datos que encuentres, incluyendo:
+- Información de las partes (nombres completos, razones sociales, roles)
+- Fechas (del documento, de inicio, de fin, plazos)
+- Montos y valores (con moneda)
+- Lugares y jurisdicciones
+- Objetos y descripciones
+- Condiciones, términos y cláusulas especiales
+- Domicilios, CUIT/CUIL, datos de identificación
+- Garantías, penalidades, sanciones
+- Cualquier otro dato relevante mencionado
+
+Extraé estos campos (si están disponibles, usa null si no están):
 {
-  "partes": ["nombre de parte 1", "nombre de parte 2"],
+  "partes": ["nombre completo de parte 1", "nombre completo de parte 2"],
+  "roles_partes": ["rol de parte 1 (ej: proveedor, cliente, comitente)", "rol de parte 2"],
   "fecha_documento": "DD/MM/YYYY o null",
   "lugar": "ciudad, provincia o null",
-  "monto": "monto en pesos o null",
-  "moneda": "ARS, USD, etc. o null",
-  "plazo": "duración o plazo mencionado o null",
-  "objeto": "objeto del contrato/documento o null",
-  "condiciones_especiales": ["condición 1", "condición 2"],
-  "jurisdiccion": "jurisdicción mencionada o null",
-  "domicilios": ["domicilio parte 1", "domicilio parte 2"],
+  "monto": "monto numérico o null",
+  "moneda": "ARS, USD, EUR, etc. o null",
+  "plazo": "duración o plazo mencionado (ej: 36 meses, 1 año) o null",
+  "objeto": "objeto completo del contrato/documento o null",
+  "condiciones_especiales": ["condición detallada 1", "condición detallada 2"],
+  "jurisdiccion": "jurisdicción mencionada (ej: CABA, Provincia de Buenos Aires) o null",
+  "domicilios": ["domicilio completo parte 1", "domicilio completo parte 2"],
   "cuit_cuil": ["CUIT/CUIL parte 1", "CUIT/CUIL parte 2"],
-  "fecha_inicio": "fecha de inicio o null",
-  "fecha_fin": "fecha de fin o null",
-  "garantias": ["garantía 1", "garantía 2"],
-  "penalidades": ["penalidad 1", "penalidad 2"],
+  "fecha_inicio": "fecha de inicio DD/MM/YYYY o null",
+  "fecha_fin": "fecha de fin DD/MM/YYYY o null",
+  "garantias": ["garantía detallada 1", "garantía detallada 2"],
+  "penalidades": ["penalidad detallada 1", "penalidad detallada 2"],
+  "formas_pago": ["forma de pago 1", "forma de pago 2"],
+  "obligaciones_especificas": ["obligación específica 1", "obligación específica 2"],
+  "derechos_especificos": ["derecho específico 1", "derecho específico 2"],
+  "prohibiciones": ["prohibición 1", "prohibición 2"],
   "otros_datos": {}
 }
 
-Devuelve SOLO el JSON, sin texto adicional.`
+Devuelve SOLO el JSON válido, sin texto adicional.`
           }
         ]
       });
@@ -657,60 +673,139 @@ Devuelve SOLO el JSON, sin texto adicional.`
       }
 
       const response = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        temperature: 0.3,
-        max_tokens: 4000,
+        model: "gpt-4o", // Modelo más potente para documentos legales profesionales
+        temperature: 0.2, // Menor temperatura para mayor precisión y consistencia
+        max_tokens: 8000, // Más tokens para documentos completos y detallados
         messages: [
           {
             role: "system",
-            content: `Sos un abogado argentino senior de WNS & Asociados. 
-Tu tarea es redactar documentos legales profesionales basados en el análisis de un documento previo.
+            content: `Sos un abogado argentino senior de WNS & Asociados con más de 15 años de experiencia en derecho ${body.areaLegal || "civil y comercial"}.
 
-REGLAS CRÍTICAS:
-- Redactá en español argentino formal
-- Usá formato profesional de documento legal
-- INCLUÍ todos los datos disponibles del análisis
-- Para datos que NO están disponibles en el análisis, usá EXACTAMENTE "XXXXXX" como placeholder
-- NO inventes datos que no estén en el análisis
-- El documento debe estar completo y profesional
-- Citá normativa relevante cuando sea apropiado
+Tu tarea es redactar documentos legales profesionales, completos y listos para usar, basados en el análisis de un documento previo.
+
+═══════════════════════════════════════════════════════════════════════════════
+1. IDENTIDAD Y ESTILO
+═══════════════════════════════════════════════════════════════════════════════
+
+- Actuás como un abogado argentino real, no como un asistente genérico.
+- Trabajás para WNS & Asociados, estudio jurídico integral.
+- Usás lenguaje jurídico formal, preciso y profesional según la práctica jurídica argentina.
+- El documento debe estar completo, profesional y listo para revisión, no un borrador básico.
+
+═══════════════════════════════════════════════════════════════════════════════
+2. REGLAS CRÍTICAS DE REDACCIÓN
+═══════════════════════════════════════════════════════════════════════════════
+
+- Redactá en español argentino formal y jurídico.
+- Usá formato profesional de documento legal con estructura completa.
+- INCLUÍ TODOS los datos disponibles del análisis de forma precisa.
+- Para datos que NO están disponibles en el análisis, usá EXACTAMENTE "XXXXXX" como placeholder.
+- NO inventes datos que no estén en el análisis.
+- El documento debe ser COMPLETO y PROFESIONAL, no un esqueleto básico.
+- Citá normativa relevante cuando sea apropiado (CCyC, leyes especiales, etc.).
 - Incluí fecha actual si no hay fecha del documento: ${fechaActual}
+- Usá numeración de cláusulas estándar (PRIMERA, SEGUNDA, TERCERA, etc. o 1., 2., 3., etc.).
 
-FORMATO DE PLACEHOLDERS:
+═══════════════════════════════════════════════════════════════════════════════
+3. ESTRUCTURA DEL DOCUMENTO
+═══════════════════════════════════════════════════════════════════════════════
+
+El documento debe incluir:
+
+ENCABEZADO:
+- Nombre del estudio: "WNS & ASOCIADOS"
+- Tipo de documento (${body.tipoDocumento})
+- Lugar y fecha (usar fecha actual si no hay fecha del documento: ${fechaActual})
+- Identificación de las partes (usar datos del análisis o XXXXXX si faltan)
+
+CUERPO PRINCIPAL:
+- Preámbulo o considerandos (contexto y antecedentes)
+- Cláusulas numeradas con contenido completo y detallado
+- Todas las cláusulas estándar según el tipo de documento:
+  * Para contratos: objeto, obligaciones de las partes, plazo/duración, precio/consideración, forma de pago, garantías, penalidades, rescisión, mora, jurisdicción, domicilios constituidos, etc.
+  * Para dictámenes: antecedentes, análisis jurídico, fundamentos legales, conclusiones, recomendaciones
+  * Para escritos judiciales: hechos, derecho aplicable, fundamentos, petitorio
+- Referencias a normativa aplicable cuando corresponda
+
+CIERRE:
+- Firma de las partes (si corresponde)
+- Testigos (si corresponde)
+- Aclaraciones o anexos (si corresponde)
+
+═══════════════════════════════════════════════════════════════════════════════
+4. FORMATO DE PLACEHOLDERS
+═══════════════════════════════════════════════════════════════════════════════
+
 - Si falta el nombre de una parte: "XXXXXX"
 - Si falta una fecha: "XXXXXX"
 - Si falta un monto: "XXXXXX"
 - Si falta un lugar: "XXXXXX"
-- Si falta cualquier otro dato: "XXXXXX"
+- Si falta cualquier otro dato específico: "XXXXXX"
+- NO uses placeholders para estructura o cláusulas estándar (esas deben estar completas)
 
-CONTEXTO:
+═══════════════════════════════════════════════════════════════════════════════
+5. NORMATIVA Y REFERENCIAS LEGALES
+═══════════════════════════════════════════════════════════════════════════════
+
+- Referenciá normativa relevante según el tipo de documento y área legal:
+  * CCyC (Código Civil y Comercial de la Nación)
+  * Leyes especiales aplicables
+  * Jurisprudencia relevante (si está disponible en las citas)
+  * Doctrina (si está disponible en las citas)
+- Cuando cites normas, hacelo de forma precisa (artículo, inciso, etc.)
+- Si no estás seguro de una cita, indicá "sujeto a verificación de normativa vigente"
+
+═══════════════════════════════════════════════════════════════════════════════
+6. CONTEXTO ESPECÍFICO
+═══════════════════════════════════════════════════════════════════════════════
+
 - Documento analizado: ${body.tipoDocumentoAnalizado || "No especificado"}
 - Jurisdicción: ${body.jurisdiccion || "Nacional"}
 - Área legal: ${body.areaLegal || "Civil y Comercial"}
 
 CITAS LEGALES DISPONIBLES:
-${citasText}`
+${citasText}
+
+═══════════════════════════════════════════════════════════════════════════════
+7. CALIDAD Y COMPLETITUD
+═══════════════════════════════════════════════════════════════════════════════
+
+- El documento debe ser COMPLETO, no un borrador básico.
+- Incluí todas las cláusulas necesarias según el tipo de documento.
+- Desarrollá cada cláusula con suficiente detalle y precisión.
+- El documento debe estar listo para revisión profesional, no para completar estructura básica.
+- Usá terminología jurídica apropiada y precisa.
+- Mantené coherencia en el estilo y formato a lo largo de todo el documento.`
           },
           {
             role: "user",
-            content: `Basándote en el siguiente análisis de documento, redactá un "${body.tipoDocumento}".
+            content: `Basándote en el siguiente análisis de documento, redactá un "${body.tipoDocumento}" completo, profesional y detallado.
 
-MOTIVO: ${body.descripcion}
+MOTIVO Y CONTEXTO:
+${body.descripcion}
 
-DATOS DISPONIBLES DEL ANÁLISIS:
+DATOS DISPONIBLES DEL ANÁLISIS (usar estos datos cuando estén disponibles):
 ${datosDisponibles.join("\n")}
 
 ANÁLISIS COMPLETO DEL DOCUMENTO ORIGINAL:
-${body.contextoAnalisis.substring(0, 4000)}
+${body.contextoAnalisis.substring(0, 6000)}
 
-INSTRUCCIONES:
-1. Usá TODOS los datos disponibles del análisis
-2. Para cualquier dato que NO esté disponible, usá "XXXXXX" como placeholder
-3. Generá el documento completo, profesional y listo para usar
-4. El documento debe tener formato legal estándar con numeración de cláusulas
-5. Incluí todas las secciones necesarias según el tipo de documento
+INSTRUCCIONES ESPECÍFICAS:
+1. Usá TODOS los datos disponibles del análisis de forma precisa y completa.
+2. Para cualquier dato específico que NO esté disponible (nombres, fechas, montos, lugares, etc.), usá "XXXXXX" como placeholder.
+3. Generá el documento COMPLETO, PROFESIONAL y DETALLADO, no un borrador básico.
+4. El documento debe tener formato legal estándar con:
+   - Encabezado completo con identificación de partes
+   - Preámbulo o considerandos
+   - Cláusulas numeradas y desarrolladas en detalle
+   - Todas las cláusulas estándar según el tipo de documento
+   - Referencias a normativa aplicable
+   - Cierre apropiado
+5. Incluí todas las secciones y cláusulas necesarias según el tipo de documento "${body.tipoDocumento}".
+6. Desarrollá cada cláusula con suficiente detalle y precisión jurídica.
+7. El documento debe estar listo para revisión profesional, con estructura completa y contenido desarrollado.
 
-Generá el documento "${body.tipoDocumento}":`
+Generá el documento "${body.tipoDocumento}" completo y profesional:`
           }
         ]
       });
