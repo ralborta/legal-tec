@@ -284,14 +284,33 @@ export default function MemoDetailPage() {
                 <div>
                   {memoData.puntos_tratados && memoData.puntos_tratados.length > 0 ? (
                     <ul className="space-y-3">
-                      {memoData.puntos_tratados.map((punto: string, i: number) => (
-                        <li key={i} className="flex items-start gap-3 bg-gradient-to-r from-indigo-50 to-blue-50 rounded-xl p-4 border border-indigo-100 hover:shadow-md transition-shadow">
-                          <div className="mt-0.5 p-1.5 rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 shrink-0">
-                            <ListChecks className="h-3 w-3 text-white" />
-                          </div>
-                          <span className="text-slate-800 font-medium flex-1">{punto}</span>
-                        </li>
-                      ))}
+                      {memoData.puntos_tratados.map((punto: string | any, i: number) => {
+                        // Manejar tanto strings como objetos (clausulas_analizadas)
+                        const puntoText = typeof punto === "string" 
+                          ? punto 
+                          : `${punto.numero || ""} ${punto.titulo || ""} - ${punto.analisis || ""}`.trim();
+                        const riesgo = typeof punto === "object" ? punto.riesgo : null;
+                        
+                        return (
+                          <li key={i} className="flex items-start gap-3 bg-gradient-to-r from-indigo-50 to-blue-50 rounded-xl p-4 border border-indigo-100 hover:shadow-md transition-shadow">
+                            <div className="mt-0.5 p-1.5 rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 shrink-0">
+                              <ListChecks className="h-3 w-3 text-white" />
+                            </div>
+                            <div className="flex-1">
+                              <span className="text-slate-800 font-medium block">{puntoText}</span>
+                              {riesgo && (
+                                <span className={`text-xs px-2 py-1 rounded mt-2 inline-block ${
+                                  riesgo === "alto" ? "bg-red-100 text-red-800" :
+                                  riesgo === "medio" ? "bg-yellow-100 text-yellow-800" :
+                                  "bg-green-100 text-green-800"
+                                }`}>
+                                  Riesgo: {riesgo}
+                                </span>
+                              )}
+                            </div>
+                          </li>
+                        );
+                      })}
                     </ul>
                   ) : (
                     <div className="text-center py-8 bg-slate-50 rounded-xl border border-slate-200">
@@ -436,14 +455,49 @@ export default function MemoDetailPage() {
                 <div>
                   {memoData.riesgos && memoData.riesgos.length > 0 ? (
                     <ul className="space-y-3">
-                      {memoData.riesgos.map((riesgo: string, i: number) => (
-                        <li key={i} className="flex items-start gap-3 bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-4 border border-amber-100 hover:shadow-md transition-shadow">
-                          <div className="mt-0.5 p-1.5 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 shrink-0">
-                            <AlertTriangle className="h-3 w-3 text-white" />
-                          </div>
-                          <span className="text-slate-800 font-medium flex-1">{riesgo}</span>
-                        </li>
-                      ))}
+                      {memoData.riesgos.map((riesgo: string | any, i: number) => {
+                        // Manejar tanto strings como objetos con { descripcion, nivel, recomendacion }
+                        const riesgoText = typeof riesgo === "string" 
+                          ? riesgo 
+                          : (riesgo.descripcion || riesgo.texto || "");
+                        const nivel = typeof riesgo === "object" && riesgo.nivel 
+                          ? riesgo.nivel 
+                          : "medio";
+                        const recomendacion = typeof riesgo === "object" ? riesgo.recomendacion : null;
+                        
+                        return (
+                          <li key={i} className={`flex items-start gap-3 rounded-xl p-4 border hover:shadow-md transition-shadow ${
+                            nivel === "alto" ? "bg-gradient-to-r from-red-50 to-orange-50 border-red-100" :
+                            nivel === "medio" ? "bg-gradient-to-r from-amber-50 to-orange-50 border-amber-100" :
+                            "bg-gradient-to-r from-green-50 to-emerald-50 border-green-100"
+                          }`}>
+                            <div className={`mt-0.5 p-1.5 rounded-full shrink-0 ${
+                              nivel === "alto" ? "bg-gradient-to-br from-red-500 to-orange-600" :
+                              nivel === "medio" ? "bg-gradient-to-br from-amber-500 to-orange-600" :
+                              "bg-gradient-to-br from-green-500 to-emerald-600"
+                            }`}>
+                              <AlertTriangle className="h-3 w-3 text-white" />
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-slate-800 font-medium">{riesgoText}</span>
+                                {typeof riesgo === "object" && riesgo.nivel && (
+                                  <span className={`text-xs px-2 py-1 rounded font-medium ${
+                                    nivel === "alto" ? "bg-red-200 text-red-800" :
+                                    nivel === "medio" ? "bg-yellow-200 text-yellow-800" :
+                                    "bg-green-200 text-green-800"
+                                  }`}>
+                                    {nivel.toUpperCase()}
+                                  </span>
+                                )}
+                              </div>
+                              {recomendacion && (
+                                <p className="text-sm text-slate-600 mt-2">💡 {recomendacion}</p>
+                              )}
+                            </div>
+                          </li>
+                        );
+                      })}
                     </ul>
                   ) : (
                     <div className="text-center py-8 bg-slate-50 rounded-xl border border-slate-200">
