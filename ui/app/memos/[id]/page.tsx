@@ -37,27 +37,82 @@ export default function MemoDetailPage() {
   const [copied, setCopied] = useState(false);
   const API = useMemo(() => getApiUrl(), []);
 
-  // Cargar memo desde localStorage
+  // Cargar memo desde localStorage o API
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("legal-memos");
-      if (saved) {
-        const memos = JSON.parse(saved);
-        const found = memos.find((m: any) => m.id === memoId);
-        if (found) {
-          setMemo(found);
-        } else {
-          // Si no se encuentra, redirigir a la página principal
-          router.push("/");
+    const loadMemo = async () => {
+      try {
+        // 1. Primero buscar en localStorage (memos locales)
+        const saved = localStorage.getItem("legal-memos");
+        if (saved) {
+          const memos = JSON.parse(saved);
+          const found = memos.find((m: any) => m.id === memoId);
+          if (found) {
+            setMemo(found);
+            return;
+          }
         }
-      } else {
+
+        // 2. Si no se encuentra en localStorage, buscar en la API (análisis de documentos)
+        if (API) {
+          try {
+            const response = await fetch(`${API}/legal/result/${memoId}`);
+            if (response.ok) {
+              const result = await response.json();
+              
+              // Convertir el resultado de análisis al formato esperado por la UI
+              if (result.analysis) {
+                let report = result.analysis.report;
+                if (typeof report === 'string') {
+                  try {
+                    report = JSON.parse(report);
+                  } catch {
+                    report = { texto_formateado: report };
+                  }
+                }
+
+                const analysisMemo = {
+                  id: result.documentId,
+                  title: report?.titulo || result.filename || 'Análisis Legal',
+                  asunto: report?.titulo || result.filename,
+                  type: 'analysis',
+                  tipo: 'ANÁLISIS',
+                  tipoDocumento: report?.tipo_documento || 'Análisis Legal',
+                  areaLegal: report?.area_legal || 'civil_comercial',
+                  createdAt: result.uploadedAt || result.analysis.analyzedAt,
+                  creado: result.uploadedAt ? new Date(result.uploadedAt).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : new Date().toLocaleDateString('es-AR'),
+                  estado: 'Listo para revisión',
+                  markdown: report?.texto_formateado || report?.resumen_ejecutivo || '',
+                  memoData: {
+                    resumen: report?.resumen_ejecutivo || report?.resumen || '',
+                    puntos_tratados: report?.clausulas_analizadas || [],
+                    riesgos: report?.riesgos || [],
+                    proximos_pasos: report?.proximos_pasos || report?.recomendaciones || [],
+                    citas: report?.citas || [],
+                    texto_formateado: report?.texto_formateado || ''
+                  },
+                  citations: report?.citas || [],
+                  filename: result.filename
+                };
+                
+                setMemo(analysisMemo);
+                return;
+              }
+            }
+          } catch (apiError) {
+            console.warn("Error al cargar desde API:", apiError);
+          }
+        }
+
+        // 3. Si no se encuentra en ningún lado, redirigir
+        router.push("/");
+      } catch (e) {
+        console.error("Error al cargar memo:", e);
         router.push("/");
       }
-    } catch (e) {
-      console.error("Error al cargar memo:", e);
-      router.push("/");
-    }
-  }, [memoId, router]);
+    };
+
+    loadMemo();
+  }, [memoId, router, API]);
 
   const formatFecha = (fecha: string) => {
     try {
