@@ -309,7 +309,7 @@ function WNSLogo() {
       <img 
         src="/wns-logo.png" 
         alt="WNS & Asociados" 
-        className="h-32 w-auto object-contain"
+        className="h-48 w-auto object-contain"
         style={{ display: logoExists === true ? 'block' : 'none' }}
       />
     </div>
