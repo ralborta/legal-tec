@@ -3,6 +3,8 @@ import express from "express";
 import multer from "multer";
 import { runFullAnalysis } from "./pipeline.js";
 import { saveOriginalDocument, getFullResult } from "./storage.js";
+import { startCleanupScheduler } from "./cleanup.js";
+import { getConcurrencyStats } from "./concurrency-limit.js";
 import { legalDb } from "./db.js";
 
 const app = express();
@@ -19,6 +21,15 @@ app.get("/health", (_req, res) => {
     status: "ok", 
     service: "legal-docs",
     framework: "express",
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Endpoint de métricas básicas
+app.get("/metrics", (_req, res) => {
+  const stats = getConcurrencyStats();
+  res.json({
+    concurrency: stats,
     timestamp: new Date().toISOString()
   });
 });
@@ -441,6 +452,9 @@ console.log(`[STARTUP] Iniciando servidor en puerto ${port}...`);
 const server = app.listen(port, () => {
   console.log(`[STARTUP] ✅ legal-docs service running on port ${port}`);
   console.log(`[STARTUP] DATABASE_URL configurada: ${process.env.DATABASE_URL ? "sí" : "NO"}`);
+  
+  // Iniciar cleanup scheduler
+  startCleanupScheduler();
   
   // Asegurar schema DESPUÉS de que el servidor esté escuchando
   legalDb.ensureSchema()

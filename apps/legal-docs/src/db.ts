@@ -310,5 +310,29 @@ export const legalDb = {
       console.log(`[STATUS] ${documentId}: error (no persistido: ${error})`);
     }
   },
+
+  async cleanupOldDocuments(daysToKeep: number) {
+    try {
+      const result = await db.query(
+        `DELETE FROM legal_documents
+         WHERE created_at < NOW() - INTERVAL '${daysToKeep} days'
+         RETURNING id, raw_path`
+      );
+      
+      // También eliminar análisis asociados
+      if (result.rows.length > 0) {
+        const ids = result.rows.map((r: any) => r.id);
+        await db.query(
+          `DELETE FROM legal_analysis WHERE document_id = ANY($1)`,
+          [ids]
+        );
+      }
+      
+      return result.rows.length;
+    } catch (error: any) {
+      console.error(`[DB] Error en cleanup:`, error?.message);
+      return 0;
+    }
+  },
 };
 

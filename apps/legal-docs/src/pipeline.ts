@@ -5,6 +5,7 @@ import { translatorAgent } from "./agents/translator.js";
 import { classifierAgent } from "./agents/classifier.js";
 import { runDistributionAnalyzer } from "./agents/analyzerDistribution.js";
 import { generateReport } from "./agents/report.js";
+import { acquireAnalysisSlot } from "./concurrency-limit.js";
 
 // Función helper para actualizar estado del análisis
 async function updateAnalysisStatus(documentId: string, status: string, progress: number) {
@@ -19,9 +20,14 @@ export async function runFullAnalysis(documentId: string) {
   const startTime = Date.now();
   const MAX_PIPELINE_TIME = 180000; // 3 minutos máximo para todo el pipeline
   
+  // Adquirir slot de análisis (limita concurrencia)
+  const releaseSlot = await acquireAnalysisSlot();
+  console.log(`[PIPELINE] Slot adquirido para análisis ${documentId}`);
+  
   // Timeout global para todo el pipeline
   const pipelineTimeout = setTimeout(() => {
     console.error(`[PIPELINE] TIMEOUT: Analysis exceeded ${MAX_PIPELINE_TIME}ms for document ${documentId}`);
+    releaseSlot(); // Liberar slot en caso de timeout
     throw new Error(`Pipeline timeout: analysis took more than ${MAX_PIPELINE_TIME / 1000}s`);
   }, MAX_PIPELINE_TIME);
   
@@ -93,8 +99,10 @@ export async function runFullAnalysis(documentId: string) {
     console.log(`[PIPELINE] Analysis completed for document ${documentId} in ${duration}s`);
     await updateAnalysisStatus(documentId, "completed", 100);
     clearTimeout(pipelineTimeout);
+    releaseSlot(); // Liberar slot al completar
   } catch (error) {
     clearTimeout(pipelineTimeout);
+    releaseSlot(); // Liberar slot en caso de error
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
     console.error(`[PIPELINE] ERROR after ${duration}s:`, error);
     await updateAnalysisStatus(documentId, "error", 0);

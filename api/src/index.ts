@@ -545,6 +545,19 @@ async function start() {
 
   // Generar documento sugerido basado en el análisis
   app.post("/api/generate-suggested-doc", async (req, rep) => {
+    // Rate limiting: máximo 20 generaciones por hora por IP
+    const clientId = getClientIdentifier(req);
+    const rateLimit = checkRateLimit(clientId, 20, 60 * 60 * 1000); // 20 requests por hora
+    
+    if (!rateLimit.allowed) {
+      app.log.warn(`[RATE-LIMIT] Generación bloqueada para ${clientId}`);
+      return rep.status(429).send({
+        error: "Rate limit exceeded",
+        message: "Demasiadas generaciones. Intenta nuevamente más tarde.",
+        retryAfter: Math.ceil((rateLimit.resetAt - Date.now()) / 1000)
+      });
+    }
+    
     try {
       const body = req.body as {
         tipoDocumento: string;
@@ -1455,11 +1468,24 @@ Responde SOLO con un JSON válido con esta estructura:
   
   // Endpoint directo para upload de documentos legales (sin proxy, funciona como /api/memos/generate)
   app.post("/legal/upload", async (req, rep) => {
+    // Rate limiting: máximo 10 uploads por minuto por IP
+    const clientId = getClientIdentifier(req);
+    const rateLimit = checkRateLimit(clientId, 10, 60 * 1000); // 10 requests por minuto
+    
+    if (!rateLimit.allowed) {
+      app.log.warn(`[RATE-LIMIT] Upload bloqueado para ${clientId}`);
+      return rep.status(429).send({
+        error: "Rate limit exceeded",
+        message: "Demasiados uploads. Intenta nuevamente en unos momentos.",
+        retryAfter: Math.ceil((rateLimit.resetAt - Date.now()) / 1000)
+      });
+    }
+    
     let documentId: string | null = null;
     let storagePath: string | null = null;
     
     try {
-      app.log.info("[UPLOAD] POST /legal/upload recibido");
+      app.log.info(`[UPLOAD] POST /legal/upload recibido (${rateLimit.remaining} requests restantes)`);
       
       if (!req.isMultipart()) {
         return rep.status(400).send({ error: "Se requiere multipart/form-data" });
