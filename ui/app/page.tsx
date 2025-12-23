@@ -1296,7 +1296,16 @@ function AnalizarDocumentosPanel() {
 // Componente para mostrar y generar documentos sugeridos
 function DocumentosSugeridosPanel({ analysisResult }: { analysisResult: any }) {
   const [generatingDoc, setGeneratingDoc] = useState<string | null>(null);
-  const [generatedDoc, setGeneratedDoc] = useState<{ tipo: string; contenido: string } | null>(null);
+  const [generatedDoc, setGeneratedDoc] = useState<{ 
+    tipo: string; 
+    contenido: string;
+    datosExtraidos?: any;
+    placeholdersCount?: number;
+    tienePlaceholders?: boolean;
+  } | null>(null);
+  const [editingPlaceholder, setEditingPlaceholder] = useState<{ index: number; value: string } | null>(null);
+  const [editedContent, setEditedContent] = useState<string>("");
+  const [saved, setSaved] = useState(false);
   const API = useMemo(() => getApiUrl(), []);
 
   // Parsear el report
@@ -1318,6 +1327,8 @@ function DocumentosSugeridosPanel({ analysisResult }: { analysisResult: any }) {
   const handleGenerateDocument = async (doc: { tipo: string; descripcion: string }) => {
     setGeneratingDoc(doc.tipo);
     setGeneratedDoc(null);
+    setEditingPlaceholder(null);
+    setEditedContent("");
 
     try {
       const response = await fetch(`${API}/api/generate-suggested-doc`, {
@@ -1330,7 +1341,8 @@ function DocumentosSugeridosPanel({ analysisResult }: { analysisResult: any }) {
           tipoDocumentoAnalizado: report?.tipo_documento || "",
           jurisdiccion: report?.jurisdiccion || "",
           areaLegal: report?.area_legal || "",
-          citas: report?.citas || []
+          citas: report?.citas || [],
+          reportData: report
         })
       });
 
@@ -1339,13 +1351,172 @@ function DocumentosSugeridosPanel({ analysisResult }: { analysisResult: any }) {
       }
 
       const data = await response.json();
-      setGeneratedDoc({ tipo: doc.tipo, contenido: data.documento || data.contenido || "Sin contenido" });
+      setGeneratedDoc({ 
+        tipo: doc.tipo, 
+        contenido: data.documento || data.contenido || "Sin contenido",
+        datosExtraidos: data.datosExtraidos,
+        placeholdersCount: data.placeholdersCount || 0,
+        tienePlaceholders: data.tienePlaceholders || false
+      });
+      setEditedContent(data.documento || data.contenido || "");
     } catch (err) {
       console.error("Error generando documento:", err);
-      setGeneratedDoc({ tipo: doc.tipo, contenido: "Error al generar el documento. Intenta de nuevo." });
+      setGeneratedDoc({ 
+        tipo: doc.tipo, 
+        contenido: "Error al generar el documento. Intenta de nuevo." 
+      });
+      setEditedContent("");
     } finally {
       setGeneratingDoc(null);
     }
+  };
+
+  // Función para reemplazar un placeholder específico
+  const handleReplacePlaceholder = (index: number, newValue: string) => {
+    if (!editedContent) return;
+    
+    // Encontrar todas las ocurrencias de XXXXXX
+    const parts = editedContent.split('XXXXXX');
+    if (index < parts.length - 1) {
+      // Reemplazar el placeholder en la posición index
+      const newParts = [...parts];
+      newParts[index] = newParts[index] + newValue;
+      newParts[index + 1] = newParts[index + 1];
+      
+      // Reconstruir el contenido
+      let newContent = newParts[0];
+      for (let i = 1; i < newParts.length; i++) {
+        if (i === index + 1) {
+          newContent += newParts[i];
+        } else {
+          newContent += 'XXXXXX' + newParts[i];
+        }
+      }
+      
+      setEditedContent(newContent);
+      setEditingPlaceholder(null);
+      
+      // Actualizar el documento generado
+      if (generatedDoc) {
+        setGeneratedDoc({ ...generatedDoc, contenido: newContent });
+      }
+    }
+  };
+
+  // Función para reemplazar todos los placeholders de una vez
+  const handleReplaceAllPlaceholders = (newValue: string) => {
+    if (!editedContent) return;
+    const newContent = editedContent.replace(/XXXXXX/g, newValue);
+    setEditedContent(newContent);
+    if (generatedDoc) {
+      setGeneratedDoc({ ...generatedDoc, contenido: newContent });
+    }
+  };
+
+  // Función para guardar el documento generado
+  const handleSaveDocument = () => {
+    if (!generatedDoc || !editedContent) return;
+
+    try {
+      // Cargar documentos guardados existentes
+      const saved = localStorage.getItem("legal-memos");
+      const existingDocs = saved ? JSON.parse(saved) : [];
+
+      // Crear el documento a guardar
+      const docToSave = {
+        id: `doc-${Date.now()}`,
+        type: "documento_sugerido",
+        title: generatedDoc.tipo,
+        asunto: generatedDoc.tipo,
+        tipo: "DOCUMENTO SUGERIDO",
+        tipoDocumento: generatedDoc.tipo,
+        areaLegal: report?.area_legal || "civil_comercial",
+        createdAt: new Date().toISOString(),
+        creado: new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+        estado: generatedDoc.tienePlaceholders ? "Pendiente de completar" : "Listo para revisión",
+        markdown: editedContent,
+        memoData: {
+          resumen: `Documento sugerido generado a partir del análisis: ${report?.titulo || "Sin título"}`,
+          texto_formateado: editedContent,
+          datosExtraidos: generatedDoc.datosExtraidos || {},
+          tienePlaceholders: generatedDoc.tienePlaceholders || false,
+          placeholdersCount: generatedDoc.placeholdersCount || 0
+        },
+        citations: report?.citas || [],
+        relacionadoConAnalisis: analysisResult?.documentId || null
+      };
+
+      // Agregar al inicio de la lista
+      const newDocs = [docToSave, ...existingDocs];
+      localStorage.setItem("legal-memos", JSON.stringify(newDocs));
+
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+
+      // Opcional: mostrar notificación o redirigir
+      console.log("Documento guardado:", docToSave);
+    } catch (error) {
+      console.error("Error al guardar documento:", error);
+      alert("Error al guardar el documento. Intenta de nuevo.");
+    }
+  };
+
+  // Renderizar el contenido con placeholders resaltados y editables
+  const renderContentWithPlaceholders = (content: string) => {
+    if (!content) return null;
+    
+    const parts = content.split('XXXXXX');
+    return (
+      <div className="space-y-1">
+        {parts.map((part, index) => (
+          <span key={index}>
+            <span className="whitespace-pre-wrap">{part}</span>
+            {index < parts.length - 1 && (
+              <span className="relative inline-block">
+                {editingPlaceholder?.index === index ? (
+                  <div className="inline-flex items-center gap-1 bg-yellow-100 border-2 border-yellow-400 rounded px-2 py-1">
+                    <input
+                      type="text"
+                      value={editingPlaceholder.value}
+                      onChange={(e) => setEditingPlaceholder({ index, value: e.target.value })}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleReplacePlaceholder(index, editingPlaceholder.value);
+                        } else if (e.key === 'Escape') {
+                          setEditingPlaceholder(null);
+                        }
+                      }}
+                      className="bg-white border border-yellow-500 rounded px-2 py-1 text-sm min-w-[100px]"
+                      autoFocus
+                    />
+                    <button
+                      onClick={() => handleReplacePlaceholder(index, editingPlaceholder.value)}
+                      className="text-xs px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600"
+                    >
+                      ✓
+                    </button>
+                    <button
+                      onClick={() => setEditingPlaceholder(null)}
+                      className="text-xs px-2 py-1 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ) : (
+                  <span
+                    onClick={() => setEditingPlaceholder({ index, value: "" })}
+                    className="bg-yellow-200 border-2 border-yellow-500 rounded px-2 py-1 cursor-pointer hover:bg-yellow-300 font-mono text-sm"
+                    title="Click para completar"
+                  >
+                    XXXXXX
+                  </span>
+                )}
+              </span>
+            )}
+          </span>
+        ))}
+      </div>
+    );
   };
 
   if (documentosSugeridos.length === 0) return null;
@@ -1357,7 +1528,7 @@ function DocumentosSugeridosPanel({ analysisResult }: { analysisResult: any }) {
         Documentos Sugeridos
       </h4>
       <p className="text-xs text-gray-500 mb-4">
-        Basados en el análisis, se sugieren los siguientes documentos. Hacé click para generar la redacción.
+        Basados en el análisis, se sugieren los siguientes documentos. Los datos faltantes se marcan con <span className="bg-yellow-200 px-1 rounded font-mono">XXXXXX</span> y podés completarlos haciendo click.
       </p>
       
       <div className="space-y-2">
@@ -1394,27 +1565,84 @@ function DocumentosSugeridosPanel({ analysisResult }: { analysisResult: any }) {
       {generatedDoc && (
         <div className="mt-4 border border-[#C026D3]/30 rounded-lg bg-purple-50/50 p-4">
           <div className="flex items-center justify-between mb-3">
-            <h5 className="font-semibold text-gray-900">{generatedDoc.tipo}</h5>
+            <div className="flex-1">
+              <h5 className="font-semibold text-gray-900">{generatedDoc.tipo}</h5>
+              {generatedDoc.tienePlaceholders && (
+                <p className="text-xs text-amber-600 mt-1">
+                  ⚠️ {generatedDoc.placeholdersCount} dato(s) pendiente(s) de completar
+                </p>
+              )}
+            </div>
             <div className="flex gap-2">
+              {generatedDoc.tienePlaceholders && (
+                <button
+                  onClick={() => {
+                    const value = prompt(`Ingresá el valor para reemplazar todos los XXXXXX:`);
+                    if (value) {
+                      handleReplaceAllPlaceholders(value);
+                    }
+                  }}
+                  className="text-xs px-2 py-1 bg-amber-500 text-white rounded hover:bg-amber-600"
+                  title="Reemplazar todos los XXXXXX con el mismo valor"
+                >
+                  🔄 Completar todos
+                </button>
+              )}
+              <button
+                onClick={handleSaveDocument}
+                className="text-xs px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600 flex items-center gap-1"
+                title="Guardar documento en la bandeja"
+              >
+                {saved ? (
+                  <>
+                    ✓ Guardado
+                  </>
+                ) : (
+                  <>
+                    💾 Guardar
+                  </>
+                )}
+              </button>
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText(generatedDoc.contenido);
+                  navigator.clipboard.writeText(editedContent || generatedDoc.contenido);
                 }}
                 className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
               >
                 📋 Copiar
               </button>
               <button
-                onClick={() => setGeneratedDoc(null)}
+                onClick={() => {
+                  setGeneratedDoc(null);
+                  setEditingPlaceholder(null);
+                  setEditedContent("");
+                  setSaved(false);
+                }}
                 className="text-xs px-2 py-1 text-gray-500 hover:text-gray-700"
               >
                 ✕ Cerrar
               </button>
             </div>
           </div>
-          <div className="text-sm text-gray-700 bg-white p-4 rounded-lg border border-gray-200 max-h-[400px] overflow-y-auto whitespace-pre-wrap">
-            {generatedDoc.contenido}
+          <div className="text-sm text-gray-700 bg-white p-4 rounded-lg border border-gray-200 max-h-[500px] overflow-y-auto">
+            {renderContentWithPlaceholders(editedContent || generatedDoc.contenido)}
           </div>
+          {generatedDoc.datosExtraidos && Object.keys(generatedDoc.datosExtraidos).length > 0 && (
+            <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-xs font-semibold text-blue-900 mb-2">📊 Datos extraídos del análisis:</p>
+              <div className="text-xs text-blue-800 space-y-1">
+                {Object.entries(generatedDoc.datosExtraidos).map(([key, value]) => {
+                  if (value === null || value === "" || (Array.isArray(value) && value.length === 0)) return null;
+                  return (
+                    <div key={key}>
+                      <span className="font-medium">{key.replace(/_/g, " ")}:</span>{" "}
+                      {Array.isArray(value) ? value.join(", ") : String(value)}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

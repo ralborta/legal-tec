@@ -554,6 +554,7 @@ async function start() {
         jurisdiccion?: string;
         areaLegal?: string;
         citas?: Array<{ tipo: string; referencia: string; descripcion?: string; url?: string }>;
+        reportData?: any; // Datos completos del reporte para extraer información
       };
 
       const openaiKey = process.env.OPENAI_API_KEY;
@@ -566,22 +567,121 @@ async function start() {
 
       const citasText = body.citas?.map(c => `- ${c.referencia}${c.descripcion ? `: ${c.descripcion}` : ""}`).join("\n") || "No hay citas disponibles";
 
+      // Paso 1: Extraer datos estructurados del análisis
+      const extractResponse = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        temperature: 0.2,
+        max_tokens: 2000,
+        response_format: { type: "json_object" },
+        messages: [
+          {
+            role: "system",
+            content: `Sos un asistente legal experto en extraer información estructurada de documentos legales.
+Tu tarea es analizar un documento y extraer todos los datos relevantes en formato JSON.
+
+IMPORTANTE:
+- Si un dato NO está presente en el análisis, devolvé null o una cadena vacía
+- NO inventes datos que no estén en el análisis
+- Extraé solo información explícita o claramente inferible`
+          },
+          {
+            role: "user",
+            content: `Analizá el siguiente documento y extraé todos los datos relevantes en formato JSON:
+
+ANÁLISIS DEL DOCUMENTO:
+${body.contextoAnalisis.substring(0, 6000)}
+
+Extraé estos campos (si están disponibles):
+{
+  "partes": ["nombre de parte 1", "nombre de parte 2"],
+  "fecha_documento": "DD/MM/YYYY o null",
+  "lugar": "ciudad, provincia o null",
+  "monto": "monto en pesos o null",
+  "moneda": "ARS, USD, etc. o null",
+  "plazo": "duración o plazo mencionado o null",
+  "objeto": "objeto del contrato/documento o null",
+  "condiciones_especiales": ["condición 1", "condición 2"],
+  "jurisdiccion": "jurisdicción mencionada o null",
+  "domicilios": ["domicilio parte 1", "domicilio parte 2"],
+  "cuit_cuil": ["CUIT/CUIL parte 1", "CUIT/CUIL parte 2"],
+  "fecha_inicio": "fecha de inicio o null",
+  "fecha_fin": "fecha de fin o null",
+  "garantias": ["garantía 1", "garantía 2"],
+  "penalidades": ["penalidad 1", "penalidad 2"],
+  "otros_datos": {}
+}
+
+Devuelve SOLO el JSON, sin texto adicional.`
+          }
+        ]
+      });
+
+      let datosExtraidos: Record<string, any> = {};
+      try {
+        const extractContent = extractResponse.choices[0]?.message?.content || "{}";
+        datosExtraidos = JSON.parse(extractContent);
+      } catch (e) {
+        app.log.warn("Error parseando datos extraídos, continuando con datos vacíos");
+        datosExtraidos = {};
+      }
+
+      // Paso 2: Generar el documento usando los datos extraídos
+      const fechaActual = new Date().toLocaleDateString('es-AR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+
+      // Construir contexto de datos disponibles
+      const datosDisponibles = [];
+      if (datosExtraidos.partes && Array.isArray(datosExtraidos.partes) && datosExtraidos.partes.length > 0) {
+        datosDisponibles.push(`PARTES: ${datosExtraidos.partes.join(", ")}`);
+      }
+      if (datosExtraidos.fecha_documento) {
+        datosDisponibles.push(`FECHA DEL DOCUMENTO: ${datosExtraidos.fecha_documento}`);
+      }
+      if (datosExtraidos.lugar) {
+        datosDisponibles.push(`LUGAR: ${datosExtraidos.lugar}`);
+      }
+      if (datosExtraidos.monto) {
+        datosDisponibles.push(`MONTO: ${datosExtraidos.monto} ${datosExtraidos.moneda || "ARS"}`);
+      }
+      if (datosExtraidos.plazo) {
+        datosDisponibles.push(`PLAZO: ${datosExtraidos.plazo}`);
+      }
+      if (datosExtraidos.objeto) {
+        datosDisponibles.push(`OBJETO: ${datosExtraidos.objeto}`);
+      }
+      if (datosDisponibles.length === 0) {
+        datosDisponibles.push("No se encontraron datos específicos en el análisis.");
+      }
+
       const response = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         temperature: 0.3,
-        max_tokens: 3000,
+        max_tokens: 4000,
         messages: [
           {
             role: "system",
             content: `Sos un abogado argentino senior de WNS & Asociados. 
 Tu tarea es redactar documentos legales profesionales basados en el análisis de un documento previo.
 
-REGLAS:
+REGLAS CRÍTICAS:
 - Redactá en español argentino formal
 - Usá formato profesional de documento legal
-- Incluí fecha, lugar, partes si corresponde
+- INCLUÍ todos los datos disponibles del análisis
+- Para datos que NO están disponibles en el análisis, usá EXACTAMENTE "XXXXXX" como placeholder
+- NO inventes datos que no estén en el análisis
+- El documento debe estar completo y profesional
 - Citá normativa relevante cuando sea apropiado
-- El documento debe estar listo para usar (solo completar datos específicos marcados con [COMPLETAR])
+- Incluí fecha actual si no hay fecha del documento: ${fechaActual}
+
+FORMATO DE PLACEHOLDERS:
+- Si falta el nombre de una parte: "XXXXXX"
+- Si falta una fecha: "XXXXXX"
+- Si falta un monto: "XXXXXX"
+- Si falta un lugar: "XXXXXX"
+- Si falta cualquier otro dato: "XXXXXX"
 
 CONTEXTO:
 - Documento analizado: ${body.tipoDocumentoAnalizado || "No especificado"}
@@ -597,17 +697,35 @@ ${citasText}`
 
 MOTIVO: ${body.descripcion}
 
-ANÁLISIS DEL DOCUMENTO ORIGINAL:
+DATOS DISPONIBLES DEL ANÁLISIS:
+${datosDisponibles.join("\n")}
+
+ANÁLISIS COMPLETO DEL DOCUMENTO ORIGINAL:
 ${body.contextoAnalisis.substring(0, 4000)}
 
-Generá el documento "${body.tipoDocumento}" completo, profesional y listo para usar.`
+INSTRUCCIONES:
+1. Usá TODOS los datos disponibles del análisis
+2. Para cualquier dato que NO esté disponible, usá "XXXXXX" como placeholder
+3. Generá el documento completo, profesional y listo para usar
+4. El documento debe tener formato legal estándar con numeración de cláusulas
+5. Incluí todas las secciones necesarias según el tipo de documento
+
+Generá el documento "${body.tipoDocumento}":`
           }
         ]
       });
 
-      const documento = response.choices[0]?.message?.content || "No se pudo generar el documento.";
+      let documento = response.choices[0]?.message?.content || "No se pudo generar el documento.";
 
-      return rep.send({ documento });
+      // Identificar y marcar los placeholders para facilitar su edición posterior
+      const placeholders = documento.match(/XXXXXX/g) || [];
+      
+      return rep.send({ 
+        documento,
+        datosExtraidos,
+        placeholdersCount: placeholders.length,
+        tienePlaceholders: placeholders.length > 0
+      });
 
     } catch (error) {
       app.log.error(error, "Error en /api/generate-suggested-doc");
