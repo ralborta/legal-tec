@@ -171,11 +171,13 @@ export default function MemoDetailPage() {
         </div>
       </header>
 
-      {/* Main Content - Three Columns */}
+      {/* Main Content - Layout mejorado */}
       <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - Memo Content */}
-          <div className="lg:col-span-2 bg-white rounded-lg shadow-lg overflow-hidden">
+        <div className="space-y-8">
+          {/* Primera fila: Documento + Documentos Sugeridos */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Columna izquierda - Contenido del Memo */}
+            <div className="lg:col-span-2 bg-white rounded-lg shadow-lg overflow-hidden">
             <div className="p-6 bg-gradient-to-r from-indigo-50 to-purple-50 flex items-center gap-4">
               <div className="bg-blue-500 p-3 rounded-lg text-white">
                 <FileText className="h-6 w-6" />
@@ -602,27 +604,27 @@ export default function MemoDetailPage() {
             </div>
           </div>
 
-          {/* Right Column - Documentos Sugeridos + Chat */}
-          <div className="grid grid-rows-2 gap-8">
-            {/* Documentos Sugeridos */}
+          {/* Columna derecha - Documentos Sugeridos */}
+          <div className="lg:col-span-1">
             <MemoSuggestedDocuments
               memoId={memoId}
               memoData={memoData}
               apiUrl={API}
             />
-            
-            {/* Chat */}
-            <div className="bg-white rounded-lg shadow-lg flex flex-col">
-              <MemoChatPanel 
-                transcriptText={transcriptText}
-                areaLegal={memo.areaLegal || memoData.areaLegal || "civil_comercial"}
-                memoTitle={memo.title || memo.asunto}
-                memoText={memo.markdown || memoData.texto_formateado || ""}
-                citas={memo.citations || memoData.citas || []}
-              />
-            </div>
           </div>
         </div>
+
+        {/* Segunda fila: Chat debajo del documento */}
+        <div className="bg-white rounded-lg shadow-lg flex flex-col">
+          <MemoChatPanel 
+            transcriptText={transcriptText}
+            areaLegal={memo.areaLegal || memoData.areaLegal || "civil_comercial"}
+            memoTitle={memo.title || memo.asunto}
+            memoText={memo.markdown || memoData.texto_formateado || ""}
+            citas={memo.citations || memoData.citas || []}
+          />
+        </div>
+      </div>
       </main>
 
       {/* Estilos auxiliares */}
