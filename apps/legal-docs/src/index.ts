@@ -440,7 +440,8 @@ app.get("/history", async (_req, res) => {
             report = doc.report;
           }
         } catch (e) {
-          console.warn(`[HISTORY] Error parseando report para ${doc.id}:`, e.message);
+          const msg = e instanceof Error ? e.message : String(e);
+          console.warn(`[HISTORY] Error parseando report para ${doc.id}:`, msg);
           // Si falla el parseo, intentar usar como texto plano
           report = { texto_formateado: typeof doc.report === 'string' ? doc.report : JSON.stringify(doc.report) };
         }

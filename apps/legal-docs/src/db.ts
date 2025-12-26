@@ -233,8 +233,9 @@ export const legalDb = {
               report = JSON.parse(report);
             }
             // Si no es JSON, mantener como string (texto plano)
-          } catch (e) {
-            console.warn(`[DB] No se pudo parsear report como JSON para ${row.id}:`, e.message);
+        } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            console.warn(`[DB] No se pudo parsear report como JSON para ${row.id}:`, msg);
             // Si no es JSON válido, mantener como string
           }
         }
