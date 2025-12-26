@@ -63,6 +63,12 @@ function isAllowedOrigin(origin: string) {
 
 app.use((req, res, next) => {
   const origin = req.headers.origin;
+  
+  // Log para debug (solo en desarrollo o si hay origin)
+  if (origin) {
+    console.log(`[CORS] Request desde origin: ${origin}, método: ${req.method}, path: ${req.path}`);
+  }
+  
   if (origin && typeof origin === "string" && isAllowedOrigin(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Vary", "Origin");
@@ -70,8 +76,15 @@ app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept, X-Requested-With");
     res.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
+    console.log(`[CORS] ✅ Origin permitido: ${origin}`);
+  } else if (origin) {
+    console.warn(`[CORS] ❌ Origin denegado: ${origin}`);
   }
-  if (req.method === "OPTIONS") return res.status(204).end();
+  
+  if (req.method === "OPTIONS") {
+    console.log(`[CORS] Respondiendo a OPTIONS request desde: ${origin || "sin origin"}`);
+    return res.status(204).end();
+  }
   next();
 });
 
