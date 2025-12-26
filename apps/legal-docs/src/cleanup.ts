@@ -11,9 +11,17 @@ import { join } from "path";
 import { legalDb } from "./db.js";
 
 const STORAGE_DIR = process.env.STORAGE_DIR || "./storage";
-const DAYS_TO_KEEP = parseInt(process.env.CLEANUP_DAYS_TO_KEEP || "7", 10); // 7 días por defecto (más agresivo para piloto)
-const MAX_DOCUMENTS = parseInt(process.env.CLEANUP_MAX_DOCUMENTS || "50", 10); // Máximo 50 documentos (mantiene los últimos)
-const CLEANUP_INTERVAL_HOURS = parseInt(process.env.CLEANUP_INTERVAL_HOURS || "6", 10); // Cada 6 horas (más frecuente para piloto)
+// ⚠️ IMPORTANTE: Valores por defecto solo se usan si las variables NO están configuradas
+// Si las variables están configuradas, se usan esos valores. Si no, el cleanup está DESACTIVADO
+const DAYS_TO_KEEP = process.env.CLEANUP_DAYS_TO_KEEP 
+  ? parseInt(process.env.CLEANUP_DAYS_TO_KEEP, 10) 
+  : 30; // Default más conservador si se usa
+const MAX_DOCUMENTS = process.env.CLEANUP_MAX_DOCUMENTS 
+  ? parseInt(process.env.CLEANUP_MAX_DOCUMENTS, 10) 
+  : 100; // Default más conservador si se usa
+const CLEANUP_INTERVAL_HOURS = process.env.CLEANUP_INTERVAL_HOURS 
+  ? parseInt(process.env.CLEANUP_INTERVAL_HOURS, 10) 
+  : 24; // Default más conservador si se usa
 
 /**
  * Limpiar por cantidad: mantener solo los últimos N documentos
@@ -187,7 +195,24 @@ export async function getStorageStats() {
 
 // Ejecutar cleanup cada X horas (configurable)
 export function startCleanupScheduler() {
-  // Ejecutar inmediatamente al iniciar
+  // ⚠️ CRÍTICO: Solo ejecutar cleanup si las variables están EXPLÍCITAMENTE configuradas
+  // Esto evita que se borren datos por accidente con valores por defecto
+  const hasMaxDocuments = process.env.CLEANUP_MAX_DOCUMENTS !== undefined;
+  const hasDaysToKeep = process.env.CLEANUP_DAYS_TO_KEEP !== undefined;
+  const hasInterval = process.env.CLEANUP_INTERVAL_HOURS !== undefined;
+  
+  if (!hasMaxDocuments && !hasDaysToKeep && !hasInterval) {
+    console.log(`[CLEANUP] ⚠️ Variables de entorno no configuradas - Cleanup DESACTIVADO`);
+    console.log(`[CLEANUP] Para activar, configurar: CLEANUP_MAX_DOCUMENTS, CLEANUP_DAYS_TO_KEEP, CLEANUP_INTERVAL_HOURS`);
+    return;
+  }
+  
+  console.log(`[CLEANUP] ✅ Variables configuradas - Scheduler iniciado:`);
+  console.log(`[CLEANUP]   - Limpieza cada ${CLEANUP_INTERVAL_HOURS} horas`);
+  console.log(`[CLEANUP]   - Mantiene máximo ${MAX_DOCUMENTS} documentos`);
+  console.log(`[CLEANUP]   - Mantiene archivos de últimos ${DAYS_TO_KEEP} días`);
+  
+  // Ejecutar inmediatamente al iniciar (solo si está configurado)
   runFullCleanup().catch((err) => {
     console.error("[CLEANUP] Error en cleanup inicial:", err);
   });
@@ -199,9 +224,4 @@ export function startCleanupScheduler() {
       console.error("[CLEANUP] Error en cleanup programado:", err);
     });
   }, intervalMs);
-
-  console.log(`[CLEANUP] Scheduler iniciado:`);
-  console.log(`[CLEANUP]   - Limpieza cada ${CLEANUP_INTERVAL_HOURS} horas`);
-  console.log(`[CLEANUP]   - Mantiene máximo ${MAX_DOCUMENTS} documentos`);
-  console.log(`[CLEANUP]   - Mantiene archivos de últimos ${DAYS_TO_KEEP} días`);
 }
