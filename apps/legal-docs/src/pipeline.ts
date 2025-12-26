@@ -16,9 +16,10 @@ async function updateAnalysisStatus(documentId: string, status: string, progress
   }
 }
 
-export async function runFullAnalysis(documentId: string) {
+export async function runFullAnalysis(documentId: string, userInstructions?: string | null) {
   const startTime = Date.now();
   const MAX_PIPELINE_TIME = 180000; // 3 minutos máximo para todo el pipeline
+  const trimmedInstructions = userInstructions?.trim() || null;
   
   // Adquirir slot de análisis (limita concurrencia)
   const releaseSlot = await acquireAnalysisSlot();
@@ -81,6 +82,7 @@ export async function runFullAnalysis(documentId: string) {
     translated,
     type,
     checklist,
+    userInstructions: trimmedInstructions || undefined,
   });
   console.log(`[PIPELINE] Report generated`);
   await updateAnalysisStatus(documentId, "saving", 90);
@@ -93,6 +95,7 @@ export async function runFullAnalysis(documentId: string) {
     translated,
     checklist,
     report,
+    userInstructions: trimmedInstructions,
   });
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);

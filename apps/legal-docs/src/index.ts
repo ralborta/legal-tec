@@ -252,6 +252,10 @@ console.log("  GET  /status/:documentId");
 async function handleAnalyze(req: express.Request, res: express.Response, next: express.NextFunction) {
   try {
     const { documentId } = req.params;
+    const rawInstructions = typeof req.body?.instructions === "string"
+      ? req.body.instructions
+      : (req.body?.instructions ? String(req.body.instructions) : "");
+    const userInstructions = rawInstructions.trim().slice(0, 250);
     
     // 🔍 LOGGING para diagnóstico (más detallado)
     console.log(`[LEGAL-DOCS-ANALYZE] ========================================`);
@@ -260,6 +264,11 @@ async function handleAnalyze(req: express.Request, res: express.Response, next: 
     console.log(`[LEGAL-DOCS-ANALYZE] documentId extraído: "${documentId}"`);
     console.log(`[LEGAL-DOCS-ANALYZE] Tipo de documentId: ${typeof documentId}`);
     console.log(`[LEGAL-DOCS-ANALYZE] documentId length: ${documentId?.length || 0}`);
+    if (userInstructions) {
+      console.log(`[LEGAL-DOCS-ANALYZE] Instrucciones usuario (${userInstructions.length} chars): "${userInstructions}"`);
+    } else {
+      console.log(`[LEGAL-DOCS-ANALYZE] Sin instrucciones adicionales del usuario`);
+    }
     
     // Validar que documentId existe y es válido
     if (!documentId || typeof documentId !== 'string' || documentId.trim().length === 0) {
@@ -308,7 +317,7 @@ async function handleAnalyze(req: express.Request, res: express.Response, next: 
     console.log(`[LEGAL-DOCS-ANALYZE] ✅ Documento y archivo validados: ${doc.filename}, iniciando análisis...`);
     
     // Disparar análisis de forma asíncrona
-    runFullAnalysis(documentId).catch((error) => {
+    runFullAnalysis(documentId, userInstructions || undefined).catch((error) => {
       console.error(`[ANALYZE] Error en análisis de documento ${documentId}:`, error);
     });
 

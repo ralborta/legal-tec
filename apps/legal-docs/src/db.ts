@@ -58,6 +58,7 @@ export const legalDb = {
         translated JSONB NOT NULL,
         checklist JSONB,
         report TEXT,
+        user_instructions TEXT,
         created_at TIMESTAMP DEFAULT NOW(),
         FOREIGN KEY (document_id) REFERENCES legal_documents(id) ON DELETE CASCADE
       );
@@ -66,6 +67,7 @@ export const legalDb = {
     await db.query(`CREATE INDEX IF NOT EXISTS idx_legal_documents_created_at ON legal_documents(created_at);`);
     await db.query(`CREATE INDEX IF NOT EXISTS idx_legal_analysis_type ON legal_analysis(type);`);
     await db.query(`CREATE INDEX IF NOT EXISTS idx_legal_analysis_created_at ON legal_analysis(created_at);`);
+    await db.query(`ALTER TABLE legal_analysis ADD COLUMN IF NOT EXISTS user_instructions TEXT;`);
 
     // Asegurar columnas en caso de una tabla creada por migración vieja
     await db.query(`ALTER TABLE legal_documents ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'uploaded';`);
@@ -135,6 +137,7 @@ export const legalDb = {
     translated: any;
     checklist: any;
     report: any; // string o AnalysisReport object
+    userInstructions?: string | null;
   }) {
     try {
       // Preparar report: si es objeto, convertir a JSON string
@@ -148,8 +151,8 @@ export const legalDb = {
       console.log(`[DB] Guardando análisis para ${data.documentId}, tipo: ${data.type}, report length: ${reportValue.length}`);
       
       const result = await db.query(
-        `INSERT INTO legal_analysis (document_id, type, original, translated, checklist, report, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, NOW())
+        `INSERT INTO legal_analysis (document_id, type, original, translated, checklist, report, user_instructions, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
          ON CONFLICT (document_id) 
          DO UPDATE SET 
            type = EXCLUDED.type,
@@ -157,6 +160,7 @@ export const legalDb = {
            translated = EXCLUDED.translated,
            checklist = EXCLUDED.checklist,
            report = EXCLUDED.report,
+           user_instructions = EXCLUDED.user_instructions,
            created_at = NOW()
          RETURNING *`,
         [
@@ -166,6 +170,7 @@ export const legalDb = {
           JSON.stringify(data.translated),
           JSON.stringify(data.checklist),
           reportValue,
+          data.userInstructions ?? null,
         ]
       );
       
@@ -187,6 +192,7 @@ export const legalDb = {
            a.translated,
            a.checklist,
            a.report,
+           a.user_instructions,
            a.created_at as analyzed_at
          FROM legal_documents d
          LEFT JOIN legal_analysis a ON d.id = a.document_id
@@ -246,6 +252,7 @@ export const legalDb = {
           translated: row.translated,
           checklist: row.checklist,
           report: report,
+          userInstructions: row.user_instructions,
           analyzedAt: row.analyzed_at,
         },
       };

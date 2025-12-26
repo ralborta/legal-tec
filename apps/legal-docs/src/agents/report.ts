@@ -10,6 +10,7 @@ interface ReportInput {
   translated: TranslatedClause[];
   type: string;
   checklist: { items?: DistributionChecklistItem[] } | null;
+  userInstructions?: string;
 }
 
 // Estructura del reporte (similar al memo)
@@ -219,6 +220,13 @@ export async function generateReport(input: ReportInput): Promise<AnalysisReport
   try {
     // Consultar jurisprudencia relevante usando RAG
     console.log(`[REPORT] Consultando jurisprudencia para tipo: ${input.type}`);
+    const instructions = (input.userInstructions || "").trim();
+    const instructionsText = instructions
+      ? instructions.slice(0, 500)
+      : "Sin indicaciones adicionales del usuario.";
+    if (instructions) {
+      console.log(`[REPORT] Aplicando instrucciones del usuario (${instructions.length} chars)`);
+    }
     const jurisprudence = await queryJurisprudence(
       input.original,
       input.type,
@@ -266,6 +274,9 @@ export async function generateReport(input: ReportInput): Promise<AnalysisReport
             content: `${prompt}
 
 ${FUENTES_LEGALES}
+
+INDICACIONES ADICIONALES DEL USUARIO (máximo 250 caracteres, priorizar junto con el análisis general):
+${instructionsText}
 
 TIPO DE DOCUMENTO: ${input.type}
 

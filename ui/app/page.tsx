@@ -866,6 +866,8 @@ function AnalizarDocumentosPanel() {
   const [polling, setPolling] = useState(false);
   const [progress, setProgress] = useState<number>(0);
   const [statusLabel, setStatusLabel] = useState<string>("");
+  const [instructions, setInstructions] = useState<string>("");
+  const instructionsLimit = 250;
   const API = useMemo(() => getApiUrl(), []);
   const LEGAL_DOCS_URL = useMemo(() => getLegalDocsUrl(), []);
 
@@ -904,6 +906,7 @@ function AnalizarDocumentosPanel() {
     setAnalyzing(true);
     setProgress(0);
     setStatusLabel("Subiendo…");
+    const trimmedInstructions = instructions.trim().slice(0, instructionsLimit);
 
     try {
       const formData = new FormData();
@@ -935,6 +938,12 @@ function AnalizarDocumentosPanel() {
       setStatusLabel("Iniciando análisis…");
       const analyzeResponse = await fetchWithTimeout(`${API}/legal/analyze/${data.documentId}`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          trimmedInstructions
+            ? { instructions: trimmedInstructions }
+            : {}
+        ),
       }, 30000); // 30s - suficiente para confirmación (gateway tiene 10s, pero damos margen para cold start)
 
       if (!analyzeResponse.ok) {
@@ -1112,6 +1121,26 @@ function AnalizarDocumentosPanel() {
               }
             }}
           />
+
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Indicaciones adicionales (opcional)
+            </label>
+            <textarea
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-[#C026D3] focus:ring-2 focus:ring-[#C026D3]/30"
+              rows={3}
+              maxLength={instructionsLimit}
+              placeholder="Ej.: Enfocar en la posición del proveedor / revisar cláusulas de terminación / resaltar obligaciones de la parte A."
+              value={instructions}
+              onChange={(e) => setInstructions(e.target.value)}
+            />
+            <div className="flex items-center justify-between text-xs text-gray-500">
+              <span>Se usa para guiar el análisis. Máx. {instructionsLimit} caracteres.</span>
+              <span>
+                {instructions.length}/{instructionsLimit}
+              </span>
+            </div>
+          </div>
 
           <button
             className="w-full bg-gradient-to-r from-[#C026D3] to-[#A21CAF] text-white py-3 px-6 rounded-lg font-medium hover:from-[#A21CAF] hover:to-[#7E1A8A] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
