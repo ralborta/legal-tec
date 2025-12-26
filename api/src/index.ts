@@ -24,6 +24,7 @@ import { LEGAL_TEMPLATES, findTemplateById, getTemplateAbsolutePath, type LegalT
 import mammoth from "mammoth";
 import { fillTemplateWithMemoData } from "./templates/fill-template.js";
 import type { MemoOutput } from "./memos/types.js";
+import { checkRateLimit, getClientIdentifier } from "./rate-limit.js";
 
 // ❌ ELIMINADO: Check de versiones causaba ENOENT en Railway
 // El build ESM/dist no expone node_modules así, y no es crítico para el funcionamiento
