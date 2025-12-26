@@ -82,6 +82,9 @@ async function start() {
     // Permitir todos los dominios de Vercel (preview + prod)
     if (origin.includes(".vercel.app") || origin.endsWith("vercel.app")) return true;
 
+    // Permitir nivel41.uk (dominio personalizado)
+    if (origin.includes("nivel41.uk")) return true;
+
     // Permitir orígenes explícitos vía env
     if (allowedOriginsFromEnv.includes(origin)) return true;
 

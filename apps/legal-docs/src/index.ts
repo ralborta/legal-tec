@@ -56,6 +56,7 @@ const allowedOriginsFromEnv = (process.env.CORS_ORIGINS || process.env.CORS_ORIG
 function isAllowedOrigin(origin: string) {
   if (origin.startsWith("http://localhost:") || origin.startsWith("http://127.0.0.1:")) return true;
   if (origin.includes(".vercel.app") || origin.endsWith("vercel.app")) return true;
+  if (origin.includes("nivel41.uk")) return true; // Dominio personalizado
   if (allowedOriginsFromEnv.includes(origin)) return true;
   return false;
 }
