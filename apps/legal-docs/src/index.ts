@@ -116,8 +116,18 @@ app.get("/debug/routes", (_req, res) => {
 
 // Upload documento - ✅ Versión robusta: solo devuelve documentId si el archivo se guardó correctamente
 async function handleUpload(req: express.Request, res: express.Response, next: express.NextFunction) {
+  // ✅ Asegurar headers CORS antes de procesar (por si multer los borra)
+  const origin = req.headers.origin;
+  if (origin && typeof origin === "string" && isAllowedOrigin(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+    res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept, X-Requested-With");
+  }
+  
   console.log(`[UPLOAD] Request recibido en ${req.path}, method: ${req.method}`);
-  console.log(`[UPLOAD] Headers:`, { "content-type": req.headers["content-type"], "content-length": req.headers["content-length"] });
+  console.log(`[UPLOAD] Headers:`, { "content-type": req.headers["content-type"], "content-length": req.headers["content-length"], origin });
   
   try {
     if (!req.file) {
@@ -148,9 +158,20 @@ async function handleUpload(req: express.Request, res: express.Response, next: e
     console.log(`[UPLOAD] ✅ Documento guardado correctamente, documentId: ${documentId}`);
     
     // ✅ SOLO devolver documentId si el archivo se guardó correctamente
+    // Asegurar headers CORS en respuesta exitosa
+    if (origin && typeof origin === "string" && isAllowedOrigin(origin)) {
+      res.setHeader("Access-Control-Allow-Origin", origin);
+    }
     res.json({ documentId });
   } catch (err: any) {
     console.error(`[UPLOAD] Error: ${err?.message || err}`);
+    
+    // ✅ Asegurar headers CORS en respuestas de error también
+    if (origin && typeof origin === "string" && isAllowedOrigin(origin)) {
+      res.setHeader("Access-Control-Allow-Origin", origin);
+      res.setHeader("Vary", "Origin");
+      res.setHeader("Access-Control-Allow-Credentials", "true");
+    }
     
     // Errores específicos con códigos HTTP apropiados
     if (err?.message?.includes("demasiado grande") || err?.message?.includes("too large")) {
