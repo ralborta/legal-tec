@@ -1,6 +1,9 @@
 /**
  * Cleanup automático de archivos antiguos
- * Elimina archivos y registros de DB más antiguos que X días
+ * Estrategias:
+ * 1. Por días (CLEANUP_DAYS_TO_KEEP)
+ * 2. Por cantidad máxima (CLEANUP_MAX_DOCUMENTS) - MANTIENE los últimos N
+ * 3. Por espacio en disco (si se implementa)
  */
 
 import { readdir, unlink, stat } from "fs/promises";
@@ -8,8 +11,74 @@ import { join } from "path";
 import { legalDb } from "./db.js";
 
 const STORAGE_DIR = process.env.STORAGE_DIR || "./storage";
-const DAYS_TO_KEEP = parseInt(process.env.CLEANUP_DAYS_TO_KEEP || "30", 10); // 30 días por defecto
+const DAYS_TO_KEEP = parseInt(process.env.CLEANUP_DAYS_TO_KEEP || "7", 10); // 7 días por defecto (más agresivo para piloto)
+const MAX_DOCUMENTS = parseInt(process.env.CLEANUP_MAX_DOCUMENTS || "50", 10); // Máximo 50 documentos (mantiene los últimos)
+const CLEANUP_INTERVAL_HOURS = parseInt(process.env.CLEANUP_INTERVAL_HOURS || "6", 10); // Cada 6 horas (más frecuente para piloto)
 
+/**
+ * Limpiar por cantidad: mantener solo los últimos N documentos
+ */
+async function cleanupByMaxDocuments() {
+  try {
+    console.log(`[CLEANUP] Verificando límite de documentos (máximo ${MAX_DOCUMENTS})...`);
+    
+    // Obtener todos los documentos ordenados por fecha (más recientes primero)
+    const result = await legalDb.getAllDocumentsForCleanup();
+    
+    if (result.length <= MAX_DOCUMENTS) {
+      console.log(`[CLEANUP] Hay ${result.length} documentos, no se excede el límite de ${MAX_DOCUMENTS}`);
+      return { deletedFiles: 0, deletedDbRecords: 0, errors: 0 };
+    }
+
+    // Identificar documentos a borrar (todos excepto los últimos MAX_DOCUMENTS)
+    const documentsToDelete = result.slice(MAX_DOCUMENTS);
+    const idsToDelete = documentsToDelete.map((doc: any) => doc.id);
+    
+    console.log(`[CLEANUP] Hay ${result.length} documentos, borrando ${idsToDelete.length} (manteniendo los últimos ${MAX_DOCUMENTS})`);
+
+    // Borrar archivos del disco
+    let deletedFiles = 0;
+    let errorCount = 0;
+    
+    for (const doc of documentsToDelete) {
+      try {
+        // raw_path puede ser relativo o absoluto
+        const filePath = doc.raw_path.startsWith('/') 
+          ? doc.raw_path 
+          : join(STORAGE_DIR, doc.raw_path);
+        
+        try {
+          await unlink(filePath);
+          deletedFiles++;
+          console.log(`[CLEANUP] Archivo eliminado: ${filePath}`);
+        } catch (err: any) {
+          // Archivo ya no existe o no se puede acceder, continuar
+          if (err.code !== 'ENOENT') {
+            console.warn(`[CLEANUP] Error eliminando archivo ${filePath}:`, err?.message);
+            errorCount++;
+          }
+        }
+      } catch (error: any) {
+        errorCount++;
+        console.warn(`[CLEANUP] Error procesando documento ${doc.id}:`, error?.message);
+      }
+    }
+
+    // Borrar de la DB (esto también borra los análisis por CASCADE)
+    const deletedDbRecords = await legalDb.deleteDocumentsByIds(idsToDelete);
+    
+    console.log(`[CLEANUP] Por cantidad: ${deletedFiles} archivos eliminados, ${deletedDbRecords} registros DB eliminados`);
+    
+    return { deletedFiles, deletedDbRecords, errors: errorCount };
+  } catch (error: any) {
+    console.error(`[CLEANUP] Error en limpieza por cantidad:`, error?.message);
+    throw error;
+  }
+}
+
+/**
+ * Limpiar por días (método original)
+ */
 export async function cleanupOldFiles() {
   try {
     console.log(`[CLEANUP] Iniciando limpieza de archivos más antiguos que ${DAYS_TO_KEEP} días...`);
@@ -41,7 +110,7 @@ export async function cleanupOldFiles() {
     // También limpiar registros de DB antiguos
     const deletedDbRecords = await legalDb.cleanupOldDocuments(DAYS_TO_KEEP);
     
-    console.log(`[CLEANUP] Completado: ${deletedCount} archivos eliminados, ${deletedDbRecords} registros DB eliminados, ${errorCount} errores`);
+    console.log(`[CLEANUP] Por días: ${deletedCount} archivos eliminados, ${deletedDbRecords} registros DB eliminados, ${errorCount} errores`);
     
     return { deletedFiles: deletedCount, deletedDbRecords, errors: errorCount };
   } catch (error: any) {
@@ -50,20 +119,89 @@ export async function cleanupOldFiles() {
   }
 }
 
-// Ejecutar cleanup cada 24 horas
+/**
+ * Limpieza completa: por cantidad Y por días
+ */
+export async function runFullCleanup() {
+  console.log(`[CLEANUP] ===== Iniciando limpieza completa =====`);
+  
+  // Primero limpiar por cantidad (más importante para piloto)
+  const byCount = await cleanupByMaxDocuments();
+  
+  // Luego limpiar por días (por si acaso)
+  const byDays = await cleanupOldFiles();
+  
+  const total = {
+    deletedFiles: byCount.deletedFiles + byDays.deletedFiles,
+    deletedDbRecords: byCount.deletedDbRecords + byDays.deletedDbRecords,
+    errors: byCount.errors + byDays.errors,
+  };
+  
+  console.log(`[CLEANUP] ===== Limpieza completa finalizada =====`);
+  console.log(`[CLEANUP] Total: ${total.deletedFiles} archivos, ${total.deletedDbRecords} registros DB, ${total.errors} errores`);
+  
+  return total;
+}
+
+/**
+ * Obtener estadísticas de uso
+ */
+export async function getStorageStats() {
+  try {
+    const result = await legalDb.getDocumentCount();
+    const totalDocuments = result.count || 0;
+    
+    // Calcular tamaño total de archivos
+    let totalSize = 0;
+    let fileCount = 0;
+    
+    try {
+      const files = await readdir(STORAGE_DIR);
+      for (const file of files) {
+        try {
+          const filePath = join(STORAGE_DIR, file);
+          const stats = await stat(filePath);
+          totalSize += stats.size;
+          fileCount++;
+        } catch (err) {
+          // Ignorar errores de archivos individuales
+        }
+      }
+    } catch (err) {
+      // Directorio no existe o no se puede leer
+    }
+    
+    return {
+      totalDocuments,
+      maxDocuments: MAX_DOCUMENTS,
+      fileCount,
+      totalSizeMB: (totalSize / 1024 / 1024).toFixed(2),
+      daysToKeep: DAYS_TO_KEEP,
+      cleanupIntervalHours: CLEANUP_INTERVAL_HOURS,
+    };
+  } catch (error: any) {
+    console.error(`[CLEANUP] Error obteniendo estadísticas:`, error?.message);
+    return null;
+  }
+}
+
+// Ejecutar cleanup cada X horas (configurable)
 export function startCleanupScheduler() {
   // Ejecutar inmediatamente al iniciar
-  cleanupOldFiles().catch((err) => {
+  runFullCleanup().catch((err) => {
     console.error("[CLEANUP] Error en cleanup inicial:", err);
   });
 
-  // Luego cada 24 horas
+  // Luego cada X horas
+  const intervalMs = CLEANUP_INTERVAL_HOURS * 60 * 60 * 1000;
   setInterval(() => {
-    cleanupOldFiles().catch((err) => {
+    runFullCleanup().catch((err) => {
       console.error("[CLEANUP] Error en cleanup programado:", err);
     });
-  }, 24 * 60 * 60 * 1000);
+  }, intervalMs);
 
-  console.log(`[CLEANUP] Scheduler iniciado: limpieza cada 24 horas, manteniendo archivos de últimos ${DAYS_TO_KEEP} días`);
+  console.log(`[CLEANUP] Scheduler iniciado:`);
+  console.log(`[CLEANUP]   - Limpieza cada ${CLEANUP_INTERVAL_HOURS} horas`);
+  console.log(`[CLEANUP]   - Mantiene máximo ${MAX_DOCUMENTS} documentos`);
+  console.log(`[CLEANUP]   - Mantiene archivos de últimos ${DAYS_TO_KEEP} días`);
 }
-

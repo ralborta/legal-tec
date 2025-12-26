@@ -334,5 +334,46 @@ export const legalDb = {
       return 0;
     }
   },
+
+  async getAllDocumentsForCleanup() {
+    // Obtener todos los documentos ordenados por fecha (más recientes primero)
+    // Incluye raw_path para poder borrar los archivos
+    const result = await db.query(
+      `SELECT id, filename, raw_path, created_at
+       FROM legal_documents
+       ORDER BY created_at DESC`
+    );
+    return result.rows;
+  },
+
+  async deleteDocumentsByIds(ids: string[]) {
+    if (ids.length === 0) return 0;
+    
+    try {
+      // Borrar análisis primero (aunque CASCADE lo haría automáticamente)
+      await db.query(
+        `DELETE FROM legal_analysis WHERE document_id = ANY($1)`,
+        [ids]
+      );
+      
+      // Borrar documentos
+      const result = await db.query(
+        `DELETE FROM legal_documents WHERE id = ANY($1) RETURNING id`,
+        [ids]
+      );
+      
+      return result.rows.length;
+    } catch (error: any) {
+      console.error(`[DB] Error borrando documentos por IDs:`, error?.message);
+      return 0;
+    }
+  },
+
+  async getDocumentCount() {
+    const result = await db.query(
+      `SELECT COUNT(*) as count FROM legal_documents`
+    );
+    return result.rows[0] || { count: 0 };
+  },
 };
 

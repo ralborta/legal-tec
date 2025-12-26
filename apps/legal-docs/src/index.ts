@@ -26,10 +26,14 @@ app.get("/health", (_req, res) => {
 });
 
 // Endpoint de métricas básicas
-app.get("/metrics", (_req, res) => {
+app.get("/metrics", async (_req, res) => {
   const stats = getConcurrencyStats();
+  const { getStorageStats } = await import("./cleanup.js");
+  const storageStats = await getStorageStats();
+  
   res.json({
     concurrency: stats,
+    storage: storageStats,
     timestamp: new Date().toISOString()
   });
 });

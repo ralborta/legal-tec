@@ -1298,8 +1298,8 @@ Responde SOLO con un JSON válido con esta estructura:
   // Endpoints para gestión de bases de conocimiento
   app.get("/api/knowledge-bases", async (req, rep) => {
     try {
-      const kbs = await knowledgeBases.listKnowledgeBases(process.env.DATABASE_URL!);
-      return rep.send({ knowledgeBases: kbs });
+    const kbs = await knowledgeBases.listKnowledgeBases(process.env.DATABASE_URL!);
+    return rep.send({ knowledgeBases: kbs });
     } catch (error) {
       app.log.error(error, "Error al listar knowledge bases");
       // Si la tabla no existe, retornar array vacío en vez de error 500
