@@ -680,7 +680,16 @@ function DocCard({ row }: { row: any }) {
         <div className="flex items-center gap-1.5 shrink-0">
           <button className="icon-btn" title="Ver" onClick={() => { setOpen(v=>!v); setQueryMode(false); }}><Eye className="h-4 w-4" /></button>
           <button className="icon-btn" title="Consultar con IA" onClick={() => { setQueryMode(v=>!v); setOpen(true); }}><Search className="h-4 w-4" /></button>
-          <button className="icon-btn" title="Descargar Markdown" onClick={()=>downloadMD(row.asunto, row.markdown)}><Download className="h-4 w-4" /></button>
+          <button 
+            className="icon-btn" 
+            title="Descargar Markdown" 
+            onClick={()=>downloadMD(
+              row.asunto || row.title || "documento",
+              row.markdown || row.memoData?.texto_formateado || ""
+            )}
+          >
+            <Download className="h-4 w-4" />
+          </button>
           <button className="icon-btn" title="Eliminar"><Trash2 className="h-4 w-4" /></button>
         </div>
       </div>
@@ -1794,6 +1803,18 @@ function AnalysisResultPanel({ analysisResult, analyzing, documentId }: {
     );
   }
 
+  const handleDownloadAnalysis = () => {
+    const content = report?.texto_formateado || 
+                   report?.resumen_ejecutivo || 
+                   (typeof analysisResult?.analysis?.report === 'string' 
+                     ? analysisResult.analysis.report 
+                     : JSON.stringify(analysisResult?.analysis?.report || {}, null, 2));
+    const filename = report?.titulo || 
+                    analysisResult?.filename || 
+                    `analisis_${documentId || 'documento'}`;
+    downloadMD(filename, content);
+  };
+
   return (
     <div className="bg-white p-6 rounded-xl border border-gray-200">
       <div className="flex items-center justify-between mb-4">
@@ -1803,6 +1824,14 @@ function AnalysisResultPanel({ analysisResult, analyzing, documentId }: {
             {report?.tipo_documento || analysisResult.analysis.type} • {report?.jurisdiccion || "Nacional"} • {report?.area_legal || ""}
           </p>
         </div>
+        <button
+          onClick={handleDownloadAnalysis}
+          className="flex items-center gap-2 px-4 py-2 bg-[#C026D3] hover:bg-[#A01FB8] text-white rounded-lg text-sm font-medium transition-colors"
+          title="Descargar análisis completo"
+        >
+          <Download className="h-4 w-4" />
+          Descargar
+        </button>
             </div>
 
       {/* Tabs */}

@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Copy, Check, MessageSquare, FileText, AlertTriangle, ListChecks, TrendingUp, BookOpen, Send, Library } from "lucide-react";
+import { ArrowLeft, Copy, Check, MessageSquare, FileText, AlertTriangle, ListChecks, TrendingUp, BookOpen, Send, Library, Download } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { MemoSuggestedDocuments } from "@/components/MemoSuggestedDocuments";
 
@@ -136,6 +136,17 @@ export default function MemoDetailPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleDownload = (filename: string, content: string) => {
+    const sanitize = (s: string) => s.replace(/[^a-z0-9\-\_\ ]/gi, "_");
+    const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${sanitize(filename)}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   if (!memo) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -162,6 +173,17 @@ export default function MemoDetailPage() {
               </button>
               <h1 className="text-3xl font-bold text-white">{memo.title || memo.asunto}</h1>
             </div>
+            <button
+              onClick={() => handleDownload(
+                memo.title || memo.asunto || "documento",
+                memo.markdown || memoData.texto_formateado || ""
+              )}
+              className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full text-white transition-colors duration-300 flex items-center gap-2 font-medium"
+              title="Descargar documento completo"
+            >
+              <Download className="h-4 w-4" />
+              Descargar
+            </button>
           </div>
           <div className="flex flex-wrap items-center gap-3 mt-4 text-white/90 text-sm">
             <span className="bg-white/20 px-3 py-1 rounded-full">{memo.tipoDocumento || "Memo / Dictamen de reunión"}</span>
@@ -576,22 +598,34 @@ export default function MemoDetailPage() {
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-medium text-slate-700">Texto completo del memo</span>
-                    <button
-                      onClick={() => handleCopyText(memo.markdown || memoData.texto_formateado || "")}
-                      className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700"
-                    >
-                      {copied ? (
-                        <>
-                          <Check className="h-3 w-3" />
-                          Copiado
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="h-3 w-3" />
-                          Copiar
-                        </>
-                      )}
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => handleCopyText(memo.markdown || memoData.texto_formateado || "")}
+                        className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700"
+                      >
+                        {copied ? (
+                          <>
+                            <Check className="h-3 w-3" />
+                            Copiado
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-3 w-3" />
+                            Copiar
+                          </>
+                        )}
+                      </button>
+                      <button
+                        onClick={() => handleDownload(
+                          memo.title || memo.asunto || "documento",
+                          memo.markdown || memoData.texto_formateado || ""
+                        )}
+                        className="flex items-center gap-1 text-xs text-green-600 hover:text-green-700 font-medium"
+                      >
+                        <Download className="h-3 w-3" />
+                        Descargar
+                      </button>
+                    </div>
                   </div>
                   <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 max-h-[600px] overflow-auto">
                     <pre className="text-xs font-mono text-slate-700 whitespace-pre-wrap">
