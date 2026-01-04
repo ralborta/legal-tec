@@ -25,6 +25,7 @@ import mammoth from "mammoth";
 import { fillTemplateWithMemoData } from "./templates/fill-template.js";
 import type { MemoOutput } from "./memos/types.js";
 import { checkRateLimit, getClientIdentifier } from "./rate-limit.js";
+import { convertToWord } from "./convert-to-word.js";
 
 // ❌ ELIMINADO: Check de versiones causaba ENOENT en Railway
 // El build ESM/dist no expone node_modules así, y no es crítico para el funcionamiento
@@ -1294,6 +1295,36 @@ Responde SOLO con un JSON válido con esta estructura:
       app.log.error(error, "Error al descargar documento sugerido");
       return rep.status(500).send({ 
         error: "Error al descargar documento",
+        message: error instanceof Error ? error.message : "Error desconocido"
+      });
+    }
+  });
+
+  // Endpoint para convertir contenido a Word (.docx)
+  app.post("/api/convert-to-word", async (req, rep) => {
+    try {
+      const body = req.body as { content: string; title?: string };
+      
+      if (!body.content) {
+        return rep.status(400).send({ error: "Se requiere el campo 'content'" });
+      }
+
+      const title = body.title || "Documento";
+      const wordBuffer = await convertToWord(body.content, title);
+      
+      const filename = `${title.replace(/[^a-z0-9\-\_\ ]/gi, "_")}.docx`;
+      
+      rep.header("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+      rep.header("Content-Disposition", `attachment; filename="${filename}"; filename*=UTF-8''${encodeURIComponent(filename)}`);
+      rep.header("X-Content-Type-Options", "nosniff");
+      rep.header("Cache-Control", "no-cache");
+
+      return rep.send(wordBuffer);
+
+    } catch (error) {
+      app.log.error(error, "Error al convertir a Word");
+      return rep.status(500).send({ 
+        error: "Error al convertir a Word",
         message: error instanceof Error ? error.message : "Error desconocido"
       });
     }

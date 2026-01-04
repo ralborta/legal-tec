@@ -584,12 +584,12 @@ function BandejaLocal({ items }: { items: any[] }) {
                           }
                           
                           if (content) {
-                            downloadMD(filename, content);
+                            await downloadMD(filename, content);
                           } else {
                             alert("No hay contenido disponible para descargar.");
                           }
                         }}
-                        title="Descargar Markdown"
+                        title="Descargar Word (.docx)"
                       >
                         <Download className="h-4 w-4" />
                       </button>
@@ -688,7 +688,7 @@ function MemoCard({ memo }: { memo: any }) {
               }
               
               if (content) {
-                downloadMD(filename, content);
+                await downloadMD(filename, content);
               } else {
                 alert("No hay contenido disponible para descargar.");
               }
@@ -790,7 +790,7 @@ function DocCard({ row }: { row: any }) {
               }
               
               if (content) {
-                downloadMD(filename, content);
+                await downloadMD(filename, content);
               } else {
                 alert("No hay contenido disponible para descargar.");
               }
@@ -964,12 +964,52 @@ function QueryDocPanel({ memoContent, titulo, citas }: { memoContent: string; ti
   );
 }
 
-function downloadMD(filename: string, md: string) {
-  const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url; a.download = `${sanitize(filename)}.md`; a.click();
-  URL.revokeObjectURL(url);
+async function downloadMD(filename: string, md: string) {
+  const API = getApiUrl();
+  
+  if (!API) {
+    // Fallback: descargar como markdown si no hay API
+    const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `${sanitize(filename)}.md`; a.click();
+    URL.revokeObjectURL(url);
+    return;
+  }
+
+  try {
+    // Llamar al endpoint para convertir a Word
+    const response = await fetch(`${API}/api/convert-to-word`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        content: md,
+        title: filename
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error ${response.status}: ${await response.text()}`);
+    }
+
+    // Descargar el archivo Word
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${sanitize(filename)}.docx`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Error al convertir a Word:", error);
+    // Fallback: descargar como markdown si falla la conversión
+    const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `${sanitize(filename)}.md`; a.click();
+    URL.revokeObjectURL(url);
+    alert("Error al generar Word. Se descargó como Markdown.");
+  }
 }
 function sanitize(s: string) { return s.replace(/[^a-z0-9\-\_\ ]/gi, "_"); }
 
@@ -1920,7 +1960,7 @@ function AnalysisResultPanel({ analysisResult, analyzing, documentId }: {
     const filename = report?.titulo || 
                     analysisResult?.filename || 
                     `analisis_${documentId || 'documento'}`;
-    downloadMD(filename, content);
+    await downloadMD(filename, content);
   };
 
   return (

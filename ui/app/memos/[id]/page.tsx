@@ -136,15 +136,56 @@ export default function MemoDetailPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleDownload = (filename: string, content: string) => {
+  const handleDownload = async (filename: string, content: string) => {
     const sanitize = (s: string) => s.replace(/[^a-z0-9\-\_\ ]/gi, "_");
-    const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${sanitize(filename)}.md`;
-    a.click();
-    URL.revokeObjectURL(url);
+    
+    if (!API) {
+      // Fallback: descargar como markdown si no hay API
+      const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${sanitize(filename)}.md`;
+      a.click();
+      URL.revokeObjectURL(url);
+      return;
+    }
+
+    try {
+      // Llamar al endpoint para convertir a Word
+      const response = await fetch(`${API}/api/convert-to-word`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: content,
+          title: filename
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${await response.text()}`);
+      }
+
+      // Descargar el archivo Word
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${sanitize(filename)}.docx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error al convertir a Word:", error);
+      // Fallback: descargar como markdown si falla la conversión
+      const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${sanitize(filename)}.md`;
+      a.click();
+      URL.revokeObjectURL(url);
+      alert("Error al generar Word. Se descargó como Markdown.");
+    }
   };
 
   if (!memo) {
