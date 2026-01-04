@@ -7,31 +7,50 @@ export async function convertToWord(
   content: string,
   title: string = "Documento"
 ): Promise<Buffer> {
+  // Validar entrada
+  if (!content || typeof content !== 'string') {
+    throw new Error("El contenido debe ser una cadena de texto válida");
+  }
+
+  // Limpiar y normalizar el contenido
+  const cleanContent = content.trim();
+  if (!cleanContent) {
+    throw new Error("El contenido no puede estar vacío");
+  }
+
   // Convertir markdown básico a párrafos de Word
-  const lines = content.split("\n");
+  const lines = cleanContent.split("\n");
   const paragraphs: Paragraph[] = [];
 
   // Título del documento
   paragraphs.push(
     new Paragraph({
-      text: title,
+      children: [new TextRun(title)],
       heading: HeadingLevel.HEADING_1,
       alignment: AlignmentType.CENTER,
       spacing: { after: 400 }
     })
   );
 
+  // Agregar un párrafo vacío después del título
+  paragraphs.push(
+    new Paragraph({
+      text: ""
+    })
+  );
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
 
-    // Saltar líneas vacías
+    // Saltar líneas vacías (pero agregar un párrafo vacío ocasionalmente)
     if (!line) {
-      paragraphs.push(
-        new Paragraph({
-          text: "",
-          spacing: { after: 200 }
-        })
-      );
+      if (i > 0 && lines[i - 1]?.trim()) {
+        paragraphs.push(
+          new Paragraph({
+            text: ""
+          })
+        );
+      }
       continue;
     }
 
@@ -39,7 +58,7 @@ export async function convertToWord(
     if (line.startsWith("# ")) {
       paragraphs.push(
         new Paragraph({
-          text: line.substring(2),
+          children: [new TextRun(line.substring(2))],
           heading: HeadingLevel.HEADING_1,
           spacing: { before: 400, after: 300 }
         })
@@ -47,7 +66,7 @@ export async function convertToWord(
     } else if (line.startsWith("## ")) {
       paragraphs.push(
         new Paragraph({
-          text: line.substring(3),
+          children: [new TextRun(line.substring(3))],
           heading: HeadingLevel.HEADING_2,
           spacing: { before: 300, after: 200 }
         })
@@ -55,26 +74,24 @@ export async function convertToWord(
     } else if (line.startsWith("### ")) {
       paragraphs.push(
         new Paragraph({
-          text: line.substring(4),
+          children: [new TextRun(line.substring(4))],
           heading: HeadingLevel.HEADING_3,
           spacing: { before: 200, after: 200 }
         })
       );
     } else if (line.startsWith("- ") || line.startsWith("* ")) {
-      // Lista con viñetas
+      // Lista con viñetas - simplificado sin bullet config
       paragraphs.push(
         new Paragraph({
-          text: line.substring(2),
-          bullet: { level: 0 },
+          children: [new TextRun(`• ${line.substring(2)}`)],
           spacing: { after: 100 }
         })
       );
     } else if (/^\d+\.\s/.test(line)) {
-      // Lista numerada
+      // Lista numerada - mantener el número original
       paragraphs.push(
         new Paragraph({
-          text: line.replace(/^\d+\.\s/, ""),
-          numbering: { reference: "default-numbering", level: 0 },
+          children: [new TextRun(line)],
           spacing: { after: 100 }
         })
       );
@@ -82,7 +99,6 @@ export async function convertToWord(
       // Párrafo normal
       // Detectar texto en negrita **texto** o __texto__
       const textRuns: TextRun[] = [];
-      let currentText = line;
       let boldRegex = /\*\*(.*?)\*\*|__(.*?)__/g;
       let lastIndex = 0;
       let match;
@@ -90,9 +106,10 @@ export async function convertToWord(
       while ((match = boldRegex.exec(line)) !== null) {
         // Agregar texto antes del match
         if (match.index > lastIndex) {
-          textRuns.push(
-            new TextRun(line.substring(lastIndex, match.index))
-          );
+          const textBefore = line.substring(lastIndex, match.index);
+          if (textBefore) {
+            textRuns.push(new TextRun(textBefore));
+          }
         }
         // Agregar texto en negrita
         const boldText = match[1] || match[2];
@@ -107,9 +124,10 @@ export async function convertToWord(
 
       // Agregar texto restante
       if (lastIndex < line.length) {
-        textRuns.push(
-          new TextRun(line.substring(lastIndex))
-        );
+        const textAfter = line.substring(lastIndex);
+        if (textAfter) {
+          textRuns.push(new TextRun(textAfter));
+        }
       }
 
       // Si no hay texto en negrita, usar el texto completo
@@ -126,12 +144,16 @@ export async function convertToWord(
     }
   }
 
-  // Crear el documento Word
+  // Crear el documento Word con estructura mínima válida
   const doc = new Document({
     sections: [
       {
         properties: {},
-        children: paragraphs
+        children: paragraphs.length > 0 ? paragraphs : [
+          new Paragraph({
+            children: [new TextRun("Documento vacío")]
+          })
+        ]
       }
     ]
   });

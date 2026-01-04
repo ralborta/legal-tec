@@ -1314,12 +1314,18 @@ Responde SOLO con un JSON válido con esta estructura:
       
       const filename = `${title.replace(/[^a-z0-9\-\_\ ]/gi, "_")}.docx`;
       
-      rep.header("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+      // Asegurar que el buffer es válido
+      if (!wordBuffer || wordBuffer.length === 0) {
+        return rep.status(500).send({ error: "Error al generar el documento Word" });
+      }
+
+      rep.type("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
       rep.header("Content-Disposition", `attachment; filename="${filename}"; filename*=UTF-8''${encodeURIComponent(filename)}`);
       rep.header("X-Content-Type-Options", "nosniff");
       rep.header("Cache-Control", "no-cache");
 
-      return rep.send(wordBuffer);
+      // Enviar el buffer como respuesta binaria
+      return rep.send(Buffer.from(wordBuffer));
 
     } catch (error) {
       app.log.error(error, "Error al convertir a Word");
