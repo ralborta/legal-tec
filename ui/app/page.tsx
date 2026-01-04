@@ -552,7 +552,45 @@ function BandejaLocal({ items }: { items: any[] }) {
                       >
                         <Eye className="h-4 w-4" />
                       </button>
-                      <button className="p-1.5 rounded-md hover:bg-gray-100 text-gray-600 hover:text-[#C026D3]">
+                      <button 
+                        className="p-1.5 rounded-md hover:bg-gray-100 text-gray-600 hover:text-[#C026D3]"
+                        onClick={async () => {
+                          const API = getApiUrl();
+                          let content = row.markdown || row.memoData?.texto_formateado || "";
+                          let filename = row.asunto || row.title || "documento";
+                          
+                          // Si no hay contenido y es un análisis, intentar cargarlo desde la API
+                          if (!content && row.type === "analysis" && row.id && API) {
+                            try {
+                              const response = await fetch(`${API}/legal/result/${row.id}`);
+                              if (response.ok) {
+                                const data = await response.json();
+                                if (data.analysis?.report) {
+                                  let report = data.analysis.report;
+                                  if (typeof report === 'string') {
+                                    try {
+                                      report = JSON.parse(report);
+                                    } catch {
+                                      // Si no es JSON, usar directamente
+                                    }
+                                  }
+                                  content = report?.texto_formateado || report?.resumen_ejecutivo || JSON.stringify(report, null, 2);
+                                  filename = report?.titulo || data.filename || filename;
+                                }
+                              }
+                            } catch (err) {
+                              console.error("Error al cargar contenido para descarga:", err);
+                            }
+                          }
+                          
+                          if (content) {
+                            downloadMD(filename, content);
+                          } else {
+                            alert("No hay contenido disponible para descargar.");
+                          }
+                        }}
+                        title="Descargar Markdown"
+                      >
                         <Download className="h-4 w-4" />
                       </button>
                     </div>
@@ -617,7 +655,46 @@ function MemoCard({ memo }: { memo: any }) {
           >
             <Eye className="h-5 w-5" />
           </button>
-          <button className="p-1.5 rounded-md hover:bg-gray-100 hover:text-[#C026D3]">
+          <button 
+            className="p-1.5 rounded-md hover:bg-gray-100 hover:text-[#C026D3]"
+            onClick={async (e) => {
+              e.stopPropagation();
+              const API = getApiUrl();
+              let content = memo.markdown || memo.memoData?.texto_formateado || "";
+              let filename = memo.asunto || memo.title || "documento";
+              
+              // Si no hay contenido y es un análisis, intentar cargarlo desde la API
+              if (!content && memo.type === "analysis" && memo.id && API) {
+                try {
+                  const response = await fetch(`${API}/legal/result/${memo.id}`);
+                  if (response.ok) {
+                    const data = await response.json();
+                    if (data.analysis?.report) {
+                      let report = data.analysis.report;
+                      if (typeof report === 'string') {
+                        try {
+                          report = JSON.parse(report);
+                        } catch {
+                          // Si no es JSON, usar directamente
+                        }
+                      }
+                      content = report?.texto_formateado || report?.resumen_ejecutivo || JSON.stringify(report, null, 2);
+                      filename = report?.titulo || data.filename || filename;
+                    }
+                  }
+                } catch (err) {
+                  console.error("Error al cargar contenido para descarga:", err);
+                }
+              }
+              
+              if (content) {
+                downloadMD(filename, content);
+              } else {
+                alert("No hay contenido disponible para descargar.");
+              }
+            }}
+            title="Descargar Markdown"
+          >
             <Download className="h-5 w-5" />
           </button>
           <button className="p-1.5 rounded-md hover:bg-red-50 hover:text-red-600">
@@ -683,10 +760,41 @@ function DocCard({ row }: { row: any }) {
           <button 
             className="icon-btn" 
             title="Descargar Markdown" 
-            onClick={()=>downloadMD(
-              row.asunto || row.title || "documento",
-              row.markdown || row.memoData?.texto_formateado || ""
-            )}
+            onClick={async () => {
+              const API = getApiUrl();
+              let content = row.markdown || row.memoData?.texto_formateado || "";
+              let filename = row.asunto || row.title || "documento";
+              
+              // Si no hay contenido y es un análisis, intentar cargarlo desde la API
+              if (!content && row.type === "analysis" && row.id && API) {
+                try {
+                  const response = await fetch(`${API}/legal/result/${row.id}`);
+                  if (response.ok) {
+                    const data = await response.json();
+                    if (data.analysis?.report) {
+                      let report = data.analysis.report;
+                      if (typeof report === 'string') {
+                        try {
+                          report = JSON.parse(report);
+                        } catch {
+                          // Si no es JSON, usar directamente
+                        }
+                      }
+                      content = report?.texto_formateado || report?.resumen_ejecutivo || JSON.stringify(report, null, 2);
+                      filename = report?.titulo || data.filename || filename;
+                    }
+                  }
+                } catch (err) {
+                  console.error("Error al cargar contenido para descarga:", err);
+                }
+              }
+              
+              if (content) {
+                downloadMD(filename, content);
+              } else {
+                alert("No hay contenido disponible para descargar.");
+              }
+            }}
           >
             <Download className="h-4 w-4" />
           </button>
