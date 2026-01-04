@@ -1951,7 +1951,7 @@ function AnalysisResultPanel({ analysisResult, analyzing, documentId }: {
     );
   }
 
-  const handleDownloadAnalysis = () => {
+  const handleDownloadAnalysis = async () => {
     const content = report?.texto_formateado || 
                    report?.resumen_ejecutivo || 
                    (typeof analysisResult?.analysis?.report === 'string' 
