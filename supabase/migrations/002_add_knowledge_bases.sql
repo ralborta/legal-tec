@@ -1,6 +1,5 @@
 -- Migración para añadir soporte a bases de conocimiento adicionales
 -- Esta migración extiende el sistema para soportar múltiples bases de conocimiento
--- Compatible con ambos esquemas: simple (source como columna) y optimizado (source en metadata)
 
 -- NOTA IMPORTANTE (compatibilidad de esquemas):
 -- En el repo existen 2 esquemas de `chunks`:
@@ -47,22 +46,7 @@ END $$;
 CREATE INDEX IF NOT EXISTS idx_chunks_knowledge_base ON chunks(knowledge_base);
 
 -- Crear índice compuesto para búsquedas más eficientes
--- Detectar si existe columna source directa o si está en metadata
-DO $$
-BEGIN
-  -- Verificar si existe la columna source directa
-  IF EXISTS (
-    SELECT 1 FROM information_schema.columns 
-    WHERE table_name = 'chunks' AND column_name = 'source'
-  ) THEN
-    -- Esquema simple: crear índice sobre columna source
-    CREATE INDEX IF NOT EXISTS idx_chunks_source_kb ON chunks(source, knowledge_base);
-  ELSE
-    -- Esquema optimizado: crear índice sobre metadata->>'source'
-    CREATE INDEX IF NOT EXISTS idx_chunks_source_kb 
-    ON chunks((metadata->>'source'), knowledge_base);
-  END IF;
-END $$;
+CREATE INDEX IF NOT EXISTS idx_chunks_source_kb ON chunks(source, knowledge_base);
 
 -- Crear tabla para gestionar las bases de conocimiento disponibles
 CREATE TABLE IF NOT EXISTS knowledge_bases (
@@ -87,16 +71,4 @@ ON CONFLICT (id) DO NOTHING;
 COMMENT ON COLUMN chunks.knowledge_base IS 'Identificador de la base de conocimiento específica (ej: "doctrina_wna", "jurisprudencia_extranjera")';
 COMMENT ON COLUMN knowledge_bases.id IS 'Identificador único de la base de conocimiento';
 COMMENT ON COLUMN knowledge_bases.source_type IS 'Tipo de fuente: normativa, juris, interno, doctrina, etc.';
-
-
-
-
-
-
-
-
-
-
-
-
 
