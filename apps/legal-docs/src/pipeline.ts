@@ -141,18 +141,29 @@ export async function regenerateReportOnly(
   existingAnalysis?: any
 ) {
   try {
-    console.log(`[REGENERATE-REPORT] Regenerando solo el reporte para documento ${documentId}`);
+    console.log(`[REGENERATE-REPORT] ========================================`);
+    console.log(`[REGENERATE-REPORT] Iniciando regeneración para documento ${documentId}`);
+    console.log(`[REGENERATE-REPORT] Instrucciones del usuario: ${userInstructions ? `SÍ (${userInstructions.length} chars)` : 'NO'}`);
+    
+    // Actualizar estado inicial
+    await updateAnalysisStatus(documentId, "generating_report", 10);
+    console.log(`[REGENERATE-REPORT] ✅ Estado actualizado a 'generating_report' (10%)`);
     
     // Si no se pasó el análisis, obtenerlo de la DB
     let analysis = existingAnalysis;
     if (!analysis) {
+      console.log(`[REGENERATE-REPORT] Obteniendo análisis de la DB...`);
       analysis = await legalDb.getAnalysis(documentId);
       if (!analysis) {
         throw new Error("No hay análisis previo disponible para regenerar");
       }
+      console.log(`[REGENERATE-REPORT] ✅ Análisis obtenido de la DB`);
+    } else {
+      console.log(`[REGENERATE-REPORT] ✅ Usando análisis pasado como parámetro`);
     }
     
     // Parsear los datos existentes
+    console.log(`[REGENERATE-REPORT] Parseando datos existentes...`);
     const original = typeof analysis.original === 'string' 
       ? JSON.parse(analysis.original) 
       : analysis.original;
@@ -162,6 +173,7 @@ export async function regenerateReportOnly(
     const checklist = typeof analysis.checklist === 'string'
       ? JSON.parse(analysis.checklist)
       : analysis.checklist;
+    console.log(`[REGENERATE-REPORT] ✅ Datos parseados: original=${typeof original}, translated=${Array.isArray(translated) ? translated.length + ' cláusulas' : typeof translated}, checklist=${typeof checklist}`);
     
     // Extraer texto original (puede estar en formato objeto o string)
     let originalText: string;
@@ -172,16 +184,22 @@ export async function regenerateReportOnly(
     } else {
       originalText = JSON.stringify(original);
     }
+    console.log(`[REGENERATE-REPORT] ✅ Texto original extraído: ${originalText.length} caracteres`);
     
     // Actualizar estado - asegurar que el documento existe en la DB
+    console.log(`[REGENERATE-REPORT] Verificando que el documento existe en la DB...`);
     const doc = await legalDb.getDocument(documentId);
     if (!doc) {
       throw new Error("Document not found in database");
     }
+    console.log(`[REGENERATE-REPORT] ✅ Documento verificado: ${doc.filename}`);
     
-    await updateAnalysisStatus(documentId, "generating_report", 80);
+    await updateAnalysisStatus(documentId, "generating_report", 50);
+    console.log(`[REGENERATE-REPORT] ✅ Estado actualizado a 'generating_report' (50%)`);
     
     // Generar nuevo reporte con las instrucciones del usuario
+    console.log(`[REGENERATE-REPORT] Generando nuevo reporte con gpt-4o...`);
+    await updateAnalysisStatus(documentId, "generating_report", 60);
     const report = await generateReport({
       original: originalText,
       translated,
@@ -189,8 +207,11 @@ export async function regenerateReportOnly(
       checklist,
       userInstructions: userInstructions || undefined,
     });
+    console.log(`[REGENERATE-REPORT] ✅ Reporte generado exitosamente`);
     
     // Guardar el nuevo reporte (manteniendo original, translated, checklist)
+    console.log(`[REGENERATE-REPORT] Guardando análisis en la DB...`);
+    await updateAnalysisStatus(documentId, "saving", 90);
     await legalDb.upsertAnalysis({
       documentId,
       type: analysis.type || "unknown",
@@ -200,9 +221,11 @@ export async function regenerateReportOnly(
       report,
       userInstructions: userInstructions || undefined,
     });
+    console.log(`[REGENERATE-REPORT] ✅ Análisis guardado en la DB`);
     
     await updateAnalysisStatus(documentId, "completed", 100);
     console.log(`[REGENERATE-REPORT] ✅ Reporte regenerado exitosamente para documento ${documentId}`);
+    console.log(`[REGENERATE-REPORT] ========================================`);
   } catch (error: any) {
     console.error(`[REGENERATE-REPORT] ❌ Error regenerando reporte:`, error);
     await updateAnalysisStatus(documentId, "error", 0);

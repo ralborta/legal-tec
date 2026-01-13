@@ -313,10 +313,17 @@ async function handleAnalyze(req: express.Request, res: express.Response, next: 
       const existingAnalysis = await legalDb.getAnalysis(documentId);
       if (existingAnalysis && existingAnalysis.original && existingAnalysis.translated) {
         console.log(`[LEGAL-DOCS-ANALYZE] ✅ Análisis previo encontrado, regenerando solo el reporte...`);
+        console.log(`[LEGAL-DOCS-ANALYZE] Iniciando regeneración asíncrona...`);
         // Regenerar solo el reporte usando datos existentes
-        regenerateReportOnly(documentId, userInstructions || undefined, existingAnalysis).catch((error) => {
-          console.error(`[ANALYZE] Error regenerando reporte para documento ${documentId}:`, error);
-        });
+        regenerateReportOnly(documentId, userInstructions || undefined, existingAnalysis)
+          .then(() => {
+            console.log(`[LEGAL-DOCS-ANALYZE] ✅ Regeneración completada exitosamente para ${documentId}`);
+          })
+          .catch((error) => {
+            console.error(`[LEGAL-DOCS-ANALYZE] ❌ Error regenerando reporte para documento ${documentId}:`, error);
+            console.error(`[LEGAL-DOCS-ANALYZE] Stack trace:`, error.stack);
+          });
+        console.log(`[LEGAL-DOCS-ANALYZE] Regeneración iniciada, respondiendo 200`);
         return res.json({ status: "processing", documentId, note: "Regenerando reporte usando datos existentes (archivo no disponible)" });
       } else {
         console.error(`[LEGAL-DOCS-ANALYZE] ❌ No hay análisis previo disponible para regenerar`);
