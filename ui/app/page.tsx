@@ -79,6 +79,38 @@ function generateChatSummary(chatMessages: Array<{role: "user" | "assistant"; co
   }
 }
 
+// Helper para extraer puntos clave del chat que se aplicarán al análisis
+function extractKeyPointsFromChat(chatMessages: Array<{role: "user" | "assistant"; content: string}>): string[] {
+  if (!chatMessages || chatMessages.length === 0) {
+    return [];
+  }
+  
+  const keyPoints: string[] = [];
+  
+  for (const msg of chatMessages) {
+    if (msg.role === "user") {
+      // Las instrucciones del usuario son puntos clave
+      const content = msg.content.trim();
+      if (content.length > 0) {
+        // Si es muy largo, truncar
+        const point = content.length > 100 ? content.substring(0, 100) + "..." : content;
+        keyPoints.push(`📌 ${point}`);
+      }
+    } else if (msg.role === "assistant") {
+      // Extraer conclusiones clave del asistente (primeras 2-3 frases)
+      const sentences = msg.content.split(/[.!?]\s+/).filter(s => s.trim().length > 20);
+      if (sentences.length > 0) {
+        const keyConclusion = sentences.slice(0, 2).join(". ").trim();
+        if (keyConclusion.length > 0 && keyConclusion.length < 150) {
+          keyPoints.push(`💡 ${keyConclusion}...`);
+        }
+      }
+    }
+  }
+  
+  return keyPoints.slice(0, 5); // Máximo 5 puntos clave
+}
+
 const kpis = [
   { title: "Solicitudes en Cola", value: "7", caption: "Pendientes", icon: Clock3, color: "text-amber-600" },
   { title: "Docs Generados (7d)", value: "126", caption: "+18% vs prev.", icon: FileText, color: "text-emerald-600" },
@@ -2153,13 +2185,31 @@ function AnalysisResultPanel({
             {report?.tipo_documento || analysisResult.analysis.type} • {report?.jurisdiccion || "Nacional"} • {report?.area_legal || ""}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-3">
           {chatMessages.length > 0 && (
             <>
+              {/* Resumen de puntos clave que se aplicarán */}
+              <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-4">
+                <p className="text-xs font-semibold text-purple-900 mb-2 flex items-center gap-2">
+                  <Sparkles className="h-3 w-3" />
+                  Puntos clave del chat que se aplicarán al nuevo análisis:
+                </p>
+                <div className="space-y-1.5">
+                  {extractKeyPointsFromChat(chatMessages).map((point, idx) => (
+                    <div key={idx} className="text-xs text-purple-800 bg-white/60 rounded px-2 py-1">
+                      {point}
+                    </div>
+                  ))}
+                  {extractKeyPointsFromChat(chatMessages).length === 0 && (
+                    <p className="text-xs text-purple-600 italic">Extrayendo puntos clave del chat...</p>
+                  )}
+                </div>
+              </div>
+              
               <button
                 onClick={handleRegenerateClick}
                 disabled={regenerating || pendingRegenerate}
-                className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed self-start"
                 title="Regenerar análisis con los criterios del chat"
               >
                 {regenerating ? (
@@ -2170,7 +2220,7 @@ function AnalysisResultPanel({
                 ) : (
                   <>
                     <Sparkles className="h-4 w-4" />
-                    <span>Regenerar</span>
+                    <span>Regenerar análisis</span>
                   </>
                 )}
               </button>

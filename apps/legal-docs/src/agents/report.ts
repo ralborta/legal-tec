@@ -282,24 +282,42 @@ ${FUENTES_LEGALES}
 ${instructionsText}
 
 ═══════════════════════════════════════════════════════════════════════════════
-⚠️ REGLAS CRÍTICAS - DEBES SEGUIR ESTAS INSTRUCCIONES OBLIGATORIAMENTE:
+⚠️⚠️⚠️ REGLAS CRÍTICAS - DEBES SEGUIR ESTAS INSTRUCCIONES OBLIGATORIAMENTE ⚠️⚠️⚠️
 ═══════════════════════════════════════════════════════════════════════════════
 
-1. Si el usuario solicita un enfoque diferente en el análisis, DEBES APLICARLO en TODO el análisis (resumen, cláusulas, riesgos, recomendaciones).
+LEE Y APLICA CADA PUNTO DE LAS INSTRUCCIONES DEL USUARIO MOSTRADAS ARRIBA.
 
-2. Si el usuario indica criterios específicos o conclusiones del chat, DEBES INCORPORARLOS en:
-   - El análisis jurídico
-   - La evaluación de riesgos
-   - Las recomendaciones
-   - Los próximos pasos
+1. Si el usuario solicita un enfoque diferente, DEBES APLICARLO en:
+   ✓ Resumen ejecutivo
+   ✓ Análisis de TODAS las cláusulas
+   ✓ Análisis jurídico
+   ✓ Riesgos identificados
+   ✓ Recomendaciones
+   ✓ Próximos pasos
+   ✓ Texto formateado completo
 
-3. Si el usuario menciona preocupaciones específicas, DEBES REFLEJARLAS en los riesgos identificados.
+2. Si el usuario indica criterios específicos o conclusiones del chat:
+   ✓ INCORPÓRALOS en el análisis jurídico
+   ✓ ÚSALOS para evaluar riesgos
+   ✓ REFLÉJALOS en las recomendaciones
+   ✓ INCLÚYELOS en los próximos pasos
 
-4. Las recomendaciones DEBEN ALINEARSE con las instrucciones y conclusiones del chat.
+3. Si el usuario menciona preocupaciones específicas:
+   ✓ DEBEN aparecer en los riesgos identificados
+   ✓ DEBEN tener el nivel de riesgo apropiado
+   ✓ DEBEN tener recomendaciones específicas
 
-5. El texto completo del análisis DEBE REFLEJAR el enfoque y criterios mencionados en el chat.
+4. Las recomendaciones DEBEN:
+   ✓ Alinearse con las instrucciones del chat
+   ✓ Reflejar las conclusiones mencionadas
+   ✓ Ser específicas y accionables
 
-6. NO ignores estas instrucciones. Tienen PRIORIDAD sobre cualquier análisis genérico.
+5. El texto completo (texto_formateado) DEBE:
+   ✓ Reflejar el enfoque solicitado
+   ✓ Incorporar los criterios del chat
+   ✓ Mostrar coherencia con las instrucciones
+
+6. NO ignores estas instrucciones. Son OBLIGATORIAS y tienen PRIORIDAD ABSOLUTA sobre cualquier análisis genérico.
 
 ═══════════════════════════════════════════════════════════════════════════════
 
