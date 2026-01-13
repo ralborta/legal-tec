@@ -1507,14 +1507,23 @@ function AnalizarDocumentosPanel() {
         analyzing={analyzing} 
         documentId={documentId}
         originalInstructions={instructions}
-        onRegenerate={() => {
-          // Refrescar el análisis después de regenerar
-          if (documentId) {
+        onRegenerate={(docId) => {
+          // Activar el estado de análisis y comenzar polling
+          if (docId) {
+            setDocumentId(docId);
+            setAnalyzing(true);
             setPolling(true);
             setProgress(0);
             setStatusLabel("Regenerando análisis...");
+            setAnalysisResult(null);
+            // Iniciar polling del nuevo análisis
+            pollForResults(docId);
           }
         }}
+        setAnalyzing={setAnalyzing}
+        setProgress={setProgress}
+        setStatusLabel={setStatusLabel}
+        pollForResults={pollForResults}
       />
     </div>
   );
@@ -1882,13 +1891,21 @@ function AnalysisResultPanel({
   analyzing, 
   documentId,
   onRegenerate,
-  originalInstructions
+  originalInstructions,
+  setAnalyzing,
+  setProgress,
+  setStatusLabel,
+  pollForResults
 }: { 
   analysisResult: any; 
   analyzing: boolean;
   documentId: string | null;
-  onRegenerate?: () => void;
+  onRegenerate?: (docId: string) => void;
   originalInstructions?: string;
+  setAnalyzing?: (value: boolean) => void;
+  setProgress?: (value: number) => void;
+  setStatusLabel?: (value: string) => void;
+  pollForResults?: (docId: string) => void;
 }) {
   const [activeTab, setActiveTab] = useState<"resumen" | "clausulas" | "riesgos" | "recomendaciones" | "fuentes" | "chat">("resumen");
   const [chatMessages, setChatMessages] = useState<Array<{role: "user" | "assistant"; content: string}>>([]);
@@ -2029,6 +2046,12 @@ function AnalysisResultPanel({
     if (!API || !documentId || regenerating) return;
     
     setRegenerating(true);
+    
+    // Activar estados de análisis
+    if (setAnalyzing) setAnalyzing(true);
+    if (setProgress) setProgress(0);
+    if (setStatusLabel) setStatusLabel("Regenerando análisis...");
+    
     try {
       // Extraer contexto del chat
       const chatContext = extractChatContext(chatMessages);
@@ -2051,13 +2074,19 @@ function AnalysisResultPanel({
       // Limpiar el chat después de regenerar
       setChatMessages([]);
       
-      // Llamar al callback si existe para refrescar la vista
-      if (onRegenerate) {
-        onRegenerate();
+      // Llamar al callback para iniciar polling del progreso
+      if (onRegenerate && documentId) {
+        onRegenerate(documentId);
+      }
+      
+      // Si hay función de polling, iniciarla
+      if (pollForResults && documentId) {
+        pollForResults(documentId);
       }
     } catch (err: any) {
       console.error("Error al regenerar:", err);
       alert(`Error al regenerar el análisis: ${err.message || "Intenta de nuevo"}`);
+      if (setAnalyzing) setAnalyzing(false);
     } finally {
       setRegenerating(false);
     }
@@ -3222,6 +3251,18 @@ function MemoResultPanel({
       setRegenerating(false);
     }
   };
+
+  // Mostrar indicador de progreso cuando se está regenerando
+  if (regenerating) {
+    return (
+      <div className="w-full">
+        <div className="bg-white p-6 rounded-xl border border-gray-200">
+          <h3 className="font-bold text-lg text-gray-900 mb-4">Regenerando análisis...</h3>
+          <ProgressIndicator />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full">
