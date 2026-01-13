@@ -287,72 +287,59 @@ ${instructionsText}
 
 LEE Y APLICA CADA PUNTO DE LAS INSTRUCCIONES DEL USUARIO MOSTRADAS ARRIBA EN TODAS Y CADA UNA DE LAS SECCIONES DEL ANÁLISIS.
 
+🚨 PRINCIPIO FUNDAMENTAL: Interpreta las instrucciones del usuario y aplícalas COHERENTEMENTE en TODAS las secciones. No uses análisis genéricos. Cada sección debe reflejar el enfoque, criterios y conclusiones mencionados en el chat.
+
 🚨 OBLIGATORIO: Las instrucciones del usuario DEBEN reflejarse en:
 
 1. ✅ RESUMEN EJECUTIVO (resumen_ejecutivo):
-   - Si el usuario solicita un enfoque diferente (ej: desde el punto de vista del contribuyente), el resumen DEBE reflejar ese enfoque
-   - Si menciona beneficios o riesgos específicos, DEBEN aparecer en el resumen
-   - El resumen DEBE alinearse con las instrucciones del chat
+   - Interpreta el enfoque solicitado en el chat y reflejalo en el resumen
+   - Si menciona un punto de vista específico, criterios, beneficios, riesgos o preocupaciones, DEBEN aparecer en el resumen
+   - El resumen DEBE alinearse completamente con las instrucciones del chat
 
 2. ✅ PUNTOS TRATADOS / CLÁUSULAS ANALIZADAS (clausulas_analizadas):
-   - Cada cláusula analizada DEBE reflejar el enfoque solicitado
-   - Si el usuario menciona un punto de vista específico, CADA análisis de cláusula DEBE incorporarlo
-   - Los riesgos de cada cláusula DEBEN evaluarse según los criterios del chat
-   - NO uses análisis genéricos, usa el enfoque específico del chat
+   - Cada cláusula analizada DEBE reflejar el enfoque, criterios y punto de vista mencionados en el chat
+   - Interpreta las instrucciones y aplica ese enfoque a CADA análisis de cláusula
+   - Los riesgos de cada cláusula DEBEN evaluarse según los criterios y enfoque del chat
+   - NO uses análisis genéricos, usa el enfoque específico interpretado de las instrucciones
 
 3. ✅ RIESGOS (riesgos):
-   - 🚨 CRÍTICO: Los riesgos DEBEN ser COHERENTES con el enfoque solicitado en el chat
-   - Si el usuario solicita "punto de vista del contribuyente", los riesgos DEBEN ser riesgos PARA EL CONTRIBUYENTE (no para el Estado)
-   - Si el usuario solicita "punto de vista del Estado", los riesgos DEBEN ser riesgos PARA EL ESTADO
-   - Si el usuario menciona beneficios, los riesgos DEBEN balancearse mostrando también qué podría salir mal desde esa perspectiva
-   - El nivel de riesgo DEBE evaluarse según el enfoque: un riesgo "alto" para el Estado puede ser "bajo" para el contribuyente y viceversa
-   - Cada riesgo DEBE tener una recomendación específica alineada con las instrucciones y el enfoque solicitado
-   - NO uses riesgos genéricos. Cada riesgo DEBE reflejar el punto de vista específico mencionado en el chat
-   - Si el chat menciona un enfoque diferente, REESCRIBE los riesgos desde ese enfoque, no solo cambies el resumen
+   - 🚨 CRÍTICO: Los riesgos DEBEN ser COHERENTES con el enfoque, punto de vista y criterios mencionados en el chat
+   - Interpreta las instrucciones: si el usuario menciona un punto de vista específico (ej: "desde el punto de vista de X"), los riesgos DEBEN ser riesgos PARA ESE PUNTO DE VISTA
+   - Si el usuario menciona beneficios, preocupaciones, o criterios específicos, los riesgos DEBEN reflejarlos desde esa perspectiva
+   - El nivel de riesgo DEBE evaluarse según el enfoque y criterios mencionados en el chat
+   - Cada riesgo DEBE tener una recomendación específica alineada con las instrucciones y el enfoque interpretado
+   - NO uses riesgos genéricos. Cada riesgo DEBE reflejar el punto de vista, criterios y enfoque específico mencionado en el chat
+   - Si el chat menciona un enfoque diferente, REESCRIBE los riesgos desde ese enfoque interpretado, no solo cambies el resumen
+   - COHERENCIA: Si el resumen refleja un enfoque, los riesgos DEBEN ser coherentes con ese mismo enfoque
 
 4. ✅ ANÁLISIS JURÍDICO (analisis_juridico):
-   - El análisis jurídico COMPLETO DEBE incorporar el enfoque del chat
-   - Si se solicita un punto de vista diferente, TODO el análisis jurídico DEBE reflejarlo
-   - Las interpretaciones legales DEBEN alinearse con las instrucciones
+   - El análisis jurídico COMPLETO DEBE incorporar el enfoque, criterios y punto de vista interpretados del chat
+   - Interpreta las instrucciones y aplica ese enfoque a TODO el análisis jurídico
+   - Las interpretaciones legales DEBEN alinearse con las instrucciones del chat
 
 5. ✅ RECOMENDACIONES (recomendaciones):
-   - TODAS las recomendaciones DEBEN alinearse con las instrucciones del chat
-   - Si se mencionan beneficios, las recomendaciones DEBEN incluirlos
-   - Las recomendaciones DEBEN ser específicas y reflejar el enfoque solicitado
+   - TODAS las recomendaciones DEBEN alinearse con las instrucciones, enfoque y criterios del chat
+   - Interpreta las instrucciones y genera recomendaciones que reflejen ese enfoque
+   - Las recomendaciones DEBEN ser específicas y reflejar el enfoque interpretado de las instrucciones
 
 6. ✅ PRÓXIMOS PASOS (proximos_pasos):
    - Los próximos pasos DEBEN reflejar las acciones sugeridas en el chat
-   - DEBEN ser coherentes con el enfoque y criterios mencionados
+   - DEBEN ser coherentes con el enfoque, criterios y punto de vista interpretados de las instrucciones
 
 7. ✅ TEXTO FORMATEADO COMPLETO (texto_formateado):
-   - TODO el texto formateado DEBE reflejar el enfoque del chat
-   - NO uses texto genérico, incorpora las instrucciones en CADA sección del texto
-   - El texto completo DEBE ser coherente con las instrucciones del usuario
-   - Si se solicita un punto de vista diferente, TODO el texto DEBE reflejarlo
+   - TODO el texto formateado DEBE reflejar el enfoque, criterios y punto de vista interpretados del chat
+   - NO uses texto genérico, incorpora las instrucciones interpretadas en CADA sección del texto
+   - El texto completo DEBE ser coherente con las instrucciones del usuario en todas sus secciones
 
-🚨 EJEMPLO: Si el usuario dice "hacer el análisis desde el punto de vista del contribuyente":
-   - El resumen DEBE mencionar beneficios para el contribuyente
-   - Las cláusulas DEBEN analizarse desde la perspectiva del contribuyente
-   - 🚨 RIESGOS: DEBEN ser riesgos PARA EL CONTRIBUYENTE, por ejemplo:
-     * "Riesgo de que el contribuyente no pueda aprovechar los beneficios de la ley si no cumple con los requisitos"
-     * "Riesgo de que el contribuyente sea sancionado si no entiende correctamente las nuevas disposiciones"
-     * "Riesgo de que el contribuyente pierda oportunidades de regularización si no actúa a tiempo"
-     * NO uses riesgos como "Riesgo de evasión para el Estado" - ese es un riesgo para el Estado, no para el contribuyente
-   - El análisis jurídico DEBE enfocarse en derechos y beneficios del contribuyente
-   - Las recomendaciones DEBEN ser para el contribuyente (cómo aprovechar beneficios, cómo evitar sanciones, etc.)
-   - TODO el texto formateado DEBE reflejar este enfoque
-
-🚨 EJEMPLO: Si el usuario menciona "beneficios de la ley para los contribuyentes":
-   - El resumen DEBE incluir una sección sobre beneficios
-   - Las cláusulas DEBEN analizarse destacando beneficios
-   - 🚨 RIESGOS: DEBEN balancearse mostrando qué podría salir mal desde la perspectiva del contribuyente:
-     * "Riesgo de que el contribuyente no cumpla con los requisitos para acceder a los beneficios"
-     * "Riesgo de que el contribuyente no aproveche las oportunidades de regularización a tiempo"
-     * "Riesgo de que el contribuyente no entienda correctamente cómo aplicar los beneficios"
-     * Los riesgos DEBEN ser coherentes: si hablamos de beneficios para el contribuyente, los riesgos son sobre perder esos beneficios o no poder acceder a ellos
-   - El análisis jurídico DEBE incluir normativa favorable al contribuyente
-   - Las recomendaciones DEBEN incluir cómo aprovechar beneficios y evitar perderlos
-   - TODO el texto formateado DEBE incorporar estos beneficios y riesgos coherentes
+🚨 PRINCIPIO DE COHERENCIA: 
+   - Interpreta las instrucciones del usuario (punto de vista, criterios, enfoque, beneficios, preocupaciones, etc.)
+   - Aplica ese enfoque interpretado COHERENTEMENTE en TODAS las secciones
+   - Si el resumen refleja un enfoque, los riesgos DEBEN ser coherentes con ese mismo enfoque
+   - Si las cláusulas se analizan desde una perspectiva, los riesgos DEBEN ser desde esa misma perspectiva
+   - NO mezcles enfoques: si el usuario solicita un punto de vista específico, mantén ese punto de vista en TODAS las secciones
+   - Los riesgos DEBEN reflejar las preocupaciones, criterios y punto de vista mencionados en el chat
+   - Si el usuario menciona beneficios, los riesgos DEBEN ser coherentes con esos beneficios (riesgos de perderlos, no acceder a ellos, etc.)
+   - Si el usuario menciona un punto de vista específico, los riesgos DEBEN ser riesgos PARA ESE PUNTO DE VISTA, no para otro
 
 NO ignores estas instrucciones. Son OBLIGATORIAS y tienen PRIORIDAD ABSOLUTA sobre cualquier análisis genérico. APLÍCALAS A TODAS LAS SECCIONES SIN EXCEPCIÓN.
 
@@ -377,14 +364,14 @@ IMPORTANTE: El análisis debe ser EXTENSO y DETALLADO. Analiza TODAS las cláusu
 ⚠️⚠️⚠️ RECORDATORIO FINAL CRÍTICO ⚠️⚠️⚠️
 TODAS las secciones del JSON que generes (resumen_ejecutivo, clausulas_analizadas, analisis_juridico, riesgos, recomendaciones, proximos_pasos, texto_formateado) DEBEN reflejar las instrucciones del usuario mostradas arriba en la sección "INSTRUCCIONES Y CONTEXTO DEL USUARIO".
 
-NO uses contenido genérico. APLICA el enfoque, criterios y conclusiones del chat en CADA sección:
-- Si el usuario solicita un punto de vista diferente, CADA cláusula analizada DEBE reflejarlo
-- 🚨 RIESGOS - COHERENCIA CRÍTICA: Si el usuario solicita "punto de vista del contribuyente", los riesgos DEBEN ser riesgos PARA EL CONTRIBUYENTE (ej: "riesgo de que el contribuyente no pueda acceder a beneficios", "riesgo de sanciones para el contribuyente"). Si solicita "punto de vista del Estado", los riesgos DEBEN ser PARA EL ESTADO (ej: "riesgo de evasión fiscal", "riesgo de pérdida de recaudación"). NO mezcles enfoques. Si el resumen refleja un enfoque, los riesgos DEBEN ser coherentes con ese mismo enfoque.
-- Si el usuario menciona beneficios, los riesgos DEBEN ser coherentes: riesgos de perder esos beneficios o no poder acceder a ellos (desde la perspectiva del beneficiario)
-- Si el usuario menciona preocupaciones, DEBEN aparecer en los riesgos identificados desde el enfoque solicitado
-- El texto_formateado COMPLETO DEBE reflejar el enfoque del chat en TODAS sus secciones, especialmente en la sección de riesgos
+NO uses contenido genérico. INTERPRETA las instrucciones del usuario y APLICA el enfoque, criterios, punto de vista y conclusiones del chat en CADA sección:
+- Interpreta el enfoque solicitado (punto de vista, criterios, beneficios, preocupaciones, etc.) y aplícalo a CADA cláusula analizada
+- 🚨 RIESGOS - COHERENCIA CRÍTICA: Interpreta las instrucciones del chat. Si el usuario menciona un punto de vista específico, los riesgos DEBEN ser riesgos PARA ESE PUNTO DE VISTA. Si menciona beneficios, preocupaciones o criterios específicos, los riesgos DEBEN reflejarlos desde esa perspectiva interpretada. NO mezcles enfoques. Si el resumen refleja un enfoque, los riesgos DEBEN ser coherentes con ese mismo enfoque interpretado.
+- Si el usuario menciona beneficios, los riesgos DEBEN ser coherentes: riesgos de perder esos beneficios o no poder acceder a ellos (desde la perspectiva del beneficiario mencionado)
+- Si el usuario menciona preocupaciones, DEBEN aparecer en los riesgos identificados desde el enfoque y punto de vista interpretado
+- El texto_formateado COMPLETO DEBE reflejar el enfoque interpretado del chat en TODAS sus secciones, especialmente en la sección de riesgos
 
-🚨 COHERENCIA CRÍTICA: Si el resumen refleja un enfoque (ej: "desde el punto de vista del contribuyente"), los riesgos DEBEN ser coherentes con ese mismo enfoque. NO uses riesgos genéricos o desde otra perspectiva.
+🚨 COHERENCIA CRÍTICA: Interpreta las instrucciones del usuario y mantén coherencia. Si el resumen refleja un enfoque interpretado, los riesgos DEBEN ser coherentes con ese mismo enfoque. NO uses riesgos genéricos o desde otra perspectiva. Cada sección debe reflejar el mismo enfoque interpretado de las instrucciones.
 
 NO ignores estas instrucciones. Son OBLIGATORIAS.`,
           },
