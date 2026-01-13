@@ -1392,8 +1392,10 @@ function AnalizarDocumentosPanel() {
 
       {/* Panel de progreso del análisis */}
       {analyzing && (
-        <div className="bg-white p-6 rounded-xl border border-gray-200">
-          <h3 className="font-bold text-lg text-gray-900 mb-4">Analizando documento...</h3>
+        <div className="bg-white p-6 rounded-xl border border-gray-200 animate-in fade-in duration-300">
+          <h3 className="font-bold text-lg text-gray-900 mb-4">
+            {statusLabel?.includes("Regenerando") ? "🔄 Regenerando análisis..." : "Analizando documento..."}
+          </h3>
           <div className="space-y-4">
             <div className="flex items-center gap-3">
               <div className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${
@@ -2100,15 +2102,25 @@ function AnalysisResultPanel({
       // Extraer contexto del chat
       const chatContext = extractChatContext(chatMessages);
       
+      console.log("[REGENERATE] Chat messages:", chatMessages);
+      console.log("[REGENERATE] Extracted context:", chatContext);
+      
       // Combinar instrucciones originales con contexto del chat
+      // Si hay contexto del chat, tiene PRIORIDAD sobre las instrucciones originales
       const enhancedInstructions = chatContext 
-        ? `${originalInstructions || ""}\n\n--- CONTEXTO DEL CHAT ---\n${chatContext}`
+        ? `CONTEXTO Y CONCLUSIONES DEL CHAT (APLICAR EN TODO EL ANÁLISIS):\n${chatContext}\n\n${originalInstructions ? `Instrucciones originales: ${originalInstructions}` : ""}`
         : (originalInstructions || "");
+      
+      console.log("[REGENERATE] Enhanced instructions to send:", enhancedInstructions);
+      console.log("[REGENERATE] Instructions length:", enhancedInstructions.length);
+      
+      const instructionsToSend = enhancedInstructions.slice(0, 2000);
+      console.log("[REGENERATE] Instructions after slice:", instructionsToSend);
       
       const analyzeResponse = await fetchWithTimeout(`${API}/legal/analyze/${documentId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(enhancedInstructions ? { instructions: enhancedInstructions.slice(0, 2000) } : {}),
+        body: JSON.stringify(instructionsToSend ? { instructions: instructionsToSend } : {}),
       }, 30000);
       
       if (!analyzeResponse.ok) {
@@ -2168,40 +2180,66 @@ function AnalysisResultPanel({
                 )}
               </button>
               
-              {/* Modal de confirmación con resumen del chat */}
-              {showRegenerateModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                  <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6 space-y-4">
-                    <h3 className="text-xl font-bold text-gray-900">Regenerar análisis con contexto del chat</h3>
-                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                      <p className="text-sm font-semibold text-purple-900 mb-2">Resumen del chat:</p>
-                      <p className="text-sm text-purple-800 whitespace-pre-wrap">
-                        {generateChatSummary(chatMessages) || "No hay resumen disponible"}
-                      </p>
-                    </div>
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                      <p className="text-sm font-semibold text-blue-900 mb-1">⚠️ Importante:</p>
-                      <p className="text-xs text-blue-800">
-                        El análisis se regenerará completamente (OCR, traducción, clasificación, análisis de cláusulas, riesgos, fuentes y texto completo) incorporando las instrucciones y conclusiones del chat.
-                      </p>
-                    </div>
-                    <div className="flex items-center justify-end gap-3 pt-2">
-                      <button
-                        onClick={() => setShowRegenerateModal(false)}
-                        className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 font-medium"
-                      >
-                        Cancelar
-                      </button>
-                      <button
-                        onClick={handleRegenerateConfirm}
-                        className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors"
-                      >
-                        Confirmar regeneración
-                      </button>
+              {/* Modal de confirmación con contexto completo del chat */}
+              {showRegenerateModal && (() => {
+                const chatContext = extractChatContext(chatMessages);
+                return (
+                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+                      <h3 className="text-xl font-bold text-gray-900">Regenerar análisis con contexto del chat</h3>
+                      
+                      {/* Mostrar TODOS los mensajes del chat */}
+                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 max-h-60 overflow-y-auto">
+                        <p className="text-sm font-semibold text-gray-900 mb-3">Historial completo del chat:</p>
+                        <div className="space-y-3">
+                          {chatMessages.map((msg, idx) => (
+                            <div key={idx} className={`p-3 rounded-lg ${msg.role === "user" ? "bg-blue-50 border border-blue-200" : "bg-purple-50 border border-purple-200"}`}>
+                              <p className="text-xs font-semibold mb-1 text-gray-700">
+                                {msg.role === "user" ? "👤 Tu instrucción:" : "🤖 Respuesta del asistente:"}
+                              </p>
+                              <p className="text-sm text-gray-800 whitespace-pre-wrap">{msg.content}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {/* Mostrar el contexto extraído que se enviará */}
+                      {chatContext && (
+                        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                          <p className="text-sm font-semibold text-purple-900 mb-2">📋 Contexto que se aplicará al análisis:</p>
+                          <div className="bg-white rounded p-3 border border-purple-300">
+                            <p className="text-xs text-purple-800 whitespace-pre-wrap font-mono">
+                              {chatContext}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <p className="text-sm font-semibold text-blue-900 mb-1">⚠️ Importante:</p>
+                        <p className="text-xs text-blue-800">
+                          El análisis se regenerará completamente (OCR, traducción, clasificación, análisis de cláusulas, riesgos, fuentes y texto completo) incorporando TODAS las instrucciones y conclusiones del chat mostradas arriba.
+                        </p>
+                      </div>
+                      
+                      <div className="flex items-center justify-end gap-3 pt-2">
+                        <button
+                          onClick={() => setShowRegenerateModal(false)}
+                          className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 font-medium"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          onClick={handleRegenerateConfirm}
+                          className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors"
+                        >
+                          Confirmar regeneración
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
             </>
           )}
           <button

@@ -266,9 +266,11 @@ async function handleAnalyze(req: express.Request, res: express.Response, next: 
     console.log(`[LEGAL-DOCS-ANALYZE] Tipo de documentId: ${typeof documentId}`);
     console.log(`[LEGAL-DOCS-ANALYZE] documentId length: ${documentId?.length || 0}`);
     if (userInstructions) {
-      console.log(`[LEGAL-DOCS-ANALYZE] Instrucciones usuario (${userInstructions.length} chars): "${userInstructions}"`);
+      console.log(`[LEGAL-DOCS-ANALYZE] ✅ Instrucciones usuario (${userInstructions.length} chars):`);
+      console.log(`[LEGAL-DOCS-ANALYZE] "${userInstructions}"`);
+      console.log(`[LEGAL-DOCS-ANALYZE] Contiene contexto del chat: ${userInstructions.includes("CONTEXTO") || userInstructions.includes("CHAT") ? "SÍ ✅" : "NO ❌"}`);
     } else {
-      console.log(`[LEGAL-DOCS-ANALYZE] Sin instrucciones adicionales del usuario`);
+      console.log(`[LEGAL-DOCS-ANALYZE] ⚠️ Sin instrucciones adicionales del usuario`);
     }
     
     // Validar que documentId existe y es válido
