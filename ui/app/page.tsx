@@ -35,24 +35,19 @@ function extractChatContext(chatMessages: Array<{role: "user" | "assistant"; con
   }
   
   // Extraer TODOS los mensajes del usuario (son instrucciones directas)
-  // Y las respuestas del asistente que contengan conclusiones o recomendaciones
+  // Y TODAS las respuestas del asistente (contienen conclusiones y análisis)
   const relevantMessages: string[] = [];
   
   for (let i = 0; i < chatMessages.length; i++) {
     const msg = chatMessages[i];
     if (msg.role === "user") {
-      // TODOS los mensajes del usuario son importantes (son instrucciones)
+      // TODOS los mensajes del usuario son importantes (son instrucciones directas)
       relevantMessages.push(`INSTRUCCIÓN DEL USUARIO: ${msg.content}`);
-    } else if (msg.role === "assistant" && i > 0) {
-      // Incluir respuestas del asistente que contengan conclusiones, recomendaciones o criterios
-      const content = msg.content.toLowerCase();
-      if (content.includes("criterio") || content.includes("debe") || content.includes("importante") || 
-          content.includes("recomendación") || content.includes("considerar") || content.includes("atención") ||
-          content.includes("conclusión") || content.includes("sugerencia") || content.includes("enfoque") ||
-          content.includes("prioridad") || content.includes("revisar") || content.includes("cambiar")) {
-        // Incluir más contexto de las respuestas del asistente
-        relevantMessages.push(`CONCLUSIÓN DEL ASISTENTE: ${msg.content.substring(0, 500)}`);
-      }
+    } else if (msg.role === "assistant") {
+      // Incluir TODAS las respuestas del asistente (contienen conclusiones, análisis y recomendaciones)
+      // Limitar a 400 caracteres por respuesta para no exceder el límite total
+      const truncated = msg.content.length > 400 ? msg.content.substring(0, 400) + "..." : msg.content;
+      relevantMessages.push(`CONCLUSIÓN/ANÁLISIS DEL ASISTENTE: ${truncated}`);
     }
   }
   

@@ -276,17 +276,30 @@ export async function generateReport(input: ReportInput): Promise<AnalysisReport
 ${FUENTES_LEGALES}
 
 ═══════════════════════════════════════════════════════════════════════════════
-⚠️ INSTRUCCIONES Y CONTEXTO DEL USUARIO - PRIORIDAD MÁXIMA ⚠️
+🚨🚨🚨 INSTRUCCIONES Y CONTEXTO DEL USUARIO - PRIORIDAD ABSOLUTA 🚨🚨🚨
 ═══════════════════════════════════════════════════════════════════════════════
 
 ${instructionsText}
 
-IMPORTANTE: Estas instrucciones son CRÍTICAS y deben aplicarse en TODO el análisis:
-- Si el usuario solicita un enfoque diferente, APLÍCALO en todo el análisis
-- Si el usuario indica criterios específicos, ÚSALOS para evaluar riesgos y cláusulas
-- Si el usuario menciona conclusiones del chat, INCORPÓRALAS en el análisis jurídico
-- Las recomendaciones y próximos pasos deben ALINEARSE con estas instrucciones
-- Los riesgos identificados deben REFLEJAR las preocupaciones mencionadas por el usuario
+═══════════════════════════════════════════════════════════════════════════════
+⚠️ REGLAS CRÍTICAS - DEBES SEGUIR ESTAS INSTRUCCIONES OBLIGATORIAMENTE:
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Si el usuario solicita un enfoque diferente en el análisis, DEBES APLICARLO en TODO el análisis (resumen, cláusulas, riesgos, recomendaciones).
+
+2. Si el usuario indica criterios específicos o conclusiones del chat, DEBES INCORPORARLOS en:
+   - El análisis jurídico
+   - La evaluación de riesgos
+   - Las recomendaciones
+   - Los próximos pasos
+
+3. Si el usuario menciona preocupaciones específicas, DEBES REFLEJARLAS en los riesgos identificados.
+
+4. Las recomendaciones DEBEN ALINEARSE con las instrucciones y conclusiones del chat.
+
+5. El texto completo del análisis DEBE REFLEJAR el enfoque y criterios mencionados en el chat.
+
+6. NO ignores estas instrucciones. Tienen PRIORIDAD sobre cualquier análisis genérico.
 
 ═══════════════════════════════════════════════════════════════════════════════
 
