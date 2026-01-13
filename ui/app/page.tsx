@@ -34,19 +34,24 @@ function extractChatContext(chatMessages: Array<{role: "user" | "assistant"; con
     return "";
   }
   
-  // Extraer solo los mensajes del usuario y las respuestas más relevantes del asistente
+  // Extraer TODOS los mensajes del usuario (son instrucciones directas)
+  // Y las respuestas del asistente que contengan conclusiones o recomendaciones
   const relevantMessages: string[] = [];
   
   for (let i = 0; i < chatMessages.length; i++) {
     const msg = chatMessages[i];
     if (msg.role === "user") {
-      relevantMessages.push(`Usuario: ${msg.content}`);
+      // TODOS los mensajes del usuario son importantes (son instrucciones)
+      relevantMessages.push(`INSTRUCCIÓN DEL USUARIO: ${msg.content}`);
     } else if (msg.role === "assistant" && i > 0) {
-      // Incluir respuestas del asistente que contengan criterios, instrucciones o conclusiones
+      // Incluir respuestas del asistente que contengan conclusiones, recomendaciones o criterios
       const content = msg.content.toLowerCase();
       if (content.includes("criterio") || content.includes("debe") || content.includes("importante") || 
-          content.includes("recomendación") || content.includes("considerar") || content.includes("atención")) {
-        relevantMessages.push(`Asistente: ${msg.content.substring(0, 300)}...`);
+          content.includes("recomendación") || content.includes("considerar") || content.includes("atención") ||
+          content.includes("conclusión") || content.includes("sugerencia") || content.includes("enfoque") ||
+          content.includes("prioridad") || content.includes("revisar") || content.includes("cambiar")) {
+        // Incluir más contexto de las respuestas del asistente
+        relevantMessages.push(`CONCLUSIÓN DEL ASISTENTE: ${msg.content.substring(0, 500)}`);
       }
     }
   }
@@ -55,9 +60,28 @@ function extractChatContext(chatMessages: Array<{role: "user" | "assistant"; con
     return "";
   }
   
-  // Limitar el contexto total a ~1000 caracteres
+  // Aumentar límite a 2000 caracteres para incluir más contexto
   const context = relevantMessages.join("\n\n");
-  return context.length > 1000 ? context.substring(0, 1000) + "..." : context;
+  return context.length > 2000 ? context.substring(0, 2000) + "..." : context;
+}
+
+// Helper para generar un resumen breve del chat
+function generateChatSummary(chatMessages: Array<{role: "user" | "assistant"; content: string}>): string {
+  if (!chatMessages || chatMessages.length === 0) {
+    return "";
+  }
+  
+  const userMessages = chatMessages.filter(m => m.role === "user").map(m => m.content);
+  if (userMessages.length === 0) {
+    return "";
+  }
+  
+  // Crear un resumen de las instrucciones del usuario
+  if (userMessages.length === 1) {
+    return userMessages[0].substring(0, 150);
+  } else {
+    return `${userMessages.length} instrucciones del usuario: ${userMessages.slice(0, 2).join("; ").substring(0, 150)}...`;
+  }
 }
 
 const kpis = [
@@ -2041,16 +2065,36 @@ function AnalysisResultPanel({
     }
   }
 
-  // Función para regenerar el análisis con contexto del chat
-  const handleRegenerate = async () => {
+  const [showRegenerateModal, setShowRegenerateModal] = useState(false);
+  const [pendingRegenerate, setPendingRegenerate] = useState(false);
+
+  // Función para mostrar modal de confirmación con resumen
+  const handleRegenerateClick = () => {
+    if (chatMessages.length === 0) {
+      // Si no hay chat, regenerar directamente
+      handleRegenerateConfirm();
+    } else {
+      // Mostrar modal con resumen
+      setShowRegenerateModal(true);
+    }
+  };
+
+  // Función para confirmar regeneración
+  const handleRegenerateConfirm = async () => {
+    setShowRegenerateModal(false);
+    setPendingRegenerate(true);
+    
     if (!API || !documentId || regenerating) return;
     
     setRegenerating(true);
     
-    // Activar estados de análisis
+    // Ocultar el resultado anterior suavemente
     if (setAnalyzing) setAnalyzing(true);
     if (setProgress) setProgress(0);
     if (setStatusLabel) setStatusLabel("Regenerando análisis...");
+    
+    // Pequeño delay para transición suave
+    await new Promise(resolve => setTimeout(resolve, 300));
     
     try {
       // Extraer contexto del chat
@@ -2089,6 +2133,7 @@ function AnalysisResultPanel({
       if (setAnalyzing) setAnalyzing(false);
     } finally {
       setRegenerating(false);
+      setPendingRegenerate(false);
     }
   };
 
@@ -2103,24 +2148,61 @@ function AnalysisResultPanel({
         </div>
         <div className="flex items-center gap-2">
           {chatMessages.length > 0 && (
-            <button
-              onClick={handleRegenerate}
-              disabled={regenerating}
-              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Regenerar análisis con los criterios del chat"
-            >
-              {regenerating ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Regenerando...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-4 w-4" />
-                  <span>Regenerar</span>
-                </>
+            <>
+              <button
+                onClick={handleRegenerateClick}
+                disabled={regenerating || pendingRegenerate}
+                className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Regenerar análisis con los criterios del chat"
+              >
+                {regenerating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Regenerando...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4" />
+                    <span>Regenerar</span>
+                  </>
+                )}
+              </button>
+              
+              {/* Modal de confirmación con resumen del chat */}
+              {showRegenerateModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                  <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6 space-y-4">
+                    <h3 className="text-xl font-bold text-gray-900">Regenerar análisis con contexto del chat</h3>
+                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                      <p className="text-sm font-semibold text-purple-900 mb-2">Resumen del chat:</p>
+                      <p className="text-sm text-purple-800 whitespace-pre-wrap">
+                        {generateChatSummary(chatMessages) || "No hay resumen disponible"}
+                      </p>
+                    </div>
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <p className="text-sm font-semibold text-blue-900 mb-1">⚠️ Importante:</p>
+                      <p className="text-xs text-blue-800">
+                        El análisis se regenerará completamente (OCR, traducción, clasificación, análisis de cláusulas, riesgos, fuentes y texto completo) incorporando las instrucciones y conclusiones del chat.
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-end gap-3 pt-2">
+                      <button
+                        onClick={() => setShowRegenerateModal(false)}
+                        className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 font-medium"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        onClick={handleRegenerateConfirm}
+                        className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors"
+                      >
+                        Confirmar regeneración
+                      </button>
+                    </div>
+                  </div>
+                </div>
               )}
-            </button>
+            </>
           )}
           <button
             onClick={handleDownloadAnalysis}

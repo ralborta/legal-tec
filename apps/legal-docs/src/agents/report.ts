@@ -275,8 +275,20 @@ export async function generateReport(input: ReportInput): Promise<AnalysisReport
 
 ${FUENTES_LEGALES}
 
-INDICACIONES ADICIONALES DEL USUARIO (máximo 250 caracteres, priorizar junto con el análisis general):
+═══════════════════════════════════════════════════════════════════════════════
+⚠️ INSTRUCCIONES Y CONTEXTO DEL USUARIO - PRIORIDAD MÁXIMA ⚠️
+═══════════════════════════════════════════════════════════════════════════════
+
 ${instructionsText}
+
+IMPORTANTE: Estas instrucciones son CRÍTICAS y deben aplicarse en TODO el análisis:
+- Si el usuario solicita un enfoque diferente, APLÍCALO en todo el análisis
+- Si el usuario indica criterios específicos, ÚSALOS para evaluar riesgos y cláusulas
+- Si el usuario menciona conclusiones del chat, INCORPÓRALAS en el análisis jurídico
+- Las recomendaciones y próximos pasos deben ALINEARSE con estas instrucciones
+- Los riesgos identificados deben REFLEJAR las preocupaciones mencionadas por el usuario
+
+═══════════════════════════════════════════════════════════════════════════════
 
 TIPO DE DOCUMENTO: ${input.type}
 
