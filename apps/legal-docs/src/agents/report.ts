@@ -379,9 +379,12 @@ TODAS las secciones del JSON que generes (resumen_ejecutivo, clausulas_analizada
 
 NO uses contenido genérico. APLICA el enfoque, criterios y conclusiones del chat en CADA sección:
 - Si el usuario solicita un punto de vista diferente, CADA cláusula analizada DEBE reflejarlo
-- Si el usuario menciona beneficios, los riesgos DEBEN balancearse con esos beneficios
-- Si el usuario menciona preocupaciones, DEBEN aparecer en los riesgos identificados
-- El texto_formateado COMPLETO DEBE reflejar el enfoque del chat en TODAS sus secciones
+- 🚨 RIESGOS - COHERENCIA CRÍTICA: Si el usuario solicita "punto de vista del contribuyente", los riesgos DEBEN ser riesgos PARA EL CONTRIBUYENTE (ej: "riesgo de que el contribuyente no pueda acceder a beneficios", "riesgo de sanciones para el contribuyente"). Si solicita "punto de vista del Estado", los riesgos DEBEN ser PARA EL ESTADO (ej: "riesgo de evasión fiscal", "riesgo de pérdida de recaudación"). NO mezcles enfoques. Si el resumen refleja un enfoque, los riesgos DEBEN ser coherentes con ese mismo enfoque.
+- Si el usuario menciona beneficios, los riesgos DEBEN ser coherentes: riesgos de perder esos beneficios o no poder acceder a ellos (desde la perspectiva del beneficiario)
+- Si el usuario menciona preocupaciones, DEBEN aparecer en los riesgos identificados desde el enfoque solicitado
+- El texto_formateado COMPLETO DEBE reflejar el enfoque del chat en TODAS sus secciones, especialmente en la sección de riesgos
+
+🚨 COHERENCIA CRÍTICA: Si el resumen refleja un enfoque (ej: "desde el punto de vista del contribuyente"), los riesgos DEBEN ser coherentes con ese mismo enfoque. NO uses riesgos genéricos o desde otra perspectiva.
 
 NO ignores estas instrucciones. Son OBLIGATORIAS.`,
           },
