@@ -383,5 +383,19 @@ export const legalDb = {
     );
     return result.rows[0] || { count: 0 };
   },
+
+  async deleteAnalysis(documentId: string) {
+    try {
+      const result = await db.query(
+        `DELETE FROM legal_analysis WHERE document_id = $1 RETURNING document_id`,
+        [documentId]
+      );
+      console.log(`[DB] ✅ Análisis eliminado para documento ${documentId}`);
+      return result.rows.length > 0;
+    } catch (error: any) {
+      console.error(`[DB] ❌ Error eliminando análisis para ${documentId}:`, error.message);
+      throw error;
+    }
+  },
 };
 

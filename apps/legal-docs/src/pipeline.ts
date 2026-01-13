@@ -38,7 +38,15 @@ export async function runFullAnalysis(documentId: string, userInstructions?: str
       throw new Error("Document not found");
     }
 
-    console.log(`[PIPELINE] Starting analysis for document ${documentId}`);
+    // Si hay un análisis previo, limpiarlo para regenerar TODO desde cero
+    const existingAnalysis = await legalDb.getAnalysis(documentId);
+    if (existingAnalysis) {
+      console.log(`[PIPELINE] ⚠️ Análisis previo encontrado para ${documentId}, limpiando para regeneración completa...`);
+      await legalDb.deleteAnalysis(documentId);
+      console.log(`[PIPELINE] ✅ Análisis previo eliminado, iniciando pipeline completo desde cero`);
+    }
+
+    console.log(`[PIPELINE] Starting FULL analysis for document ${documentId}`);
     await updateAnalysisStatus(documentId, "ocr", 10);
 
   // 1. OCR / Extraer texto
