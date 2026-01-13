@@ -21,20 +21,20 @@ function extractChatContext(chatMessages: Array<{role: "user" | "assistant"; con
     return "";
   }
   
-  // Extraer solo los mensajes del usuario y las respuestas más relevantes del asistente
+  // Extraer TODOS los mensajes del usuario (son instrucciones directas)
+  // Y TODAS las respuestas del asistente (contienen conclusiones y análisis)
   const relevantMessages: string[] = [];
   
   for (let i = 0; i < chatMessages.length; i++) {
     const msg = chatMessages[i];
     if (msg.role === "user") {
-      relevantMessages.push(`Usuario: ${msg.content}`);
-    } else if (msg.role === "assistant" && i > 0) {
-      // Incluir respuestas del asistente que contengan criterios, instrucciones o conclusiones
-      const content = msg.content.toLowerCase();
-      if (content.includes("criterio") || content.includes("debe") || content.includes("importante") || 
-          content.includes("recomendación") || content.includes("considerar") || content.includes("atención")) {
-        relevantMessages.push(`Asistente: ${msg.content.substring(0, 300)}...`);
-      }
+      // TODOS los mensajes del usuario son importantes (son instrucciones directas)
+      relevantMessages.push(`INSTRUCCIÓN DEL USUARIO: ${msg.content}`);
+    } else if (msg.role === "assistant") {
+      // Incluir TODAS las respuestas del asistente (contienen conclusiones, análisis y recomendaciones)
+      // Limitar a 400 caracteres por respuesta para no exceder el límite total
+      const truncated = msg.content.length > 400 ? msg.content.substring(0, 400) + "..." : msg.content;
+      relevantMessages.push(`CONCLUSIÓN/ANÁLISIS DEL ASISTENTE: ${truncated}`);
     }
   }
   
@@ -42,9 +42,41 @@ function extractChatContext(chatMessages: Array<{role: "user" | "assistant"; con
     return "";
   }
   
-  // Limitar el contexto total a ~1000 caracteres
+  // Aumentar límite a 2000 caracteres para incluir más contexto
   const context = relevantMessages.join("\n\n");
-  return context.length > 1000 ? context.substring(0, 1000) + "..." : context;
+  return context.length > 2000 ? context.substring(0, 2000) + "..." : context;
+}
+
+// Helper para extraer puntos clave del chat que se aplicarán al análisis
+function extractKeyPointsFromChat(chatMessages: Array<{role: "user" | "assistant"; content: string}>): string[] {
+  if (!chatMessages || chatMessages.length === 0) {
+    return [];
+  }
+  
+  const keyPoints: string[] = [];
+  
+  for (const msg of chatMessages) {
+    if (msg.role === "user") {
+      // Las instrucciones del usuario son puntos clave
+      const content = msg.content.trim();
+      if (content.length > 0) {
+        // Si es muy largo, truncar
+        const point = content.length > 100 ? content.substring(0, 100) + "..." : content;
+        keyPoints.push(`📌 ${point}`);
+      }
+    } else if (msg.role === "assistant") {
+      // Extraer conclusiones clave del asistente (primeras 2-3 frases)
+      const sentences = msg.content.split(/[.!?]\s+/).filter(s => s.trim().length > 20);
+      if (sentences.length > 0) {
+        const keyConclusion = sentences.slice(0, 2).join(". ").trim();
+        if (keyConclusion.length > 0 && keyConclusion.length < 150) {
+          keyPoints.push(`💡 ${keyConclusion}...`);
+        }
+      }
+    }
+  }
+  
+  return keyPoints.slice(0, 5); // Máximo 5 puntos clave
 }
 
 const getAreaLegalLabel = (area: string) => {
@@ -259,7 +291,9 @@ export default function MemoDetailPage() {
             </button>
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-3 sm:mt-4 text-white/90 text-xs sm:text-sm">
-            <span className="bg-white/20 px-2 sm:px-3 py-1 rounded-full">{memo.tipoDocumento || "Transcripción de reunión"}</span>
+            <span className="bg-white/20 px-2 sm:px-3 py-1 rounded-full">
+              {memo.tipoDocumento || (memo.type === 'analysis' || memo.tipo === 'ANÁLISIS' ? "Análisis Legal" : "Transcripción de reunión")}
+            </span>
             <span className="bg-white/20 px-2 sm:px-3 py-1 rounded-full">{getAreaLegalLabel(memo.areaLegal || memoData.areaLegal || "civil_comercial")}</span>
             <span className="bg-white/20 px-2 sm:px-3 py-1 rounded-full hidden sm:block">{formatFecha(memo.createdAt || new Date().toISOString())}</span>
           </div>
@@ -271,13 +305,15 @@ export default function MemoDetailPage() {
         <div className="space-y-6 sm:space-y-8">
           {/* Primera fila: Documento + Documentos Sugeridos */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
-            {/* Columna izquierda - Contenido de la Reunión */}
+            {/* Columna izquierda - Contenido del Documento */}
             <div className="lg:col-span-2 bg-white rounded-lg shadow-lg overflow-hidden flex flex-col">
             <div className="p-4 sm:p-6 bg-gradient-to-r from-indigo-50 to-purple-50 flex items-center gap-3 sm:gap-4 flex-shrink-0">
               <div className="bg-blue-500 p-2 sm:p-3 rounded-lg text-white">
                 <FileText className="h-5 w-5 sm:h-6 sm:w-6" />
               </div>
-              <h2 className="text-lg sm:text-xl font-bold text-slate-800">Transcripción de Reunión</h2>
+              <h2 className="text-lg sm:text-xl font-bold text-slate-800">
+                {memo.type === 'analysis' || memo.tipo === 'ANÁLISIS' ? "Análisis Legal" : "Transcripción de Reunión"}
+              </h2>
             </div>
             <div className="p-4 sm:p-6 flex-1 overflow-y-auto">
               {/* Tabs principales */}
@@ -729,6 +765,8 @@ export default function MemoDetailPage() {
             memoTitle={memo.title || memo.asunto}
             memoText={memo.markdown || memoData.texto_formateado || ""}
             citas={memo.citations || memoData.citas || []}
+            isAnalysis={memo.type === 'analysis' || memo.tipo === 'ANÁLISIS'}
+            documentId={memo.id}
           />
         </div>
       </div>
@@ -747,18 +785,23 @@ function MemoChatPanel({
   areaLegal, 
   memoTitle,
   memoText,
-  citas
+  citas,
+  isAnalysis = false,
+  documentId
 }: { 
   transcriptText: string; 
   areaLegal: string; 
   memoTitle: string;
   memoText: string;
   citas: Array<any>;
+  isAnalysis?: boolean;
+  documentId?: string;
 }) {
   const [messages, setMessages] = useState<Array<{role: "user" | "assistant"; content: string}>>([]);
   const [currentMessage, setCurrentMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
+  const [showRegenerateModal, setShowRegenerateModal] = useState(false);
   const API = useMemo(() => getApiUrl(), []);
 
   async function handleSendMessage() {
@@ -815,63 +858,179 @@ function MemoChatPanel({
           <div className="bg-pink-500 p-2 sm:p-3 rounded-lg text-white">
             <MessageSquare className="h-5 w-5 sm:h-6 sm:w-6" />
           </div>
-          <h2 className="text-lg sm:text-xl font-bold text-slate-800">Chat sobre esta reunión</h2>
+          <h2 className="text-lg sm:text-xl font-bold text-slate-800">
+            {isAnalysis ? "Chat sobre este análisis" : "Chat sobre esta reunión"}
+          </h2>
         </div>
         {messages.length > 0 && (
-          <button
-            onClick={async () => {
-              if (!API || regenerating) return;
-              setRegenerating(true);
-              try {
-                const chatContext = extractChatContext(messages);
-                const enhancedInstructions = chatContext 
-                  ? `--- CONTEXTO DEL CHAT ---\n${chatContext}`
-                  : "";
-                
-                const formData = new FormData();
-                formData.append("tipoDocumento", "Transcripción de reunión");
-                formData.append("titulo", memoTitle);
-                formData.append("instrucciones", enhancedInstructions);
-                formData.append("areaLegal", areaLegal);
-                if (transcriptText.trim()) {
-                  formData.append("transcriptText", transcriptText);
-                }
-                
-                const r = await fetch(`${API}/api/memos/generate`, {
-                  method: "POST",
-                  body: formData
-                });
-                
-                if (!r.ok) {
-                  throw new Error(`Error ${r.status}: ${await r.text()}`);
-                }
-                
-                const data = await r.json();
-                // Recargar la página para mostrar el nuevo resultado
-                window.location.reload();
-              } catch (err: any) {
-                console.error("Error al regenerar:", err);
-                alert(`Error al regenerar: ${err.message || "Intenta de nuevo"}`);
-              } finally {
-                setRegenerating(false);
-              }
-            }}
-            disabled={regenerating}
-            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Regenerar análisis con los criterios del chat"
-          >
-            {regenerating ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span className="hidden sm:inline">Regenerando...</span>
-              </>
-            ) : (
-              <>
-                <Sparkles className="h-4 w-4" />
-                <span className="hidden sm:inline">Regenerar</span>
-              </>
-            )}
-          </button>
+          <>
+            {/* Resumen de puntos clave que se aplicarán */}
+            <div className="px-4 sm:px-6 pb-3">
+              <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-3">
+                <p className="text-xs font-semibold text-purple-900 mb-2 flex items-center gap-2">
+                  <Sparkles className="h-3 w-3" />
+                  Puntos clave del chat que se aplicarán al nuevo {isAnalysis ? "análisis" : "documento"}:
+                </p>
+                <div className="space-y-1.5">
+                  {extractKeyPointsFromChat(messages).map((point, idx) => (
+                    <div key={idx} className="text-xs text-purple-800 bg-white/60 rounded px-2 py-1">
+                      {point}
+                    </div>
+                  ))}
+                  {extractKeyPointsFromChat(messages).length === 0 && (
+                    <p className="text-xs text-purple-600 italic">Extrayendo puntos clave del chat...</p>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            <div className="px-4 sm:px-6 pb-4">
+              <button
+                onClick={() => setShowRegenerateModal(true)}
+                disabled={regenerating}
+                className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
+                title={`Regenerar ${isAnalysis ? "análisis" : "documento"} con los criterios del chat`}
+              >
+                {regenerating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Regenerando...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4" />
+                    <span>Regenerar {isAnalysis ? "análisis" : "documento"}</span>
+                  </>
+                )}
+              </button>
+            </div>
+            
+            {/* Modal de confirmación */}
+            {showRegenerateModal && (() => {
+              const chatContext = extractChatContext(messages);
+              return (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                  <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+                    <h3 className="text-xl font-bold text-gray-900">Regenerar {isAnalysis ? "análisis" : "documento"} con contexto del chat</h3>
+                    
+                    {/* Mostrar TODOS los mensajes del chat */}
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 max-h-60 overflow-y-auto">
+                      <p className="text-sm font-semibold text-gray-900 mb-3">Historial completo del chat:</p>
+                      <div className="space-y-3">
+                        {messages.map((msg, idx) => (
+                          <div key={idx} className={`p-3 rounded-lg ${msg.role === "user" ? "bg-blue-50 border border-blue-200" : "bg-purple-50 border border-purple-200"}`}>
+                            <p className="text-xs font-semibold mb-1 text-gray-700">
+                              {msg.role === "user" ? "👤 Tu instrucción:" : "🤖 Respuesta del asistente:"}
+                            </p>
+                            <p className="text-sm text-gray-800 whitespace-pre-wrap">{msg.content}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    {/* Mostrar el contexto extraído que se enviará */}
+                    {chatContext && (
+                      <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                        <p className="text-sm font-semibold text-purple-900 mb-2">📋 Contexto que se aplicará al {isAnalysis ? "análisis" : "documento"}:</p>
+                        <div className="bg-white rounded p-3 border border-purple-300">
+                          <p className="text-xs text-purple-800 whitespace-pre-wrap font-mono">
+                            {chatContext}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <p className="text-sm font-semibold text-blue-900 mb-1">⚠️ Importante:</p>
+                      <p className="text-xs text-blue-800">
+                        El {isAnalysis ? "análisis se regenerará completamente (OCR, traducción, clasificación, análisis de cláusulas, riesgos, fuentes y texto completo)" : "documento se regenerará completamente"} incorporando TODAS las instrucciones y conclusiones del chat mostradas arriba.
+                      </p>
+                    </div>
+                    
+                    <div className="flex items-center justify-end gap-3 pt-2">
+                      <button
+                        onClick={() => setShowRegenerateModal(false)}
+                        className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 font-medium"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        onClick={async () => {
+                          setShowRegenerateModal(false);
+                          if (!API || regenerating) return;
+                          setRegenerating(true);
+                          try {
+                            const chatContext = extractChatContext(messages);
+                            console.log("[REGENERATE-DETAIL] Chat messages:", messages);
+                            console.log("[REGENERATE-DETAIL] Extracted context:", chatContext);
+                            
+                            if (isAnalysis && documentId) {
+                              // Regenerar análisis de documento
+                              const enhancedInstructions = chatContext 
+                                ? `CONTEXTO Y CONCLUSIONES DEL CHAT (APLICAR EN TODO EL ANÁLISIS):\n${chatContext}`
+                                : "";
+                              
+                              console.log("[REGENERATE-DETAIL] Enhanced instructions:", enhancedInstructions);
+                              
+                              const analyzeResponse = await fetch(`${API}/legal/analyze/${documentId}`, {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify(enhancedInstructions ? { instructions: enhancedInstructions.slice(0, 2000) } : {}),
+                              });
+                              
+                              if (!analyzeResponse.ok) {
+                                throw new Error(`Error ${analyzeResponse.status}: ${await analyzeResponse.text()}`);
+                              }
+                              
+                              // Esperar un poco y recargar
+                              setTimeout(() => {
+                                window.location.reload();
+                              }, 2000);
+                            } else {
+                              // Regenerar memo/reunión
+                              const enhancedInstructions = chatContext 
+                                ? `CONTEXTO Y CONCLUSIONES DEL CHAT (APLICAR EN TODO EL DOCUMENTO):\n${chatContext}`
+                                : "";
+                              
+                              const formData = new FormData();
+                              formData.append("tipoDocumento", isAnalysis ? "Análisis Legal" : "Transcripción de reunión");
+                              formData.append("titulo", memoTitle);
+                              formData.append("instrucciones", enhancedInstructions);
+                              formData.append("areaLegal", areaLegal);
+                              if (transcriptText.trim()) {
+                                formData.append("transcriptText", transcriptText);
+                              }
+                              
+                              const r = await fetch(`${API}/api/memos/generate`, {
+                                method: "POST",
+                                body: formData
+                              });
+                              
+                              if (!r.ok) {
+                                throw new Error(`Error ${r.status}: ${await r.text()}`);
+                              }
+                              
+                              const data = await r.json();
+                              // Recargar la página para mostrar el nuevo resultado
+                              window.location.reload();
+                            }
+                          } catch (err: any) {
+                            console.error("Error al regenerar:", err);
+                            alert(`Error al regenerar: ${err.message || "Intenta de nuevo"}`);
+                          } finally {
+                            setRegenerating(false);
+                          }
+                        }}
+                        className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors"
+                      >
+                        Confirmar regeneración
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </>
         )}
       </div>
 
