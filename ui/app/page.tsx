@@ -1970,16 +1970,27 @@ function AnalysisResultPanel({
 
   // Parsear el report si es string JSON
   const report = useMemo(() => {
-    if (!analysisResult?.analysis?.report) return null;
+    if (!analysisResult?.analysis?.report) {
+      console.log("[AnalysisResultPanel] No hay report en analysisResult");
+      return null;
+    }
     const r = analysisResult.analysis.report;
     if (typeof r === 'string') {
       try {
-        return JSON.parse(r);
+        const parsed = JSON.parse(r);
+        console.log("[AnalysisResultPanel] Report parseado:", parsed);
+        console.log("[AnalysisResultPanel] clausulas_analizadas:", parsed?.clausulas_analizadas);
+        console.log("[AnalysisResultPanel] riesgos:", parsed?.riesgos);
+        console.log("[AnalysisResultPanel] proximos_pasos:", parsed?.proximos_pasos);
+        return parsed;
       } catch {
         // Si no es JSON, devolver estructura con texto_formateado
+        console.log("[AnalysisResultPanel] Report no es JSON válido, usando como texto");
         return { texto_formateado: r };
       }
     }
+    console.log("[AnalysisResultPanel] Report es objeto:", r);
+    console.log("[AnalysisResultPanel] clausulas_analizadas:", r?.clausulas_analizadas);
     return r;
   }, [analysisResult]);
 
