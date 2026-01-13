@@ -1,7 +1,7 @@
 import "dotenv/config";
 import express from "express";
 import multer from "multer";
-import { runFullAnalysis } from "./pipeline.js";
+import { runFullAnalysis, regenerateReportOnly } from "./pipeline.js";
 import { saveOriginalDocument, getFullResult } from "./storage.js";
 import { startCleanupScheduler } from "./cleanup.js";
 import { getConcurrencyStats } from "./concurrency-limit.js";
@@ -303,17 +303,31 @@ async function handleAnalyze(req: express.Request, res: express.Response, next: 
     
     // ✅ CRÍTICO: Validar que el archivo existe físicamente (no solo en DB)
     const { existsSync } = await import("fs");
-    if (!existsSync(doc.raw_path)) {
-      console.error(`[LEGAL-DOCS-ANALYZE] ❌ Archivo NO existe en disco: ${doc.raw_path}`);
-      console.error(`[LEGAL-DOCS-ANALYZE] ❌ documentId: ${documentId}`);
-      console.error(`[LEGAL-DOCS-ANALYZE] ❌ Esto significa que el upload falló (se creó el registro pero no el archivo)`);
-      return res.status(409).json({ 
-        error: "File not found",
-        message: `El archivo asociado al documento ${documentId} no existe en disco. El upload puede haber fallado. Por favor, sube el archivo nuevamente.`,
-        documentId,
-        expectedPath: doc.raw_path,
-        hint: "El registro existe en DB pero el archivo no. Esto indica que el upload falló parcialmente."
-      });
+    const fileExists = existsSync(doc.raw_path);
+    
+    if (!fileExists) {
+      console.warn(`[LEGAL-DOCS-ANALYZE] ⚠️ Archivo NO existe en disco: ${doc.raw_path}`);
+      console.warn(`[LEGAL-DOCS-ANALYZE] ⚠️ Intentando regenerar usando datos existentes del análisis...`);
+      
+      // Intentar regenerar solo el reporte usando datos existentes
+      const existingAnalysis = await legalDb.getAnalysis(documentId);
+      if (existingAnalysis && existingAnalysis.original && existingAnalysis.translated) {
+        console.log(`[LEGAL-DOCS-ANALYZE] ✅ Análisis previo encontrado, regenerando solo el reporte...`);
+        // Regenerar solo el reporte usando datos existentes
+        regenerateReportOnly(documentId, userInstructions || undefined, existingAnalysis).catch((error) => {
+          console.error(`[ANALYZE] Error regenerando reporte para documento ${documentId}:`, error);
+        });
+        return res.json({ status: "processing", documentId, note: "Regenerando reporte usando datos existentes (archivo no disponible)" });
+      } else {
+        console.error(`[LEGAL-DOCS-ANALYZE] ❌ No hay análisis previo disponible para regenerar`);
+        return res.status(409).json({ 
+          error: "File not found",
+          message: `El archivo asociado al documento ${documentId} no existe en disco y no hay datos de análisis previo para regenerar. Por favor, sube el archivo nuevamente.`,
+          documentId,
+          expectedPath: doc.raw_path,
+          hint: "El registro existe en DB pero el archivo no. Esto indica que el upload falló parcialmente o el archivo fue eliminado."
+        });
+      }
     }
     
     console.log(`[LEGAL-DOCS-ANALYZE] ✅ Archivo existe en disco: ${doc.raw_path}`);
