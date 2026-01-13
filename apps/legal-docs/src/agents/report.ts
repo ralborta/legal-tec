@@ -222,7 +222,7 @@ export async function generateReport(input: ReportInput): Promise<AnalysisReport
     console.log(`[REPORT] Consultando jurisprudencia para tipo: ${input.type}`);
     const instructions = (input.userInstructions || "").trim();
     const instructionsText = instructions
-      ? instructions.slice(0, 500)
+      ? instructions.slice(0, 2000) // Aumentar límite para incluir contexto del chat
       : "Sin indicaciones adicionales del usuario.";
     if (instructions) {
       console.log(`[REPORT] Aplicando instrucciones del usuario (${instructions.length} chars)`);
@@ -261,17 +261,17 @@ export async function generateReport(input: ReportInput): Promise<AnalysisReport
 
     const response = await Promise.race([
       openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        temperature: 0.3,
+      model: "gpt-4o-mini",
+      temperature: 0.3,
         max_tokens: 6000, // Aumentado para respuestas más extensas
-        messages: [
-          {
-            role: "system",
+      messages: [
+        {
+          role: "system",
             content: "Eres un analista legal senior. Genera análisis EXTENSOS y DETALLADOS. Devuelve SOLO JSON válido.",
-          },
-          {
-            role: "user",
-            content: `${prompt}
+        },
+        {
+          role: "user",
+          content: `${prompt}
 
 ${FUENTES_LEGALES}
 

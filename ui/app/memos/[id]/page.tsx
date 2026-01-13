@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Copy, Check, MessageSquare, FileText, AlertTriangle, ListChecks, TrendingUp, BookOpen, Send, Library, Download } from "lucide-react";
+import { ArrowLeft, Copy, Check, MessageSquare, FileText, AlertTriangle, ListChecks, TrendingUp, BookOpen, Send, Library, Download, Sparkles, Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { MemoSuggestedDocuments } from "@/components/MemoSuggestedDocuments";
 
@@ -13,6 +13,38 @@ import { MemoSuggestedDocuments } from "@/components/MemoSuggestedDocuments";
 function getApiUrl(): string {
   const url = process.env.NEXT_PUBLIC_API_URL || "";
   return url.endsWith("/") ? url.slice(0, -1) : url;
+}
+
+// Helper para extraer contexto relevante del chat para regenerar análisis
+function extractChatContext(chatMessages: Array<{role: "user" | "assistant"; content: string}>): string {
+  if (!chatMessages || chatMessages.length === 0) {
+    return "";
+  }
+  
+  // Extraer solo los mensajes del usuario y las respuestas más relevantes del asistente
+  const relevantMessages: string[] = [];
+  
+  for (let i = 0; i < chatMessages.length; i++) {
+    const msg = chatMessages[i];
+    if (msg.role === "user") {
+      relevantMessages.push(`Usuario: ${msg.content}`);
+    } else if (msg.role === "assistant" && i > 0) {
+      // Incluir respuestas del asistente que contengan criterios, instrucciones o conclusiones
+      const content = msg.content.toLowerCase();
+      if (content.includes("criterio") || content.includes("debe") || content.includes("importante") || 
+          content.includes("recomendación") || content.includes("considerar") || content.includes("atención")) {
+        relevantMessages.push(`Asistente: ${msg.content.substring(0, 300)}...`);
+      }
+    }
+  }
+  
+  if (relevantMessages.length === 0) {
+    return "";
+  }
+  
+  // Limitar el contexto total a ~1000 caracteres
+  const context = relevantMessages.join("\n\n");
+  return context.length > 1000 ? context.substring(0, 1000) + "..." : context;
 }
 
 const getAreaLegalLabel = (area: string) => {
@@ -726,6 +758,7 @@ function MemoChatPanel({
   const [messages, setMessages] = useState<Array<{role: "user" | "assistant"; content: string}>>([]);
   const [currentMessage, setCurrentMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
   const API = useMemo(() => getApiUrl(), []);
 
   async function handleSendMessage() {
@@ -777,11 +810,69 @@ function MemoChatPanel({
   return (
     <div className="flex flex-col h-full min-h-0">
       {/* Header del chat con gradiente */}
-      <div className="p-4 sm:p-6 bg-gradient-to-r from-pink-50 to-fuchsia-50 flex items-center gap-3 sm:gap-4 flex-shrink-0">
-        <div className="bg-pink-500 p-2 sm:p-3 rounded-lg text-white">
-          <MessageSquare className="h-5 w-5 sm:h-6 sm:w-6" />
+      <div className="p-4 sm:p-6 bg-gradient-to-r from-pink-50 to-fuchsia-50 flex items-center justify-between gap-3 sm:gap-4 flex-shrink-0">
+        <div className="flex items-center gap-3 sm:gap-4">
+          <div className="bg-pink-500 p-2 sm:p-3 rounded-lg text-white">
+            <MessageSquare className="h-5 w-5 sm:h-6 sm:w-6" />
+          </div>
+          <h2 className="text-lg sm:text-xl font-bold text-slate-800">Chat sobre esta reunión</h2>
         </div>
-        <h2 className="text-lg sm:text-xl font-bold text-slate-800">Chat sobre esta reunión</h2>
+        {messages.length > 0 && (
+          <button
+            onClick={async () => {
+              if (!API || regenerating) return;
+              setRegenerating(true);
+              try {
+                const chatContext = extractChatContext(messages);
+                const enhancedInstructions = chatContext 
+                  ? `--- CONTEXTO DEL CHAT ---\n${chatContext}`
+                  : "";
+                
+                const formData = new FormData();
+                formData.append("tipoDocumento", "Transcripción de reunión");
+                formData.append("titulo", memoTitle);
+                formData.append("instrucciones", enhancedInstructions);
+                formData.append("areaLegal", areaLegal);
+                if (transcriptText.trim()) {
+                  formData.append("transcriptText", transcriptText);
+                }
+                
+                const r = await fetch(`${API}/api/memos/generate`, {
+                  method: "POST",
+                  body: formData
+                });
+                
+                if (!r.ok) {
+                  throw new Error(`Error ${r.status}: ${await r.text()}`);
+                }
+                
+                const data = await r.json();
+                // Recargar la página para mostrar el nuevo resultado
+                window.location.reload();
+              } catch (err: any) {
+                console.error("Error al regenerar:", err);
+                alert(`Error al regenerar: ${err.message || "Intenta de nuevo"}`);
+              } finally {
+                setRegenerating(false);
+              }
+            }}
+            disabled={regenerating}
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Regenerar análisis con los criterios del chat"
+          >
+            {regenerating ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="hidden sm:inline">Regenerando...</span>
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4" />
+                <span className="hidden sm:inline">Regenerar</span>
+              </>
+            )}
+          </button>
+        )}
       </div>
 
       {/* Messages con diseño moderno */}

@@ -255,7 +255,8 @@ async function handleAnalyze(req: express.Request, res: express.Response, next: 
     const rawInstructions = typeof req.body?.instructions === "string"
       ? req.body.instructions
       : (req.body?.instructions ? String(req.body.instructions) : "");
-    const userInstructions = rawInstructions.trim().slice(0, 250);
+    // Aumentar límite a 2000 caracteres para incluir contexto del chat
+    const userInstructions = rawInstructions.trim().slice(0, 2000);
     
     // 🔍 LOGGING para diagnóstico (más detallado)
     console.log(`[LEGAL-DOCS-ANALYZE] ========================================`);

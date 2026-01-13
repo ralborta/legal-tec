@@ -28,6 +28,38 @@ function getLegalDocsUrl(): string {
   return getApiUrl();
 }
 
+// Helper para extraer contexto relevante del chat para regenerar análisis
+function extractChatContext(chatMessages: Array<{role: "user" | "assistant"; content: string}>): string {
+  if (!chatMessages || chatMessages.length === 0) {
+    return "";
+  }
+  
+  // Extraer solo los mensajes del usuario y las respuestas más relevantes del asistente
+  const relevantMessages: string[] = [];
+  
+  for (let i = 0; i < chatMessages.length; i++) {
+    const msg = chatMessages[i];
+    if (msg.role === "user") {
+      relevantMessages.push(`Usuario: ${msg.content}`);
+    } else if (msg.role === "assistant" && i > 0) {
+      // Incluir respuestas del asistente que contengan criterios, instrucciones o conclusiones
+      const content = msg.content.toLowerCase();
+      if (content.includes("criterio") || content.includes("debe") || content.includes("importante") || 
+          content.includes("recomendación") || content.includes("considerar") || content.includes("atención")) {
+        relevantMessages.push(`Asistente: ${msg.content.substring(0, 300)}...`);
+      }
+    }
+  }
+  
+  if (relevantMessages.length === 0) {
+    return "";
+  }
+  
+  // Limitar el contexto total a ~1000 caracteres
+  const context = relevantMessages.join("\n\n");
+  return context.length > 1000 ? context.substring(0, 1000) + "..." : context;
+}
+
 const kpis = [
   { title: "Solicitudes en Cola", value: "7", caption: "Pendientes", icon: Clock3, color: "text-amber-600" },
   { title: "Docs Generados (7d)", value: "126", caption: "+18% vs prev.", icon: FileText, color: "text-emerald-600" },
@@ -969,11 +1001,11 @@ async function downloadMD(filename: string, md: string) {
   
   if (!API) {
     // Fallback: descargar como markdown si no hay API
-    const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = `${sanitize(filename)}.md`; a.click();
-    URL.revokeObjectURL(url);
+  const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = `${sanitize(filename)}.md`; a.click();
+  URL.revokeObjectURL(url);
     return;
   }
 
@@ -1474,6 +1506,15 @@ function AnalizarDocumentosPanel() {
         analysisResult={analysisResult} 
         analyzing={analyzing} 
         documentId={documentId}
+        originalInstructions={instructions}
+        onRegenerate={() => {
+          // Refrescar el análisis después de regenerar
+          if (documentId) {
+            setPolling(true);
+            setProgress(0);
+            setStatusLabel("Regenerando análisis...");
+          }
+        }}
       />
     </div>
   );
@@ -1836,15 +1877,24 @@ function DocumentosSugeridosPanel({ analysisResult }: { analysisResult: any }) {
 }
 
 // Componente para mostrar el resultado del análisis con secciones
-function AnalysisResultPanel({ analysisResult, analyzing, documentId }: { 
+function AnalysisResultPanel({ 
+  analysisResult, 
+  analyzing, 
+  documentId,
+  onRegenerate,
+  originalInstructions
+}: { 
   analysisResult: any; 
   analyzing: boolean;
   documentId: string | null;
+  onRegenerate?: () => void;
+  originalInstructions?: string;
 }) {
   const [activeTab, setActiveTab] = useState<"resumen" | "clausulas" | "riesgos" | "recomendaciones" | "fuentes" | "chat">("resumen");
   const [chatMessages, setChatMessages] = useState<Array<{role: "user" | "assistant"; content: string}>>([]);
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
   const API = useMemo(() => getApiUrl(), []);
   const chatMessagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -1963,6 +2013,56 @@ function AnalysisResultPanel({ analysisResult, analyzing, documentId }: {
     await downloadMD(filename, content);
   };
 
+  // Función helper para fetch con timeout
+  async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit = {}, timeoutMs = 30000) {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      return await fetch(input, { ...init, signal: controller.signal });
+    } finally {
+      clearTimeout(id);
+    }
+  }
+
+  // Función para regenerar el análisis con contexto del chat
+  const handleRegenerate = async () => {
+    if (!API || !documentId || regenerating) return;
+    
+    setRegenerating(true);
+    try {
+      // Extraer contexto del chat
+      const chatContext = extractChatContext(chatMessages);
+      
+      // Combinar instrucciones originales con contexto del chat
+      const enhancedInstructions = chatContext 
+        ? `${originalInstructions || ""}\n\n--- CONTEXTO DEL CHAT ---\n${chatContext}`
+        : (originalInstructions || "");
+      
+      const analyzeResponse = await fetchWithTimeout(`${API}/legal/analyze/${documentId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(enhancedInstructions ? { instructions: enhancedInstructions.slice(0, 2000) } : {}),
+      }, 30000);
+      
+      if (!analyzeResponse.ok) {
+        throw new Error(`Error ${analyzeResponse.status}: ${await analyzeResponse.text()}`);
+      }
+      
+      // Limpiar el chat después de regenerar
+      setChatMessages([]);
+      
+      // Llamar al callback si existe para refrescar la vista
+      if (onRegenerate) {
+        onRegenerate();
+      }
+    } catch (err: any) {
+      console.error("Error al regenerar:", err);
+      alert(`Error al regenerar el análisis: ${err.message || "Intenta de nuevo"}`);
+    } finally {
+      setRegenerating(false);
+    }
+  };
+
   return (
     <div className="bg-white p-6 rounded-xl border border-gray-200">
       <div className="flex items-center justify-between mb-4">
@@ -1972,14 +2072,36 @@ function AnalysisResultPanel({ analysisResult, analyzing, documentId }: {
             {report?.tipo_documento || analysisResult.analysis.type} • {report?.jurisdiccion || "Nacional"} • {report?.area_legal || ""}
           </p>
         </div>
-        <button
-          onClick={handleDownloadAnalysis}
-          className="flex items-center gap-2 px-4 py-2 bg-[#C026D3] hover:bg-[#A01FB8] text-white rounded-lg text-sm font-medium transition-colors"
-          title="Descargar análisis completo"
-        >
-          <Download className="h-4 w-4" />
-          Descargar
-        </button>
+        <div className="flex items-center gap-2">
+          {chatMessages.length > 0 && (
+            <button
+              onClick={handleRegenerate}
+              disabled={regenerating}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Regenerar análisis con los criterios del chat"
+            >
+              {regenerating ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Regenerando...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4" />
+                  <span>Regenerar</span>
+                </>
+              )}
+            </button>
+          )}
+          <button
+            onClick={handleDownloadAnalysis}
+            className="flex items-center gap-2 px-4 py-2 bg-[#C026D3] hover:bg-[#A01FB8] text-white rounded-lg text-sm font-medium transition-colors"
+            title="Descargar análisis completo"
+          >
+            <Download className="h-4 w-4" />
+            Descargar
+          </button>
+        </div>
             </div>
 
       {/* Tabs */}
@@ -2877,7 +2999,45 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
         {/* Columna derecha: Preview del Dictamen o Resultado */}
         <div className="bg-gray-50 rounded-xl border border-gray-200 p-6">
           {memoResult ? (
-            <MemoResultPanel memoResult={memoResult} />
+            <MemoResultPanel 
+              memoResult={memoResult}
+              onRegenerate={(newResult) => {
+                setMemoResult(newResult);
+                // También actualizar en la bandeja si es necesario
+                const citations = (newResult.citas || []).map((c: any) => ({
+                  title: c.referencia || c.descripcion || "(sin título)",
+                  source: c.tipo || "otra",
+                  url: c.url || undefined,
+                  descripcion: c.descripcion || undefined,
+                  tipo: c.tipo || "otra",
+                  referencia: c.referencia || c.descripcion || "(sin título)"
+                }));
+                const memoId = crypto.randomUUID();
+                onGenerated({ 
+                  id: memoId,
+                  type: "memo", 
+                  title: title || newResult.titulo, 
+                  markdown: newResult.texto_formateado, 
+                  memoData: {
+                    ...newResult,
+                    areaLegal: areaLegal,
+                    transcriptText: transcriptText || (file ? "PDF subido" : ""),
+                    citas: newResult.citas || []
+                  },
+                  citations: citations,
+                  transcriptText: transcriptText || (file ? "PDF subido" : ""),
+                  tipoDocumento: "Transcripción de reunión",
+                  areaLegal: areaLegal,
+                  createdAt: new Date().toISOString()
+                });
+              }}
+              originalFile={file}
+              originalTranscriptText={transcriptText}
+              originalTitle={title}
+              originalInstructions={instructions}
+              originalAreaLegal={areaLegal}
+              originalType={type}
+            />
           ) : (
             <>
               <h4 className="font-bold text-lg text-gray-900 mb-4">Dictamen Jurídico</h4>
@@ -2919,11 +3079,30 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
 }
 
 // Componente para mostrar el resultado del memo con pestañas
-function MemoResultPanel({ memoResult }: { memoResult: any }) {
+function MemoResultPanel({ 
+  memoResult, 
+  onRegenerate,
+  originalFile,
+  originalTranscriptText,
+  originalTitle,
+  originalInstructions,
+  originalAreaLegal,
+  originalType
+}: { 
+  memoResult: any;
+  onRegenerate?: (newResult: any) => void;
+  originalFile?: File | null;
+  originalTranscriptText?: string;
+  originalTitle?: string;
+  originalInstructions?: string;
+  originalAreaLegal?: string;
+  originalType?: string;
+}) {
   const [activeTab, setActiveTab] = useState<"resumen" | "puntos" | "riesgos" | "recomendaciones" | "fuentes">("resumen");
   const [chatMessages, setChatMessages] = useState<Array<{role: "user" | "assistant"; content: string}>>([]);
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
   const API = useMemo(() => getApiUrl(), []);
   const chatMessagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -2990,15 +3169,89 @@ function MemoResultPanel({ memoResult }: { memoResult: any }) {
     }
   };
 
+  // Función para regenerar el análisis con contexto del chat
+  const handleRegenerate = async () => {
+    if (!API || regenerating) return;
+    
+    setRegenerating(true);
+    try {
+      // Extraer contexto del chat
+      const chatContext = extractChatContext(chatMessages);
+      
+      // Combinar instrucciones originales con contexto del chat
+      const enhancedInstructions = chatContext 
+        ? `${originalInstructions || ""}\n\n--- CONTEXTO DEL CHAT ---\n${chatContext}`
+        : (originalInstructions || "");
+      
+      const formData = new FormData();
+      formData.append("tipoDocumento", originalType === "memo" ? "Transcripción de reunión" : (originalType || "memo"));
+      formData.append("titulo", originalTitle || memoResult.titulo || "");
+      formData.append("instrucciones", enhancedInstructions);
+      formData.append("areaLegal", originalAreaLegal || memoResult.areaLegal || "civil_comercial");
+      
+      // Prioridad: PDF primero, luego texto
+      if (originalFile) {
+        formData.append("transcripcion", originalFile);
+      } else if (originalTranscriptText?.trim()) {
+        formData.append("transcriptText", originalTranscriptText);
+      }
+      
+      const r = await fetch(`${API}/api/memos/generate`, {
+        method: "POST",
+        body: formData
+      });
+      
+      if (!r.ok) {
+        const errorText = await r.text();
+        throw new Error(`Error ${r.status}: ${errorText || "Error al regenerar"}`);
+      }
+      
+      const data = await r.json();
+      
+      // Llamar al callback si existe
+      if (onRegenerate) {
+        onRegenerate(data);
+      }
+      
+      // Limpiar el chat después de regenerar
+      setChatMessages([]);
+    } catch (err: any) {
+      console.error("Error al regenerar:", err);
+      alert(`Error al regenerar el análisis: ${err.message || "Intenta de nuevo"}`);
+    } finally {
+      setRegenerating(false);
+    }
+  };
+
   return (
     <div className="w-full">
       <div className="flex items-center justify-between mb-4">
-        <div>
+                <div>
           <h3 className="font-bold text-lg text-gray-900">Resultado de la Reunión</h3>
           <p className="text-sm text-gray-500">
             {memoResult.titulo || "Transcripción de Reunión"} • {memoResult.areaLegal?.replace(/_/g, " ") || ""}
           </p>
         </div>
+        {chatMessages.length > 0 && (
+          <button
+            onClick={handleRegenerate}
+            disabled={regenerating}
+            className="flex items-center gap-2 px-4 py-2 bg-[#C026D3] text-white text-sm font-medium rounded-lg hover:bg-[#A21CAF] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Regenerar análisis con los criterios del chat"
+          >
+            {regenerating ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Regenerando...</span>
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4" />
+                <span>Regenerar análisis</span>
+              </>
+            )}
+          </button>
+        )}
       </div>
 
       {/* Tabs */}
