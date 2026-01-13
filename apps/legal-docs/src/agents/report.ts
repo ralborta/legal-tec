@@ -120,9 +120,9 @@ Devuelve un JSON con esta estructura EXACTA:
   "analisis_juridico": "Análisis jurídico EXTENSO de 4-5 párrafos. Incluir: marco normativo aplicable, interpretación de cláusulas clave, validez legal, posibles conflictos, jurisprudencia relevante si aplica.",
   "riesgos": [
     {
-      "descripcion": "Descripción ESPECÍFICA del riesgo",
+      "descripcion": "Descripción ESPECÍFICA del riesgo interpretando y aplicando el enfoque, punto de vista, criterios y preocupaciones mencionados en el chat. El riesgo DEBE ser coherente con el enfoque interpretado: si el chat menciona un punto de vista específico, el riesgo DEBE ser un riesgo PARA ESE PUNTO DE VISTA. Si menciona beneficios, preocupaciones o criterios específicos, el riesgo DEBE reflejarlos desde esa perspectiva. DEBE ser coherente con el enfoque del análisis completo en todas sus secciones.",
       "nivel": "bajo" | "medio" | "alto",
-      "recomendacion": "Recomendación CONCRETA para mitigar este riesgo"
+      "recomendacion": "Recomendación CONCRETA para mitigar este riesgo, alineada con el enfoque, criterios y punto de vista interpretados de las instrucciones del chat"
     }
   ],
   "recomendaciones": [
