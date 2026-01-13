@@ -191,7 +191,7 @@ export default function MemoDetailPage() {
   if (!memo) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="text-slate-500">Cargando memo...</div>
+        <div className="text-slate-500">Cargando reunión...</div>
       </div>
     );
   }
@@ -200,9 +200,9 @@ export default function MemoDetailPage() {
   const transcriptText = memo.transcriptText || memoData.transcriptText || "";
 
   return (
-    <div className="min-h-screen bg-[#f4f7fe]">
+    <div className="h-screen bg-[#f4f7fe] flex flex-col overflow-hidden">
       {/* Header con gradiente mejorado */}
-      <header className="bg-gradient-to-r from-[hsl(260,100%,70%)] to-[hsl(280,100%,65%)] p-6 shadow-md">
+      <header className="bg-gradient-to-r from-[hsl(260,100%,70%)] to-[hsl(280,100%,65%)] p-4 sm:p-6 shadow-md flex-shrink-0">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -212,45 +212,45 @@ export default function MemoDetailPage() {
               >
                 <ArrowLeft className="h-5 w-5" />
               </button>
-              <h1 className="text-3xl font-bold text-white">{memo.title || memo.asunto}</h1>
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white truncate">{memo.title || memo.asunto}</h1>
             </div>
             <button
               onClick={() => handleDownload(
                 memo.title || memo.asunto || "documento",
                 memo.markdown || memoData.texto_formateado || ""
               )}
-              className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full text-white transition-colors duration-300 flex items-center gap-2 font-medium"
+              className="bg-white/20 hover:bg-white/30 px-3 sm:px-4 py-2 rounded-full text-white transition-colors duration-300 flex items-center gap-2 font-medium text-sm sm:text-base"
               title="Descargar documento completo"
             >
               <Download className="h-4 w-4" />
-              Descargar
+              <span className="hidden sm:inline">Descargar</span>
             </button>
           </div>
-          <div className="flex flex-wrap items-center gap-3 mt-4 text-white/90 text-sm">
-            <span className="bg-white/20 px-3 py-1 rounded-full">{memo.tipoDocumento || "Memo / Dictamen de reunión"}</span>
-            <span className="bg-white/20 px-3 py-1 rounded-full">{getAreaLegalLabel(memo.areaLegal || memoData.areaLegal || "civil_comercial")}</span>
-            <span className="bg-white/20 px-3 py-1 rounded-full hidden sm:block">{formatFecha(memo.createdAt || new Date().toISOString())}</span>
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-3 sm:mt-4 text-white/90 text-xs sm:text-sm">
+            <span className="bg-white/20 px-2 sm:px-3 py-1 rounded-full">{memo.tipoDocumento || "Transcripción de reunión"}</span>
+            <span className="bg-white/20 px-2 sm:px-3 py-1 rounded-full">{getAreaLegalLabel(memo.areaLegal || memoData.areaLegal || "civil_comercial")}</span>
+            <span className="bg-white/20 px-2 sm:px-3 py-1 rounded-full hidden sm:block">{formatFecha(memo.createdAt || new Date().toISOString())}</span>
           </div>
         </div>
       </header>
 
-      {/* Main Content - Layout mejorado */}
-      <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
-        <div className="space-y-8">
+      {/* Main Content - Layout mejorado con scroll */}
+      <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
+        <div className="space-y-6 sm:space-y-8">
           {/* Primera fila: Documento + Documentos Sugeridos */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Columna izquierda - Contenido del Memo */}
-            <div className="lg:col-span-2 bg-white rounded-lg shadow-lg overflow-hidden">
-            <div className="p-6 bg-gradient-to-r from-indigo-50 to-purple-50 flex items-center gap-4">
-              <div className="bg-blue-500 p-3 rounded-lg text-white">
-                <FileText className="h-6 w-6" />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
+            {/* Columna izquierda - Contenido de la Reunión */}
+            <div className="lg:col-span-2 bg-white rounded-lg shadow-lg overflow-hidden flex flex-col">
+            <div className="p-4 sm:p-6 bg-gradient-to-r from-indigo-50 to-purple-50 flex items-center gap-3 sm:gap-4 flex-shrink-0">
+              <div className="bg-blue-500 p-2 sm:p-3 rounded-lg text-white">
+                <FileText className="h-5 w-5 sm:h-6 sm:w-6" />
               </div>
-              <h2 className="text-xl font-bold text-slate-800">Contenido del Memo</h2>
+              <h2 className="text-lg sm:text-xl font-bold text-slate-800">Transcripción de Reunión</h2>
             </div>
-            <div className="p-6">
+            <div className="p-4 sm:p-6 flex-1 overflow-y-auto">
               {/* Tabs principales */}
-              <div className="border-b border-slate-200 mb-6">
-                <nav className="flex flex-wrap gap-x-6 gap-y-3 -mb-px">
+              <div className="border-b border-slate-200 mb-4 sm:mb-6">
+                <nav className="flex flex-wrap gap-x-3 sm:gap-x-6 gap-y-2 sm:gap-y-3 -mb-px overflow-x-auto">
                   <button
                     onClick={() => setActiveTab("resumen")}
                     className={`flex items-center gap-2 py-3 px-1 border-b-2 font-semibold text-sm transition-colors duration-300 ${
@@ -299,7 +299,7 @@ export default function MemoDetailPage() {
               </div>
 
               {/* Botones secundarios */}
-              <div className="flex flex-wrap gap-4 mb-6">
+              <div className="flex flex-wrap gap-2 sm:gap-4 mb-4 sm:mb-6">
                 <button
                   onClick={() => setActiveTab("riesgos")}
                   className={`flex items-center gap-2 py-2 px-4 rounded-full text-sm font-medium transition-colors duration-300 ${
@@ -638,7 +638,7 @@ export default function MemoDetailPage() {
               {activeTab === "texto" && (
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-slate-700">Texto completo del memo</span>
+                    <span className="text-sm font-medium text-slate-700">Texto completo de la reunión</span>
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => handleCopyText(memo.markdown || memoData.texto_formateado || "")}
@@ -668,8 +668,8 @@ export default function MemoDetailPage() {
                       </button>
                     </div>
                   </div>
-                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 max-h-[600px] overflow-auto">
-                    <pre className="text-xs font-mono text-slate-700 whitespace-pre-wrap">
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 max-h-[400px] sm:max-h-[600px] overflow-auto">
+                    <pre className="text-xs sm:text-sm font-mono text-slate-700 whitespace-pre-wrap">
                       {memo.markdown || memoData.texto_formateado || "No hay texto disponible."}
                     </pre>
                   </div>
@@ -690,7 +690,7 @@ export default function MemoDetailPage() {
         </div>
 
         {/* Segunda fila: Chat debajo del documento */}
-        <div className="bg-white rounded-lg shadow-lg flex flex-col">
+        <div className="bg-white rounded-lg shadow-lg flex flex-col min-h-[400px] max-h-[600px]">
           <MemoChatPanel 
             transcriptText={transcriptText}
             areaLegal={memo.areaLegal || memoData.areaLegal || "civil_comercial"}
@@ -775,28 +775,28 @@ function MemoChatPanel({
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-0">
       {/* Header del chat con gradiente */}
-      <div className="p-6 bg-gradient-to-r from-pink-50 to-fuchsia-50 flex items-center gap-4">
-        <div className="bg-pink-500 p-3 rounded-lg text-white">
-          <MessageSquare className="h-6 w-6" />
+      <div className="p-4 sm:p-6 bg-gradient-to-r from-pink-50 to-fuchsia-50 flex items-center gap-3 sm:gap-4 flex-shrink-0">
+        <div className="bg-pink-500 p-2 sm:p-3 rounded-lg text-white">
+          <MessageSquare className="h-5 w-5 sm:h-6 sm:w-6" />
         </div>
-        <h2 className="text-xl font-bold text-slate-800">Chat sobre esta reunión</h2>
+        <h2 className="text-lg sm:text-xl font-bold text-slate-800">Chat sobre esta reunión</h2>
       </div>
 
       {/* Messages con diseño moderno */}
       {messages.length === 0 ? (
-        <div className="flex-grow flex flex-col justify-center items-center p-6 text-center">
-          <div className="bg-purple-100 p-6 rounded-full mb-4">
-            <MessageSquare className="h-12 w-12 text-purple-500" />
+        <div className="flex-1 flex flex-col justify-center items-center p-4 sm:p-6 text-center min-h-0 overflow-y-auto">
+          <div className="bg-purple-100 p-4 sm:p-6 rounded-full mb-3 sm:mb-4">
+            <MessageSquare className="h-10 w-10 sm:h-12 sm:w-12 text-purple-500" />
           </div>
-          <h3 className="text-lg font-semibold text-slate-800">Iniciá una conversación sobre este memo</h3>
-          <p className="text-slate-500 mt-1 text-sm max-w-xs mx-auto">
+          <h3 className="text-base sm:text-lg font-semibold text-slate-800">Iniciá una conversación sobre esta reunión</h3>
+          <p className="text-slate-500 mt-1 text-xs sm:text-sm max-w-xs mx-auto">
             Preguntá qué hacer, qué riesgos hay o pedí que te prepare un texto para el cliente.
           </p>
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto space-y-4 p-6">
+        <div className="flex-1 overflow-y-auto space-y-3 sm:space-y-4 p-4 sm:p-6 min-h-0">
           {messages.map((msg, i) => (
             <div
               key={i}
@@ -849,9 +849,9 @@ function MemoChatPanel({
 
       {/* Sugerencias de consulta */}
       {messages.length === 0 && (
-        <div className="px-6 pt-4 pb-2 border-t border-slate-200">
-          <p className="text-xs text-slate-500 mb-3 font-medium">Sugerencias de consulta:</p>
-          <div className="flex flex-wrap gap-2">
+        <div className="px-4 sm:px-6 pt-3 sm:pt-4 pb-2 border-t border-slate-200 flex-shrink-0">
+          <p className="text-xs text-slate-500 mb-2 sm:mb-3 font-medium">Sugerencias de consulta:</p>
+          <div className="flex flex-wrap gap-1.5 sm:gap-2">
             {[
               "Resumí los riesgos clave",
               "Armá un plan de acción por responsable",
@@ -914,11 +914,11 @@ function MemoChatPanel({
       )}
 
       {/* Input mejorado */}
-      <div className="p-6 border-t border-slate-200 mt-auto">
-        <div className="flex items-center gap-4">
+      <div className="p-4 sm:p-6 border-t border-slate-200 flex-shrink-0">
+        <div className="flex items-center gap-2 sm:gap-4">
           <textarea
-            className="flex-grow bg-slate-100 border-transparent focus:border-[hsl(260,100%,70%)] focus:ring-[hsl(260,100%,70%)] rounded-lg text-slate-700 placeholder-slate-400 transition resize-none"
-            placeholder="Preguntá qué hacer..."
+            className="flex-grow bg-slate-100 border-transparent focus:border-[hsl(260,100%,70%)] focus:ring-[hsl(260,100%,70%)] rounded-lg text-slate-700 placeholder-slate-400 transition resize-none text-sm sm:text-base py-2 px-3"
+            placeholder="Preguntá sobre la reunión..."
             value={currentMessage}
             onChange={(e) => setCurrentMessage(e.target.value)}
             onKeyDown={(e) => {
@@ -933,10 +933,10 @@ function MemoChatPanel({
           <button
             onClick={handleSendMessage}
             disabled={loading || !currentMessage.trim()}
-            className="bg-gradient-to-br from-[hsl(260,100%,70%)] to-pink-500 hover:shadow-lg hover:shadow-[hsl(260,100%,70%)]/30 text-white font-bold py-3 px-5 rounded-lg flex items-center gap-2 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+            className="bg-gradient-to-br from-[hsl(260,100%,70%)] to-pink-500 hover:shadow-lg hover:shadow-[hsl(260,100%,70%)]/30 text-white font-bold py-2 sm:py-3 px-3 sm:px-5 rounded-lg flex items-center gap-1 sm:gap-2 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none text-sm sm:text-base"
           >
-            <Send className="h-5 w-5" />
-            Enviar
+            <Send className="h-4 w-4 sm:h-5 sm:w-5" />
+            <span className="hidden sm:inline">Enviar</span>
           </button>
         </div>
       </div>
