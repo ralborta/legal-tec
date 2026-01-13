@@ -301,10 +301,14 @@ LEE Y APLICA CADA PUNTO DE LAS INSTRUCCIONES DEL USUARIO MOSTRADAS ARRIBA EN TOD
    - NO uses análisis genéricos, usa el enfoque específico del chat
 
 3. ✅ RIESGOS (riesgos):
-   - Los riesgos DEBEN reflejar las preocupaciones mencionadas en el chat
-   - Si el usuario menciona beneficios, también identifica riesgos desde esa perspectiva
-   - El nivel de riesgo DEBE ajustarse según el enfoque solicitado
-   - Cada riesgo DEBE tener una recomendación específica alineada con las instrucciones
+   - 🚨 CRÍTICO: Los riesgos DEBEN ser COHERENTES con el enfoque solicitado en el chat
+   - Si el usuario solicita "punto de vista del contribuyente", los riesgos DEBEN ser riesgos PARA EL CONTRIBUYENTE (no para el Estado)
+   - Si el usuario solicita "punto de vista del Estado", los riesgos DEBEN ser riesgos PARA EL ESTADO
+   - Si el usuario menciona beneficios, los riesgos DEBEN balancearse mostrando también qué podría salir mal desde esa perspectiva
+   - El nivel de riesgo DEBE evaluarse según el enfoque: un riesgo "alto" para el Estado puede ser "bajo" para el contribuyente y viceversa
+   - Cada riesgo DEBE tener una recomendación específica alineada con las instrucciones y el enfoque solicitado
+   - NO uses riesgos genéricos. Cada riesgo DEBE reflejar el punto de vista específico mencionado en el chat
+   - Si el chat menciona un enfoque diferente, REESCRIBE los riesgos desde ese enfoque, no solo cambies el resumen
 
 4. ✅ ANÁLISIS JURÍDICO (analisis_juridico):
    - El análisis jurídico COMPLETO DEBE incorporar el enfoque del chat
@@ -329,18 +333,26 @@ LEE Y APLICA CADA PUNTO DE LAS INSTRUCCIONES DEL USUARIO MOSTRADAS ARRIBA EN TOD
 🚨 EJEMPLO: Si el usuario dice "hacer el análisis desde el punto de vista del contribuyente":
    - El resumen DEBE mencionar beneficios para el contribuyente
    - Las cláusulas DEBEN analizarse desde la perspectiva del contribuyente
-   - Los riesgos DEBEN incluir riesgos para el contribuyente (no solo para el Estado)
+   - 🚨 RIESGOS: DEBEN ser riesgos PARA EL CONTRIBUYENTE, por ejemplo:
+     * "Riesgo de que el contribuyente no pueda aprovechar los beneficios de la ley si no cumple con los requisitos"
+     * "Riesgo de que el contribuyente sea sancionado si no entiende correctamente las nuevas disposiciones"
+     * "Riesgo de que el contribuyente pierda oportunidades de regularización si no actúa a tiempo"
+     * NO uses riesgos como "Riesgo de evasión para el Estado" - ese es un riesgo para el Estado, no para el contribuyente
    - El análisis jurídico DEBE enfocarse en derechos y beneficios del contribuyente
-   - Las recomendaciones DEBEN ser para el contribuyente
+   - Las recomendaciones DEBEN ser para el contribuyente (cómo aprovechar beneficios, cómo evitar sanciones, etc.)
    - TODO el texto formateado DEBE reflejar este enfoque
 
 🚨 EJEMPLO: Si el usuario menciona "beneficios de la ley para los contribuyentes":
    - El resumen DEBE incluir una sección sobre beneficios
    - Las cláusulas DEBEN analizarse destacando beneficios
-   - Los riesgos DEBEN balancearse con beneficios
+   - 🚨 RIESGOS: DEBEN balancearse mostrando qué podría salir mal desde la perspectiva del contribuyente:
+     * "Riesgo de que el contribuyente no cumpla con los requisitos para acceder a los beneficios"
+     * "Riesgo de que el contribuyente no aproveche las oportunidades de regularización a tiempo"
+     * "Riesgo de que el contribuyente no entienda correctamente cómo aplicar los beneficios"
+     * Los riesgos DEBEN ser coherentes: si hablamos de beneficios para el contribuyente, los riesgos son sobre perder esos beneficios o no poder acceder a ellos
    - El análisis jurídico DEBE incluir normativa favorable al contribuyente
-   - Las recomendaciones DEBEN incluir cómo aprovechar beneficios
-   - TODO el texto formateado DEBE incorporar estos beneficios
+   - Las recomendaciones DEBEN incluir cómo aprovechar beneficios y evitar perderlos
+   - TODO el texto formateado DEBE incorporar estos beneficios y riesgos coherentes
 
 NO ignores estas instrucciones. Son OBLIGATORIAS y tienen PRIORIDAD ABSOLUTA sobre cualquier análisis genérico. APLÍCALAS A TODAS LAS SECCIONES SIN EXCEPCIÓN.
 
