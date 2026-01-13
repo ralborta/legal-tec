@@ -376,6 +376,13 @@ IMPORTANTE: El análisis debe ser EXTENSO y DETALLADO. Analiza TODAS las cláusu
     parsed.citas = parsed.citas || [];
     parsed.documentos_sugeridos = parsed.documentos_sugeridos || [];
 
+    console.log(`[REPORT] ✅ Reporte generado con ${parsed.clausulas_analizadas.length} cláusulas, ${parsed.riesgos.length} riesgos, ${parsed.recomendaciones.length} recomendaciones`);
+    console.log(`[REPORT] Instrucciones aplicadas: ${input.userInstructions ? "SÍ ✅" : "NO ❌"}`);
+    if (input.userInstructions) {
+      console.log(`[REPORT] Contenido de instrucciones (primeros 200 chars): ${input.userInstructions.substring(0, 200)}...`);
+      console.log(`[REPORT] Contiene contexto del chat: ${input.userInstructions.includes("CONTEXTO") || input.userInstructions.includes("CHAT") ? "SÍ ✅" : "NO ❌"}`);
+    }
+
     return parsed;
   } catch (error) {
     console.error("Error generando reporte:", error);
