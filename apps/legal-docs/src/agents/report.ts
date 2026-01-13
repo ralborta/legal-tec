@@ -261,7 +261,7 @@ export async function generateReport(input: ReportInput): Promise<AnalysisReport
 
     const response = await Promise.race([
       openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4o", // Modelo más potente para análisis legales complejos
       temperature: 0.3,
         max_tokens: 6000, // Aumentado para respuestas más extensas
       messages: [
