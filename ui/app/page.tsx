@@ -155,7 +155,7 @@ export default function CentroGestionLegalPage() {
                         citations: out.citations as any[],
                         memoData: out.memoData,
                         transcriptText: out.transcriptText,
-                        tipoDocumento: out.tipoDocumento || "Memo / Dictamen de reunión",
+                        tipoDocumento: out.tipoDocumento || "Transcripción de reunión",
                         areaLegal: out.areaLegal || out.memoData?.areaLegal || "civil_comercial"
                       };
                       pushItem(newItem);
@@ -172,7 +172,7 @@ export default function CentroGestionLegalPage() {
                   />
                     </div>
                   </div>
-                  {/* Chat debajo del contenido cuando hay un memo generado */}
+                  {/* Chat debajo del contenido cuando hay una transcripción generada */}
                   {lastGeneratedMemo && (
                     <div className="mt-8">
                   <ChatPanel memoContent={lastGeneratedMemo} />
@@ -204,7 +204,7 @@ export default function CentroGestionLegalPage() {
                         citations: out.citations as any[],
                         memoData: out.memoData,
                         transcriptText: out.transcriptText,
-                        tipoDocumento: out.tipoDocumento || "Memo / Dictamen de reunión",
+                        tipoDocumento: out.tipoDocumento || "Transcripción de reunión",
                         areaLegal: out.areaLegal || out.memoData?.areaLegal || "civil_comercial"
                       };
                       pushItem(newItem);
@@ -522,7 +522,7 @@ function BandejaLocal({ items }: { items: any[] }) {
         {memos.length === 0 ? (
               <tr>
                 <td colSpan={6} className="text-sm text-gray-500 py-8 text-center">
-            Aún no hay documentos generados. Creá un memo de reunión desde la derecha.
+            Aún no hay documentos generados. Creá una transcripción de reunión desde la derecha.
                 </td>
               </tr>
         ) : (
@@ -530,7 +530,7 @@ function BandejaLocal({ items }: { items: any[] }) {
                 <tr key={row.id} className="border-b border-gray-100 hover:bg-gray-50">
                   <td className="py-3 px-4 text-sm text-gray-900 font-medium">{row.title || row.asunto}</td>
                   <td className="py-3 px-4 text-sm text-gray-600">
-                    {row.type === "analysis" ? "Análisis" : (row.tipoDocumento || row.tipo || "Memo")}
+                    {row.type === "analysis" ? "Análisis" : (row.tipoDocumento || row.tipo || "Reunión")}
                   </td>
                   <td className="py-3 px-4 text-sm text-gray-600">{getAreaLegalLabel(row.areaLegal || "civil_comercial")}</td>
                   <td className="py-3 px-4">
@@ -642,7 +642,7 @@ function MemoCard({ memo }: { memo: any }) {
         <div>
           <h4 className="font-semibold text-gray-800">{memo.title || memo.asunto}</h4>
           <p className="text-xs text-gray-400">
-            {memo.tipoDocumento || "MEMO"} · Listo para revisión · {formatFecha(memo.createdAt || memo.creado || new Date().toISOString())}
+            {memo.tipoDocumento || "REUNIÓN"} · Listo para revisión · {formatFecha(memo.createdAt || memo.creado || new Date().toISOString())}
           </p>
         </div>
         <div className="flex items-center space-x-1 text-gray-500">
@@ -912,8 +912,8 @@ function QueryDocPanel({ memoContent, titulo, citas }: { memoContent: string; ti
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-4 space-y-4">
       <div>
-        <div className="text-sm font-medium text-slate-900 mb-1">💬 Chat sobre el Memo</div>
-        <div className="text-xs text-slate-500">Hacé preguntas o pedí modificaciones sobre el memo generado</div>
+        <div className="text-sm font-medium text-slate-900 mb-1">💬 Chat sobre la Reunión</div>
+        <div className="text-xs text-slate-500">Hacé preguntas o pedí modificaciones sobre la transcripción generada</div>
       </div>
 
       {/* Historial de conversación */}
@@ -2542,7 +2542,7 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
       // Si hay archivo PDF o se quiere usar el endpoint de memos, usar /api/memos/generate
       if (generationMode === "memo" || file || transcriptText) {
         const formData = new FormData();
-        formData.append("tipoDocumento", type === "memo" ? "Memo de reunión" : type);
+        formData.append("tipoDocumento", type === "memo" ? "Transcripción de reunión" : type);
         formData.append("titulo", title);
         formData.append("instrucciones", instructions);
         formData.append("areaLegal", areaLegal);
@@ -2602,7 +2602,7 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
                       },
                       citations: citations,
                       transcriptText: transcriptText || (file ? "PDF subido" : ""), // Guardar para usar en chat
-                      tipoDocumento: "Memo / Dictamen de reunión",
+                      tipoDocumento: "Transcripción de reunión",
                       areaLegal: areaLegal,
                       createdAt: new Date().toISOString()
                     });
@@ -2652,7 +2652,7 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
               : "border-transparent text-gray-600 hover:text-gray-900"
           }`}
         >
-          Memos / Dictámenes
+          Reuniones / Dictámenes
         </button>
         <button
           type="button"
@@ -2677,7 +2677,7 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
         <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de documento</label>
               <select className="w-full bg-white border border-gray-300 rounded-md py-2 px-3 text-sm focus:ring-[#C026D3] focus:border-[#C026D3]" value={type} onChange={e=>setType(e.target.value as any)}>
-              <option value="memo">Memo</option>
+              <option value="memo">Transcripción de reunión</option>
               <option value="dictamen">Dictamen</option>
               <option value="contrato">Contrato</option>
               <option value="escrito">Escrito</option>
@@ -2940,7 +2940,7 @@ function MemoResultPanel({ memoResult }: { memoResult: any }) {
     return {
       content: memoResult.texto_formateado || memoResult.markdown || "",
       resumen: memoResult.resumen || "",
-      titulo: memoResult.titulo || "Memo de Reunión",
+      titulo: memoResult.titulo || "Transcripción de Reunión",
       areaLegal: memoResult.areaLegal || "civil_comercial"
     };
   }, [memoResult]);
@@ -2992,9 +2992,9 @@ function MemoResultPanel({ memoResult }: { memoResult: any }) {
     <div className="mt-4 bg-white p-6 rounded-xl border border-gray-200">
       <div className="flex items-center justify-between mb-4">
                 <div>
-          <h3 className="font-bold text-lg text-gray-900">Resultado del Memo</h3>
+          <h3 className="font-bold text-lg text-gray-900">Resultado de la Reunión</h3>
           <p className="text-sm text-gray-500">
-            {memoResult.titulo || "Memo de Reunión"} • {memoResult.areaLegal?.replace(/_/g, " ") || ""}
+            {memoResult.titulo || "Transcripción de Reunión"} • {memoResult.areaLegal?.replace(/_/g, " ") || ""}
           </p>
         </div>
       </div>
@@ -3027,7 +3027,7 @@ function MemoResultPanel({ memoResult }: { memoResult: any }) {
         {activeTab === "resumen" && (
           <div className="space-y-4">
             <div>
-              <h4 className="font-semibold text-gray-900 mb-2">{memoResult.titulo || memoResult.titulo || "Memo de Reunión"}</h4>
+              <h4 className="font-semibold text-gray-900 mb-2">{memoResult.titulo || memoResult.titulo || "Transcripción de Reunión"}</h4>
               <div className="text-sm text-gray-700 bg-gray-50 p-4 rounded-lg whitespace-pre-wrap">
                 {memoResult.resumen || "Sin resumen disponible"}
               </div>
@@ -3196,7 +3196,7 @@ function MemoResultPanel({ memoResult }: { memoResult: any }) {
               {chatMessages.length === 0 ? (
                 <div className="text-center py-8">
                   <p className="text-sm text-gray-500 mb-2">💬 Chat con Asistente</p>
-                  <p className="text-xs text-gray-400">Hacé preguntas sobre el memo generado</p>
+                  <p className="text-xs text-gray-400">Hacé preguntas sobre la transcripción generada</p>
                 </div>
               ) : (
                 chatMessages.map((msg, i) => (
@@ -3832,7 +3832,7 @@ function ChatPanel({ memoContent }: { memoContent: { content: string; resumen: s
               <Sparkles className="h-8 w-8 text-blue-600" />
             </div>
             <div className="text-sm text-slate-600 text-center max-w-xs">
-              Iniciando conversación sobre el memo generado...
+              Iniciando conversación sobre la transcripción generada...
             </div>
           </div>
         ) : (
