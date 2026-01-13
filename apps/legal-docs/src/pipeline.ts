@@ -38,22 +38,31 @@ export async function runFullAnalysis(documentId: string, userInstructions?: str
       throw new Error("Document not found");
     }
 
-    // Si hay un análisis previo, limpiarlo para regenerar TODO desde cero
+    console.log(`[PIPELINE] Starting FULL analysis for document ${documentId}`);
+    await updateAnalysisStatus(documentId, "ocr", 10);
+
+    // 1. OCR / Extraer texto
+    const fileBuffer = await getDocumentBuffer(documentId);
+    if (!fileBuffer) {
+      // Si no se puede leer el archivo, intentar regenerar usando datos existentes
+      console.warn(`[PIPELINE] ⚠️ No se pudo leer el archivo, intentando regenerar usando datos existentes...`);
+      const existingAnalysis = await legalDb.getAnalysis(documentId);
+      if (existingAnalysis && existingAnalysis.original && existingAnalysis.translated) {
+        console.log(`[PIPELINE] ✅ Análisis previo encontrado, regenerando solo el reporte...`);
+        // No borrar el análisis, solo regenerar el reporte
+        return await regenerateReportOnly(documentId, trimmedInstructions, existingAnalysis);
+      } else {
+        throw new Error("Could not read document file and no previous analysis available");
+      }
+    }
+
+    // Si hay un análisis previo y tenemos el archivo, limpiarlo para regenerar TODO desde cero
     const existingAnalysis = await legalDb.getAnalysis(documentId);
     if (existingAnalysis) {
       console.log(`[PIPELINE] ⚠️ Análisis previo encontrado para ${documentId}, limpiando para regeneración completa...`);
       await legalDb.deleteAnalysis(documentId);
       console.log(`[PIPELINE] ✅ Análisis previo eliminado, iniciando pipeline completo desde cero`);
     }
-
-    console.log(`[PIPELINE] Starting FULL analysis for document ${documentId}`);
-    await updateAnalysisStatus(documentId, "ocr", 10);
-
-  // 1. OCR / Extraer texto
-  const fileBuffer = await getDocumentBuffer(documentId);
-  if (!fileBuffer) {
-    throw new Error("Could not read document file");
-  }
 
   const originalText = await ocrAgent({
     buffer: fileBuffer,
