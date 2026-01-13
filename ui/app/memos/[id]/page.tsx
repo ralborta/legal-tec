@@ -292,7 +292,7 @@ export default function MemoDetailPage() {
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-3 sm:mt-4 text-white/90 text-xs sm:text-sm">
             <span className="bg-white/20 px-2 sm:px-3 py-1 rounded-full">
-              {memo.tipoDocumento || (memo.type === 'analysis' || memo.tipo === 'ANÁLISIS' ? "Análisis Legal" : "Transcripción de reunión")}
+              {memo.tipoDocumento || (memo.type === 'analysis' || memo.tipo === 'ANÁLISIS' ? "Análisis de Documento" : "Transcripción de Reunión")}
             </span>
             <span className="bg-white/20 px-2 sm:px-3 py-1 rounded-full">{getAreaLegalLabel(memo.areaLegal || memoData.areaLegal || "civil_comercial")}</span>
             <span className="bg-white/20 px-2 sm:px-3 py-1 rounded-full hidden sm:block">{formatFecha(memo.createdAt || new Date().toISOString())}</span>
@@ -312,7 +312,7 @@ export default function MemoDetailPage() {
                 <FileText className="h-5 w-5 sm:h-6 sm:w-6" />
               </div>
               <h2 className="text-lg sm:text-xl font-bold text-slate-800">
-                {memo.type === 'analysis' || memo.tipo === 'ANÁLISIS' ? "Análisis Legal" : "Transcripción de Reunión"}
+                {memo.type === 'analysis' || memo.tipo === 'ANÁLISIS' ? "Análisis de Documento" : "Transcripción de Reunión"}
               </h2>
             </div>
             <div className="p-4 sm:p-6 flex-1 overflow-y-auto">
@@ -859,7 +859,7 @@ function MemoChatPanel({
             <MessageSquare className="h-5 w-5 sm:h-6 sm:w-6" />
           </div>
           <h2 className="text-lg sm:text-xl font-bold text-slate-800">
-            {isAnalysis ? "Chat sobre este análisis" : "Chat sobre esta reunión"}
+            {isAnalysis ? "Chat sobre este análisis de documento" : "Chat sobre esta transcripción de reunión"}
           </h2>
         </div>
         {messages.length > 0 && (
@@ -869,7 +869,7 @@ function MemoChatPanel({
               <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-3">
                 <p className="text-xs font-semibold text-purple-900 mb-2 flex items-center gap-2">
                   <Sparkles className="h-3 w-3" />
-                  Puntos clave del chat que se aplicarán al nuevo {isAnalysis ? "análisis" : "documento"}:
+                  Puntos clave del chat que se aplicarán al nuevo {isAnalysis ? "análisis de documento" : "transcripción de reunión"}:
                 </p>
                 <div className="space-y-1.5">
                   {extractKeyPointsFromChat(messages).map((point, idx) => (
@@ -889,7 +889,7 @@ function MemoChatPanel({
                 onClick={() => setShowRegenerateModal(true)}
                 disabled={regenerating}
                 className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
-                title={`Regenerar ${isAnalysis ? "análisis" : "documento"} con los criterios del chat`}
+                title={`Regenerar ${isAnalysis ? "análisis de documento" : "transcripción de reunión"} con los criterios del chat`}
               >
                 {regenerating ? (
                   <>
@@ -899,7 +899,7 @@ function MemoChatPanel({
                 ) : (
                   <>
                     <Sparkles className="h-4 w-4" />
-                    <span>Regenerar {isAnalysis ? "análisis" : "documento"}</span>
+                    <span>Regenerar {isAnalysis ? "análisis" : "transcripción"}</span>
                   </>
                 )}
               </button>
@@ -911,7 +911,7 @@ function MemoChatPanel({
               return (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                   <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
-                    <h3 className="text-xl font-bold text-gray-900">Regenerar {isAnalysis ? "análisis" : "documento"} con contexto del chat</h3>
+                    <h3 className="text-xl font-bold text-gray-900">Regenerar {isAnalysis ? "análisis de documento" : "transcripción de reunión"} con contexto del chat</h3>
                     
                     {/* Mostrar TODOS los mensajes del chat */}
                     <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 max-h-60 overflow-y-auto">
@@ -943,7 +943,9 @@ function MemoChatPanel({
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                       <p className="text-sm font-semibold text-blue-900 mb-1">⚠️ Importante:</p>
                       <p className="text-xs text-blue-800">
-                        El {isAnalysis ? "análisis se regenerará completamente (OCR, traducción, clasificación, análisis de cláusulas, riesgos, fuentes y texto completo)" : "documento se regenerará completamente"} incorporando TODAS las instrucciones y conclusiones del chat mostradas arriba.
+                        {isAnalysis 
+                          ? "El análisis de documento se regenerará completamente (OCR, traducción, clasificación, análisis de cláusulas, riesgos, fuentes y texto completo) incorporando TODAS las instrucciones y conclusiones del chat mostradas arriba."
+                          : "La transcripción de reunión se regenerará completamente incorporando TODAS las instrucciones y conclusiones del chat mostradas arriba."}
                       </p>
                     </div>
                     
@@ -993,7 +995,7 @@ function MemoChatPanel({
                                 : "";
                               
                               const formData = new FormData();
-                              formData.append("tipoDocumento", isAnalysis ? "Análisis Legal" : "Transcripción de reunión");
+                              formData.append("tipoDocumento", isAnalysis ? "Análisis de Documento" : "Transcripción de Reunión");
                               formData.append("titulo", memoTitle);
                               formData.append("instrucciones", enhancedInstructions);
                               formData.append("areaLegal", areaLegal);
