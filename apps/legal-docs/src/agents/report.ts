@@ -282,42 +282,67 @@ ${FUENTES_LEGALES}
 ${instructionsText}
 
 ═══════════════════════════════════════════════════════════════════════════════
-⚠️⚠️⚠️ REGLAS CRÍTICAS - DEBES SEGUIR ESTAS INSTRUCCIONES OBLIGATORIAMENTE ⚠️⚠️⚠️
+⚠️⚠️⚠️ REGLAS CRÍTICAS - DEBES APLICAR ESTAS INSTRUCCIONES A TODAS LAS SECCIONES ⚠️⚠️⚠️
 ═══════════════════════════════════════════════════════════════════════════════
 
-LEE Y APLICA CADA PUNTO DE LAS INSTRUCCIONES DEL USUARIO MOSTRADAS ARRIBA.
+LEE Y APLICA CADA PUNTO DE LAS INSTRUCCIONES DEL USUARIO MOSTRADAS ARRIBA EN TODAS Y CADA UNA DE LAS SECCIONES DEL ANÁLISIS.
 
-1. Si el usuario solicita un enfoque diferente, DEBES APLICARLO en:
-   ✓ Resumen ejecutivo
-   ✓ Análisis de TODAS las cláusulas
-   ✓ Análisis jurídico
-   ✓ Riesgos identificados
-   ✓ Recomendaciones
-   ✓ Próximos pasos
-   ✓ Texto formateado completo
+🚨 OBLIGATORIO: Las instrucciones del usuario DEBEN reflejarse en:
 
-2. Si el usuario indica criterios específicos o conclusiones del chat:
-   ✓ INCORPÓRALOS en el análisis jurídico
-   ✓ ÚSALOS para evaluar riesgos
-   ✓ REFLÉJALOS en las recomendaciones
-   ✓ INCLÚYELOS en los próximos pasos
+1. ✅ RESUMEN EJECUTIVO (resumen_ejecutivo):
+   - Si el usuario solicita un enfoque diferente (ej: desde el punto de vista del contribuyente), el resumen DEBE reflejar ese enfoque
+   - Si menciona beneficios o riesgos específicos, DEBEN aparecer en el resumen
+   - El resumen DEBE alinearse con las instrucciones del chat
 
-3. Si el usuario menciona preocupaciones específicas:
-   ✓ DEBEN aparecer en los riesgos identificados
-   ✓ DEBEN tener el nivel de riesgo apropiado
-   ✓ DEBEN tener recomendaciones específicas
+2. ✅ PUNTOS TRATADOS / CLÁUSULAS ANALIZADAS (clausulas_analizadas):
+   - Cada cláusula analizada DEBE reflejar el enfoque solicitado
+   - Si el usuario menciona un punto de vista específico, CADA análisis de cláusula DEBE incorporarlo
+   - Los riesgos de cada cláusula DEBEN evaluarse según los criterios del chat
+   - NO uses análisis genéricos, usa el enfoque específico del chat
 
-4. Las recomendaciones DEBEN:
-   ✓ Alinearse con las instrucciones del chat
-   ✓ Reflejar las conclusiones mencionadas
-   ✓ Ser específicas y accionables
+3. ✅ RIESGOS (riesgos):
+   - Los riesgos DEBEN reflejar las preocupaciones mencionadas en el chat
+   - Si el usuario menciona beneficios, también identifica riesgos desde esa perspectiva
+   - El nivel de riesgo DEBE ajustarse según el enfoque solicitado
+   - Cada riesgo DEBE tener una recomendación específica alineada con las instrucciones
 
-5. El texto completo (texto_formateado) DEBE:
-   ✓ Reflejar el enfoque solicitado
-   ✓ Incorporar los criterios del chat
-   ✓ Mostrar coherencia con las instrucciones
+4. ✅ ANÁLISIS JURÍDICO (analisis_juridico):
+   - El análisis jurídico COMPLETO DEBE incorporar el enfoque del chat
+   - Si se solicita un punto de vista diferente, TODO el análisis jurídico DEBE reflejarlo
+   - Las interpretaciones legales DEBEN alinearse con las instrucciones
 
-6. NO ignores estas instrucciones. Son OBLIGATORIAS y tienen PRIORIDAD ABSOLUTA sobre cualquier análisis genérico.
+5. ✅ RECOMENDACIONES (recomendaciones):
+   - TODAS las recomendaciones DEBEN alinearse con las instrucciones del chat
+   - Si se mencionan beneficios, las recomendaciones DEBEN incluirlos
+   - Las recomendaciones DEBEN ser específicas y reflejar el enfoque solicitado
+
+6. ✅ PRÓXIMOS PASOS (proximos_pasos):
+   - Los próximos pasos DEBEN reflejar las acciones sugeridas en el chat
+   - DEBEN ser coherentes con el enfoque y criterios mencionados
+
+7. ✅ TEXTO FORMATEADO COMPLETO (texto_formateado):
+   - TODO el texto formateado DEBE reflejar el enfoque del chat
+   - NO uses texto genérico, incorpora las instrucciones en CADA sección del texto
+   - El texto completo DEBE ser coherente con las instrucciones del usuario
+   - Si se solicita un punto de vista diferente, TODO el texto DEBE reflejarlo
+
+🚨 EJEMPLO: Si el usuario dice "hacer el análisis desde el punto de vista del contribuyente":
+   - El resumen DEBE mencionar beneficios para el contribuyente
+   - Las cláusulas DEBEN analizarse desde la perspectiva del contribuyente
+   - Los riesgos DEBEN incluir riesgos para el contribuyente (no solo para el Estado)
+   - El análisis jurídico DEBE enfocarse en derechos y beneficios del contribuyente
+   - Las recomendaciones DEBEN ser para el contribuyente
+   - TODO el texto formateado DEBE reflejar este enfoque
+
+🚨 EJEMPLO: Si el usuario menciona "beneficios de la ley para los contribuyentes":
+   - El resumen DEBE incluir una sección sobre beneficios
+   - Las cláusulas DEBEN analizarse destacando beneficios
+   - Los riesgos DEBEN balancearse con beneficios
+   - El análisis jurídico DEBE incluir normativa favorable al contribuyente
+   - Las recomendaciones DEBEN incluir cómo aprovechar beneficios
+   - TODO el texto formateado DEBE incorporar estos beneficios
+
+NO ignores estas instrucciones. Son OBLIGATORIAS y tienen PRIORIDAD ABSOLUTA sobre cualquier análisis genérico. APLÍCALAS A TODAS LAS SECCIONES SIN EXCEPCIÓN.
 
 ═══════════════════════════════════════════════════════════════════════════════
 
