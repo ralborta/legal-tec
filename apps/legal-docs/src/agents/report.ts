@@ -360,7 +360,18 @@ ${checklistText}
 JURISPRUDENCIA Y NORMATIVA RELEVANTE:
 ${jurisprudenceText}
 
-IMPORTANTE: El análisis debe ser EXTENSO y DETALLADO. Analiza TODAS las cláusulas del documento.`,
+IMPORTANTE: El análisis debe ser EXTENSO y DETALLADO. Analiza TODAS las cláusulas del documento.
+
+⚠️⚠️⚠️ RECORDATORIO FINAL CRÍTICO ⚠️⚠️⚠️
+TODAS las secciones del JSON que generes (resumen_ejecutivo, clausulas_analizadas, analisis_juridico, riesgos, recomendaciones, proximos_pasos, texto_formateado) DEBEN reflejar las instrucciones del usuario mostradas arriba en la sección "INSTRUCCIONES Y CONTEXTO DEL USUARIO".
+
+NO uses contenido genérico. APLICA el enfoque, criterios y conclusiones del chat en CADA sección:
+- Si el usuario solicita un punto de vista diferente, CADA cláusula analizada DEBE reflejarlo
+- Si el usuario menciona beneficios, los riesgos DEBEN balancearse con esos beneficios
+- Si el usuario menciona preocupaciones, DEBEN aparecer en los riesgos identificados
+- El texto_formateado COMPLETO DEBE reflejar el enfoque del chat en TODAS sus secciones
+
+NO ignores estas instrucciones. Son OBLIGATORIAS.`,
           },
         ],
         response_format: { type: "json_object" },
