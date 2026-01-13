@@ -2828,7 +2828,7 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
         </div>
         <div className="flex items-center">
           <input checked={generationMode === "memo"} className="h-4 w-4 rounded border-gray-300 text-[#C026D3] focus:ring-[#C026D3]" id="use-rag" type="checkbox" onChange={() => setGenerationMode("memo")} />
-              <label className="ml-2 block text-sm text-gray-800" htmlFor="use-rag">Usar generador de memos sin RAG</label>
+              <label className="ml-2 block text-sm text-gray-800" htmlFor="use-rag">Usar generador de reuniones sin RAG</label>
         </div>
         {file && (
           <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm">
@@ -2874,42 +2874,44 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
       </form>
         </div>
 
-        {/* Columna derecha: Preview del Dictamen */}
+        {/* Columna derecha: Preview del Dictamen o Resultado */}
         <div className="bg-gray-50 rounded-xl border border-gray-200 p-6">
-          <h4 className="font-bold text-lg text-gray-900 mb-4">Dictamen Jurídico</h4>
-          <div className="bg-white rounded-lg border border-gray-300 p-4 min-h-[400px] relative">
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-10">
-              <span className="text-6xl font-bold text-gray-400">DRAFT</span>
-            </div>
-            <div className="relative z-10 space-y-4">
-              {title && (
-                <div>
-                  <h5 className="font-semibold text-gray-900 mb-2">{title}</h5>
+          {memoResult ? (
+            <MemoResultPanel memoResult={memoResult} />
+          ) : (
+            <>
+              <h4 className="font-bold text-lg text-gray-900 mb-4">Dictamen Jurídico</h4>
+              <div className="bg-white rounded-lg border border-gray-300 p-4 min-h-[400px] relative">
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-10">
+                  <span className="text-6xl font-bold text-gray-400">DRAFT</span>
                 </div>
-              )}
-              {instructions ? (
-                <div className="text-sm text-gray-700 whitespace-pre-wrap">
-                  <p className="font-medium mb-2">1. Contexto y consulta</p>
-                  <p className="text-gray-600">{instructions}</p>
+                <div className="relative z-10 space-y-4">
+                  {title && (
+                    <div>
+                      <h5 className="font-semibold text-gray-900 mb-2">{title}</h5>
+                    </div>
+                  )}
+                  {instructions ? (
+                    <div className="text-sm text-gray-700 whitespace-pre-wrap">
+                      <p className="font-medium mb-2">1. Contexto y consulta</p>
+                      <p className="text-gray-600">{instructions}</p>
+                    </div>
+                  ) : (
+                    <div className="text-sm text-gray-400 italic">
+                      <p className="font-medium mb-2">1. Contexto y consulta</p>
+                      <p>Completá el formulario para ver el preview del dictamen...</p>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div className="text-sm text-gray-400 italic">
-                  <p className="font-medium mb-2">1. Contexto y consulta</p>
-                  <p>Completá el formulario para ver el preview del dictamen...</p>
-                </div>
-              )}
-            </div>
-          </div>
+              </div>
+            </>
+          )}
         </div>
 
       {/* Indicador de progreso moderno */}
       {loadingLocal && (
         <ProgressIndicator />
       )}
-
-      {memoResult && (
-          <MemoResultPanel memoResult={memoResult} />
-        )}
       </div>
       )}
     </div>
@@ -2989,9 +2991,9 @@ function MemoResultPanel({ memoResult }: { memoResult: any }) {
   };
 
   return (
-    <div className="mt-4 bg-white p-6 rounded-xl border border-gray-200">
+    <div className="w-full">
       <div className="flex items-center justify-between mb-4">
-                <div>
+        <div>
           <h3 className="font-bold text-lg text-gray-900">Resultado de la Reunión</h3>
           <p className="text-sm text-gray-500">
             {memoResult.titulo || "Transcripción de Reunión"} • {memoResult.areaLegal?.replace(/_/g, " ") || ""}
@@ -3023,7 +3025,7 @@ function MemoResultPanel({ memoResult }: { memoResult: any }) {
       </div>
 
       {/* Content */}
-      <div className="max-h-[500px] overflow-y-auto">
+      <div className="max-h-[700px] overflow-y-auto">
         {activeTab === "resumen" && (
           <div className="space-y-4">
             <div>
