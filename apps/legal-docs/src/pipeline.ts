@@ -173,7 +173,12 @@ export async function regenerateReportOnly(
       originalText = JSON.stringify(original);
     }
     
-    // Actualizar estado
+    // Actualizar estado - asegurar que el documento existe en la DB
+    const doc = await legalDb.getDocument(documentId);
+    if (!doc) {
+      throw new Error("Document not found in database");
+    }
+    
     await updateAnalysisStatus(documentId, "generating_report", 80);
     
     // Generar nuevo reporte con las instrucciones del usuario
