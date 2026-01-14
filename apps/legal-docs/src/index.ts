@@ -493,7 +493,7 @@ app.get("/stats", async (_req, res, next) => {
     console.log(`[STATS] Obteniendo estadísticas del dashboard...`);
     
     // 1. Solicitudes en cola (documentos con status "processing" o sin completar)
-    const queueResult = await legalDb.query(`
+    const queueResult = await db.query(`
       SELECT COUNT(*) as count 
       FROM legal_documents 
       WHERE status IN ('processing', 'ocr', 'translating', 'classifying', 'analyzing', 'generating_report', 'regenerating_report')
@@ -502,7 +502,7 @@ app.get("/stats", async (_req, res, next) => {
     const queueCount = parseInt(queueResult.rows[0]?.count || "0", 10);
     
     // 2. Docs generados en últimos 7 días
-    const docs7dResult = await legalDb.query(`
+    const docs7dResult = await db.query(`
       SELECT COUNT(*) as count 
       FROM legal_documents 
       WHERE created_at >= NOW() - INTERVAL '7 days'
@@ -510,7 +510,7 @@ app.get("/stats", async (_req, res, next) => {
     const docs7d = parseInt(docs7dResult.rows[0]?.count || "0", 10);
     
     // 3. Docs generados en los 7 días anteriores (para comparación)
-    const docsPrev7dResult = await legalDb.query(`
+    const docsPrev7dResult = await db.query(`
       SELECT COUNT(*) as count 
       FROM legal_documents 
       WHERE created_at >= NOW() - INTERVAL '14 days' 
@@ -522,7 +522,7 @@ app.get("/stats", async (_req, res, next) => {
       : (docs7d > 0 ? "100" : "0");
     
     // 4. Exactitud de citas (por ahora N/A, pero podemos calcular si hay datos)
-    const accuracyResult = await legalDb.query(`
+    const accuracyResult = await db.query(`
       SELECT COUNT(*) as total, 
              COUNT(CASE WHEN report IS NOT NULL THEN 1 END) as with_report
       FROM legal_analysis 
@@ -532,7 +532,7 @@ app.get("/stats", async (_req, res, next) => {
     const accuracy = "N/A"; // Por ahora no tenemos métrica de exactitud
     
     // 5. Latencia media (tiempo promedio de análisis completado)
-    const latencyResult = await legalDb.query(`
+    const latencyResult = await db.query(`
       SELECT 
         AVG(EXTRACT(EPOCH FROM (analyzed_at - created_at))) as avg_seconds,
         PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM (analyzed_at - created_at))) as p95_seconds
