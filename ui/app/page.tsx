@@ -1965,6 +1965,8 @@ function AnalysisResultPanel({
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
+  const [showRegenerateModal, setShowRegenerateModal] = useState(false);
+  const [pendingRegenerate, setPendingRegenerate] = useState(false);
   const API = useMemo(() => getApiUrl(), []);
   const chatMessagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -2104,9 +2106,6 @@ function AnalysisResultPanel({
       clearTimeout(id);
     }
   }
-
-  const [showRegenerateModal, setShowRegenerateModal] = useState(false);
-  const [pendingRegenerate, setPendingRegenerate] = useState(false);
 
   // Función para mostrar modal de confirmación con resumen
   const handleRegenerateClick = () => {
