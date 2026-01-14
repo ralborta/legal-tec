@@ -876,10 +876,12 @@ function BandejaLocal({ items, onDelete, onUpdateItem }: { items: any[]; onDelet
                         }
                       }
                       
-                      alert(`Documento asignado a Abogado ${num}. Se envió una notificación por correo.`);
+                      // Mostrar modal de confirmación personalizado
                       setAssignModal(null);
+                      setAssignSuccess({ abogado: `Abogado ${num}` });
                     } catch (err: any) {
                       console.error("Error al asignar:", err);
+                      setAssignModal(null);
                       alert(`Error al asignar: ${err.message || "Intenta de nuevo"}`);
                     } finally {
                       setAssigning(false);
