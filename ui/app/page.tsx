@@ -911,6 +911,49 @@ function BandejaLocal({ items, onDelete, onUpdateItem }: { items: any[]; onDelet
         </div>
       )}
       
+      {/* Modal de confirmación de asignación */}
+      {assignSuccess && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4">
+            <h3 className="text-xl font-bold text-gray-900">✅ Asignación exitosa</h3>
+            <p className="text-sm text-gray-700">
+              Documento asignado a <span className="font-semibold">{assignSuccess.abogado}</span>. Se envió una notificación por correo.
+            </p>
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                onClick={() => setAssignSuccess(null)}
+                className="px-4 py-2 bg-[#C026D3] text-white text-sm font-medium rounded-lg hover:bg-[#A01FB8] transition-colors"
+              >
+                Aceptar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Modal de información de asignación */}
+      {showAssignedInfo && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4">
+            <h3 className="text-xl font-bold text-gray-900">Información de Asignación</h3>
+            <p className="text-sm text-gray-700">
+              El documento <span className="font-semibold">"{showAssignedInfo.title}"</span> está asignado a:
+            </p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-lg font-semibold text-blue-900">{showAssignedInfo.abogado}</p>
+            </div>
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                onClick={() => setShowAssignedInfo(null)}
+                className="px-4 py-2 bg-[#C026D3] text-white text-sm font-medium rounded-lg hover:bg-[#A01FB8] transition-colors"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Modal de confirmación de eliminación */}
       {deleteConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
