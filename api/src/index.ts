@@ -1706,6 +1706,7 @@ Responde SOLO con un JSON válido con esta estructura:
     const analyzeTimeoutMs = Number(process.env.LEGAL_DOCS_ANALYZE_TIMEOUT_MS || 30000); // 30s - dar tiempo para cold start
     
     // Proxy para rutas específicas de /legal/* (EXCEPTO /legal/upload que se maneja directamente arriba)
+    // Incluye GET, POST, DELETE, etc.
     // Usar rutas específicas en vez de app.all para evitar conflictos
     app.all("/legal/analyze/:documentId", async (req, rep) => {
       // Proxy a /analyze/:documentId (SIN /legal - el servicio no debe tener prefijo)
@@ -1732,6 +1733,14 @@ Responde SOLO con un JSON válido con esta estructura:
       // Proxy a /status/:documentId (SIN /legal)
       const documentId = (req.params as any).documentId;
       const path = `/status/${documentId}`;
+      await proxyToLegalDocs(req, rep, path, legalDocsTimeoutMs, LEGAL_DOCS_URL);
+    });
+    
+    app.all("/legal/document/:documentId", async (req, rep) => {
+      // Proxy a /document/:documentId (SIN /legal) - para DELETE de documentos
+      const documentId = (req.params as any).documentId;
+      const path = `/document/${documentId}`;
+      app.log.info(`[GW-DELETE] Incoming: ${req.method} ${req.url} → ${path}`);
       await proxyToLegalDocs(req, rep, path, legalDocsTimeoutMs, LEGAL_DOCS_URL);
     });
     
