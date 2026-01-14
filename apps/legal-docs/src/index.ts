@@ -548,14 +548,23 @@ app.get("/stats", async (_req, res, next) => {
     const p95Latency = p95Seconds > 0 ? `${(p95Seconds / 60).toFixed(1)}m` : "N/A";
     
     // 6. Fuentes conectadas (knowledge bases)
-    const sourcesResult = await db.query(`
-      SELECT COUNT(*) as count, 
-             STRING_AGG(name, ', ') as names
-      FROM knowledge_bases 
-      WHERE enabled = true
-    `);
-    const sourcesCount = parseInt(sourcesResult.rows[0]?.count || "0", 10);
-    const sourcesNames = sourcesResult.rows[0]?.names || "Ninguna";
+    let sourcesCount = 0;
+    let sourcesNames = "Ninguna";
+    try {
+      const sourcesResult = await db.query(`
+        SELECT COUNT(*) as count, 
+               STRING_AGG(name, ', ') as names
+        FROM knowledge_bases 
+        WHERE enabled = true
+      `);
+      sourcesCount = parseInt(sourcesResult.rows[0]?.count || "0", 10);
+      sourcesNames = sourcesResult.rows[0]?.names || "Ninguna";
+    } catch (err: any) {
+      console.warn(`[STATS] ⚠️ No se pudo obtener knowledge bases (tabla puede no existir):`, err.message);
+      // Si la tabla no existe, usar valores por defecto
+      sourcesCount = 0;
+      sourcesNames = "Ninguna";
+    }
     
     // 7. Usuarios activos (por ahora siempre 1 - el usuario actual)
     const activeUsers = 1;
