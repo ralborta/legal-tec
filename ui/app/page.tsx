@@ -111,13 +111,14 @@ function extractKeyPointsFromChat(chatMessages: Array<{role: "user" | "assistant
   return keyPoints.slice(0, 5); // Máximo 5 puntos clave
 }
 
-const kpis = [
-  { title: "Solicitudes en Cola", value: "7", caption: "Pendientes", icon: Clock3, color: "text-amber-600" },
-  { title: "Docs Generados (7d)", value: "126", caption: "+18% vs prev.", icon: FileText, color: "text-emerald-600" },
-  { title: "Exactitud de Citas", value: "96.2%", caption: "últ. 100 docs", icon: CheckCircle2, color: "text-emerald-600" },
-  { title: "Latencia Media", value: "1.8m", caption: "p95: 3.2m", icon: Loader2, color: "text-slate-600" },
-  { title: "Fuentes Conectadas", value: "4", caption: "BQ, vLex, MicroJuris, Internas", icon: BookOpen, color: "text-slate-600" },
-  { title: "Usuarios Activos", value: "12", caption: "WNS & Asociados", icon: Users, color: "text-slate-600" },
+// KPIs iniciales (se actualizarán con datos reales)
+const initialKpis = [
+  { title: "Solicitudes en Cola", value: "0", caption: "Pendientes", icon: Clock3, color: "text-amber-600" },
+  { title: "Docs Generados (7d)", value: "0", caption: "Cargando...", icon: FileText, color: "text-emerald-600" },
+  { title: "Exactitud de Citas", value: "N/A", caption: "últ. 100 docs", icon: CheckCircle2, color: "text-emerald-600" },
+  { title: "Latencia Media", value: "N/A", caption: "p95: N/A", icon: Loader2, color: "text-slate-600" },
+  { title: "Fuentes Conectadas", value: "0", caption: "Cargando...", icon: BookOpen, color: "text-slate-600" },
+  { title: "Usuarios Activos", value: "1", caption: "Usuario actual", icon: Users, color: "text-slate-600" },
 ];
 
 export default function CentroGestionLegalPage() {
@@ -525,6 +526,9 @@ function Topbar({ activeView, setActiveView }: { activeView: string; setActiveVi
 }
 
 function KPIGrid() {
+  const [kpis, setKpis] = useState(initialKpis);
+  const [loading, setLoading] = useState(true);
+  
   const iconColors: Record<string, string> = {
     "Solicitudes en Cola": "text-orange-500",
     "Docs Generados (7d)": "text-green-500",
@@ -534,6 +538,87 @@ function KPIGrid() {
     "Usuarios Activos": "text-cyan-500"
   };
 
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const API = getApiUrl();
+        if (!API) {
+          console.warn("[KPIs] API URL no configurada");
+          setLoading(false);
+          return;
+        }
+
+        const response = await fetch(`${API}/legal/stats`);
+        if (!response.ok) {
+          throw new Error(`Error ${response.status}`);
+        }
+
+        const stats = await response.json();
+        
+        setKpis([
+          { 
+            title: "Solicitudes en Cola", 
+            value: String(stats.queue || 0), 
+            caption: "Pendientes", 
+            icon: Clock3, 
+            color: "text-amber-600" 
+          },
+          { 
+            title: "Docs Generados (7d)", 
+            value: String(stats.docsGenerated7d || 0), 
+            caption: stats.docsGrowth && stats.docsGrowth !== "0" 
+              ? `${stats.docsGrowth > 0 ? '+' : ''}${stats.docsGrowth}% vs prev.` 
+              : "Sin datos previos", 
+            icon: FileText, 
+            color: "text-emerald-600" 
+          },
+          { 
+            title: "Exactitud de Citas", 
+            value: stats.accuracy || "N/A", 
+            caption: "últ. 100 docs", 
+            icon: CheckCircle2, 
+            color: "text-emerald-600" 
+          },
+          { 
+            title: "Latencia Media", 
+            value: stats.avgLatency || "N/A", 
+            caption: stats.p95Latency ? `p95: ${stats.p95Latency}` : "p95: N/A", 
+            icon: Loader2, 
+            color: "text-slate-600" 
+          },
+          { 
+            title: "Fuentes Conectadas", 
+            value: String(stats.sourcesConnected || 0), 
+            caption: stats.sourcesNames && stats.sourcesNames !== "Ninguna" 
+              ? stats.sourcesNames.length > 40 
+                ? stats.sourcesNames.substring(0, 40) + "..." 
+                : stats.sourcesNames
+              : "Ninguna", 
+            icon: BookOpen, 
+            color: "text-slate-600" 
+          },
+          { 
+            title: "Usuarios Activos", 
+            value: String(stats.activeUsers || 1), 
+            caption: "Usuario actual", 
+            icon: Users, 
+            color: "text-slate-600" 
+          },
+        ]);
+      } catch (err: any) {
+        console.error("[KPIs] Error cargando estadísticas:", err);
+        // Mantener valores iniciales en caso de error
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+    // Actualizar cada 30 segundos
+    const interval = setInterval(fetchStats, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-8">
       {kpis.map((k, i) => {
@@ -542,9 +627,11 @@ function KPIGrid() {
           <div key={k.title} className="bg-white p-5 rounded-xl border border-gray-200">
             <div className="flex justify-between items-center mb-2">
               <p className="text-sm font-medium text-gray-600">{k.title}</p>
-              <k.icon className={`h-5 w-5 ${iconColor}`} />
+              <k.icon className={`h-5 w-5 ${iconColor} ${loading ? 'animate-pulse' : ''}`} />
             </div>
-            <p className="text-4xl font-bold text-gray-900 mb-3">{k.value}</p>
+            <p className="text-4xl font-bold text-gray-900 mb-3">
+              {loading && k.value === "0" ? "..." : k.value}
+            </p>
             {k.caption && (
               <p className={`text-xs ${k.caption.includes('+') ? 'text-green-600 font-semibold' : 'text-gray-500'}`}>
                 {k.caption}

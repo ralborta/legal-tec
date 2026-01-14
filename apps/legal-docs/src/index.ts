@@ -487,6 +487,99 @@ app.delete("/document/:documentId", async (req, res, next) => {
   }
 });
 
+// Endpoint para obtener estadísticas del dashboard
+app.get("/stats", async (_req, res, next) => {
+  try {
+    console.log(`[STATS] Obteniendo estadísticas del dashboard...`);
+    
+    // 1. Solicitudes en cola (documentos con status "processing" o sin completar)
+    const queueResult = await db.query(`
+      SELECT COUNT(*) as count 
+      FROM legal_documents 
+      WHERE status IN ('processing', 'ocr', 'translating', 'classifying', 'analyzing', 'generating_report', 'regenerating_report')
+         OR (status IS NULL AND id IN (SELECT document_id FROM legal_analysis WHERE report IS NULL))
+    `);
+    const queueCount = parseInt(queueResult.rows[0]?.count || "0", 10);
+    
+    // 2. Docs generados en últimos 7 días
+    const docs7dResult = await db.query(`
+      SELECT COUNT(*) as count 
+      FROM legal_documents 
+      WHERE created_at >= NOW() - INTERVAL '7 days'
+    `);
+    const docs7d = parseInt(docs7dResult.rows[0]?.count || "0", 10);
+    
+    // 3. Docs generados en los 7 días anteriores (para comparación)
+    const docsPrev7dResult = await db.query(`
+      SELECT COUNT(*) as count 
+      FROM legal_documents 
+      WHERE created_at >= NOW() - INTERVAL '14 days' 
+        AND created_at < NOW() - INTERVAL '7 days'
+    `);
+    const docsPrev7d = parseInt(docsPrev7dResult.rows[0]?.count || "0", 10);
+    const docsGrowth = docsPrev7d > 0 
+      ? ((docs7d - docsPrev7d) / docsPrev7d * 100).toFixed(0)
+      : (docs7d > 0 ? "100" : "0");
+    
+    // 4. Exactitud de citas (por ahora N/A, pero podemos calcular si hay datos)
+    const accuracyResult = await db.query(`
+      SELECT COUNT(*) as total, 
+             COUNT(CASE WHEN report IS NOT NULL THEN 1 END) as with_report
+      FROM legal_analysis 
+      WHERE analyzed_at >= NOW() - INTERVAL '30 days'
+      LIMIT 100
+    `);
+    const accuracy = "N/A"; // Por ahora no tenemos métrica de exactitud
+    
+    // 5. Latencia media (tiempo promedio de análisis completado)
+    const latencyResult = await db.query(`
+      SELECT 
+        AVG(EXTRACT(EPOCH FROM (analyzed_at - created_at))) as avg_seconds,
+        PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM (analyzed_at - created_at))) as p95_seconds
+      FROM legal_analysis la
+      JOIN legal_documents ld ON la.document_id = ld.id
+      WHERE la.analyzed_at IS NOT NULL 
+        AND ld.created_at IS NOT NULL
+        AND la.analyzed_at >= NOW() - INTERVAL '7 days'
+    `);
+    const avgSeconds = parseFloat(latencyResult.rows[0]?.avg_seconds || "0");
+    const p95Seconds = parseFloat(latencyResult.rows[0]?.p95_seconds || "0");
+    const avgLatency = avgSeconds > 0 ? `${(avgSeconds / 60).toFixed(1)}m` : "N/A";
+    const p95Latency = p95Seconds > 0 ? `${(p95Seconds / 60).toFixed(1)}m` : "N/A";
+    
+    // 6. Fuentes conectadas (knowledge bases)
+    const sourcesResult = await db.query(`
+      SELECT COUNT(*) as count, 
+             STRING_AGG(name, ', ') as names
+      FROM knowledge_bases 
+      WHERE enabled = true
+    `);
+    const sourcesCount = parseInt(sourcesResult.rows[0]?.count || "0", 10);
+    const sourcesNames = sourcesResult.rows[0]?.names || "Ninguna";
+    
+    // 7. Usuarios activos (por ahora siempre 1 - el usuario actual)
+    const activeUsers = 1;
+    
+    const stats = {
+      queue: queueCount,
+      docsGenerated7d: docs7d,
+      docsGrowth: docsGrowth,
+      accuracy: accuracy,
+      avgLatency: avgLatency,
+      p95Latency: p95Latency,
+      sourcesConnected: sourcesCount,
+      sourcesNames: sourcesNames,
+      activeUsers: activeUsers
+    };
+    
+    console.log(`[STATS] ✅ Estadísticas obtenidas:`, stats);
+    res.json(stats);
+  } catch (err: any) {
+    console.error(`[STATS] ❌ Error obteniendo estadísticas:`, err);
+    next(err);
+  }
+});
+
 app.get("/history", async (_req, res) => {
   try {
     const documents = await legalDb.getAllDocumentsWithAnalysis(100);

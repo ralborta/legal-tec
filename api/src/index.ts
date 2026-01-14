@@ -1744,6 +1744,13 @@ Responde SOLO con un JSON válido con esta estructura:
       await proxyToLegalDocs(req, rep, path, legalDocsTimeoutMs, LEGAL_DOCS_URL);
     });
     
+    app.all("/legal/stats", async (req, rep) => {
+      // Proxy a /stats (SIN /legal) - para estadísticas del dashboard
+      const path = `/stats`;
+      app.log.info(`[GW-STATS] Incoming: ${req.method} ${req.url} → ${path}`);
+      await proxyToLegalDocs(req, rep, path, legalDocsTimeoutMs, LEGAL_DOCS_URL);
+    });
+    
     // Función helper para el proxy
     async function proxyToLegalDocs(req: any, rep: any, path: string, timeoutMs: number, baseUrl: string) {
       try {
