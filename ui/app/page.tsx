@@ -858,7 +858,12 @@ function BandejaLocal({ items, onDelete, onUpdateItem }: { items: any[]; onDelet
                       // Simular envío por correo (por ahora solo cambio de estado)
                       await new Promise(resolve => setTimeout(resolve, 1000));
                       
-                      // Actualizar el estado del item en localStorage
+                      // Actualizar el estado usando el callback PRIMERO para actualizar la UI inmediatamente
+                      if (onUpdateItem) {
+                        onUpdateItem(assignModal.id, { estado: "Asignado", abogadoAsignado: `Abogado ${num}` });
+                      }
+                      
+                      // Luego actualizar localStorage para persistir
                       const saved = localStorage.getItem("legal-memos");
                       if (saved) {
                         try {
@@ -869,17 +874,15 @@ function BandejaLocal({ items, onDelete, onUpdateItem }: { items: any[]; onDelet
                               : m
                           );
                           localStorage.setItem("legal-memos", JSON.stringify(updated));
-                          
-                          // Actualizar el estado usando el callback si existe
-                          if (onUpdateItem) {
-                            onUpdateItem(assignModal.id, { estado: "Asignado", abogadoAsignado: `Abogado ${num}` });
-                          } else {
-                            // Fallback: recargar la página
-                            window.location.reload();
-                          }
                         } catch (err) {
                           console.error("Error al actualizar estado:", err);
                         }
+                      }
+                      
+                      // Si no hay callback, recargar la página como fallback
+                      if (!onUpdateItem) {
+                        window.location.reload();
+                        return;
                       }
                       
                       // Mostrar modal de confirmación personalizado
