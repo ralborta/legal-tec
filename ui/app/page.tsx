@@ -632,6 +632,7 @@ function BandejaLocal({ items }: { items: any[] }) {
                       <button 
                         className="p-1.5 rounded-md hover:bg-gray-100 text-gray-600 hover:text-[#C026D3]"
                         onClick={() => window.location.href = `/memos/${row.id}`}
+                        title="Ver documento"
                       >
                         <Eye className="h-4 w-4" />
                       </button>
@@ -675,6 +676,31 @@ function BandejaLocal({ items }: { items: any[] }) {
                         title="Descargar Word (.docx)"
                       >
                         <Download className="h-4 w-4" />
+                      </button>
+                      <button 
+                        className="p-1.5 rounded-md hover:bg-red-50 text-gray-600 hover:text-red-600"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (confirm(`¿Estás seguro de que querés eliminar "${row.title || row.asunto}"? Esta acción no se puede deshacer.`)) {
+                            // Eliminar del localStorage
+                            const saved = localStorage.getItem("legal-memos");
+                            if (saved) {
+                              try {
+                                const memos = JSON.parse(saved);
+                                const filtered = memos.filter((m: any) => m.id !== row.id);
+                                localStorage.setItem("legal-memos", JSON.stringify(filtered));
+                                // Recargar la página para actualizar la lista
+                                window.location.reload();
+                              } catch (err) {
+                                console.error("Error al eliminar del localStorage:", err);
+                                alert("Error al eliminar el documento. Intenta de nuevo.");
+                              }
+                            }
+                          }
+                        }}
+                        title="Eliminar documento"
+                      >
+                        <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
                   </td>
