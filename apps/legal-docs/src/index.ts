@@ -441,6 +441,52 @@ app.get("/status/:documentId", handleStatus);
 // El gateway ya maneja el prefijo /legal, el servicio NO debe tenerlo
 
 // Endpoint para obtener historial de documentos
+// Endpoint para eliminar un documento y su análisis
+app.delete("/document/:documentId", async (req, res, next) => {
+  try {
+    const { documentId } = req.params;
+    console.log(`[DELETE] Eliminando documento ${documentId}...`);
+    
+    // Verificar que el documento existe
+    const doc = await legalDb.getDocument(documentId);
+    if (!doc) {
+      return res.status(404).json({ 
+        error: "Document not found",
+        message: `Document with id ${documentId} does not exist.`,
+        documentId
+      });
+    }
+    
+    // Eliminar análisis primero (si existe)
+    try {
+      await legalDb.deleteAnalysis(documentId);
+      console.log(`[DELETE] ✅ Análisis eliminado para ${documentId}`);
+    } catch (err: any) {
+      console.warn(`[DELETE] ⚠️ No se pudo eliminar análisis (puede que no exista):`, err.message);
+    }
+    
+    // Eliminar documento de la DB
+    const deleted = await legalDb.deleteDocumentsByIds([documentId]);
+    
+    if (deleted > 0) {
+      console.log(`[DELETE] ✅ Documento ${documentId} eliminado exitosamente`);
+      return res.json({ 
+        success: true, 
+        message: "Documento eliminado exitosamente",
+        documentId 
+      });
+    } else {
+      return res.status(500).json({ 
+        error: "Failed to delete",
+        message: "No se pudo eliminar el documento de la base de datos."
+      });
+    }
+  } catch (err: any) {
+    console.error(`[DELETE] ❌ Error eliminando documento:`, err);
+    next(err);
+  }
+});
+
 app.get("/history", async (_req, res) => {
   try {
     const documents = await legalDb.getAllDocumentsWithAnalysis(100);
