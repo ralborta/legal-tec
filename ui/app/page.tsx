@@ -661,6 +661,8 @@ function BandejaLocal({ items, onDelete, onUpdateItem }: { items: any[]; onDelet
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; title: string } | null>(null);
   const [assignModal, setAssignModal] = useState<{ id: string; title: string } | null>(null);
   const [assigning, setAssigning] = useState(false);
+  const [assignSuccess, setAssignSuccess] = useState<{ abogado: string } | null>(null);
+  const [showAssignedInfo, setShowAssignedInfo] = useState<{ id: string; abogado: string; title: string } | null>(null);
   
   // Mostrar tanto memos como análisis
   const memos = items.filter(item => 
@@ -734,23 +736,29 @@ function BandejaLocal({ items, onDelete, onUpdateItem }: { items: any[]; onDelet
                   </td>
                   <td className="py-3 px-4 text-sm text-gray-600">{getAreaLegalLabel(row.areaLegal || "civil_comercial")}</td>
                   <td className="py-3 px-4">
-                    {(row.estado === "Listo para revisión" || row.status === "completed") && row.estado !== "Asignado" ? (
+                    {row.estado === "Asignado" ? (
+                      <button
+                        onClick={() => setShowAssignedInfo({ 
+                          id: row.id, 
+                          abogado: row.abogadoAsignado || "Abogado no especificado",
+                          title: row.title || row.asunto || "documento"
+                        })}
+                        className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 cursor-pointer transition-colors"
+                      >
+                        <span className="w-2 h-2 mr-2 rounded-full bg-blue-500"></span>
+                        Asignado
+                      </button>
+                    ) : (row.estado === "Listo para revisión" || row.status === "completed") ? (
                       <button
                         onClick={() => setAssignModal({ id: row.id, title: row.title || row.asunto || "documento" })}
                         className="inline-flex items-center text-sm text-gray-600 hover:text-[#C026D3] cursor-pointer transition-colors"
                       >
                         <span className="w-2 h-2 mr-2 rounded-full bg-green-500"></span>
-                        {row.estado || row.status || "Pendiente"}
+                        Listo para revisión
                       </button>
                     ) : (
                       <span className="inline-flex items-center text-sm text-gray-600">
-                        <span className={`w-2 h-2 mr-2 rounded-full ${
-                          row.estado === "Asignado" 
-                            ? "bg-blue-500" 
-                            : row.estado === "Listo para revisión" || row.status === "completed" 
-                              ? "bg-green-500" 
-                              : "bg-amber-500"
-                        }`}></span>
+                        <span className="w-2 h-2 mr-2 rounded-full bg-amber-500"></span>
                         {row.estado || row.status || "Pendiente"}
                       </span>
                     )}
