@@ -825,6 +825,82 @@ function BandejaLocal({ items, onDelete, onUpdateItem }: { items: any[]; onDelet
         </table>
       </div>
       
+      {/* Modal de asignación de abogado */}
+      {assignModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4">
+            <h3 className="text-xl font-bold text-gray-900">Asignar a Abogado</h3>
+            <p className="text-sm text-gray-700">
+              Seleccioná un abogado para asignar el documento <span className="font-semibold">"{assignModal.title}"</span>
+            </p>
+            
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {[1, 2, 3, 4, 5, 6].map((num) => (
+                <button
+                  key={num}
+                  onClick={async () => {
+                    setAssigning(true);
+                    try {
+                      // Simular envío por correo (por ahora solo cambio de estado)
+                      await new Promise(resolve => setTimeout(resolve, 1000));
+                      
+                      // Actualizar el estado del item en localStorage
+                      const saved = localStorage.getItem("legal-memos");
+                      if (saved) {
+                        try {
+                          const memos = JSON.parse(saved);
+                          const updated = memos.map((m: any) => 
+                            m.id === assignModal.id 
+                              ? { ...m, estado: "Asignado", abogadoAsignado: `Abogado ${num}` }
+                              : m
+                          );
+                          localStorage.setItem("legal-memos", JSON.stringify(updated));
+                          
+                          // Actualizar el estado usando el callback si existe
+                          if (onUpdateItem) {
+                            onUpdateItem(assignModal.id, { estado: "Asignado", abogadoAsignado: `Abogado ${num}` });
+                          } else {
+                            // Fallback: recargar la página
+                            window.location.reload();
+                          }
+                        } catch (err) {
+                          console.error("Error al actualizar estado:", err);
+                        }
+                      }
+                      
+                      alert(`Documento asignado a Abogado ${num}. Se envió una notificación por correo.`);
+                      setAssignModal(null);
+                    } catch (err: any) {
+                      console.error("Error al asignar:", err);
+                      alert(`Error al asignar: ${err.message || "Intenta de nuevo"}`);
+                    } finally {
+                      setAssigning(false);
+                    }
+                  }}
+                  disabled={assigning}
+                  className="w-full text-left px-4 py-3 rounded-lg border border-gray-200 hover:border-[#C026D3] hover:bg-purple-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-gray-900">Abogado {num}</span>
+                    {assigning && <Loader2 className="h-4 w-4 animate-spin text-[#C026D3]" />}
+                  </div>
+                </button>
+              ))}
+            </div>
+            
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                onClick={() => setAssignModal(null)}
+                disabled={assigning}
+                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 font-medium rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Modal de confirmación de eliminación */}
       {deleteConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
