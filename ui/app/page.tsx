@@ -235,9 +235,15 @@ export default function CentroGestionLegalPage() {
                         item.id === id ? { ...item, ...updates } : item
                       );
                       setItems(updated);
-                      // Actualizar localStorage
+                      // Actualizar localStorage (guardar todos los items, no solo memos)
                       try {
-                        localStorage.setItem("legal-memos", JSON.stringify(updated.filter(item => item.type === "memo" || item.memoData)));
+                        // Guardar todos los items que están en localStorage (memos y análisis locales)
+                        const allLocalItems = updated.filter(item => 
+                          item.type === "memo" || 
+                          item.memoData || 
+                          (item.type === "analysis" && !item.fromDb) // Solo análisis que no vienen de DB
+                        );
+                        localStorage.setItem("legal-memos", JSON.stringify(allLocalItems));
                       } catch (e) {
                         console.warn("No se pudo actualizar localStorage:", e);
                       }
