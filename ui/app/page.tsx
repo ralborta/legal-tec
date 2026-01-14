@@ -558,6 +558,8 @@ function KPIGrid() {
 }
 
 function BandejaLocal({ items, onDelete }: { items: any[]; onDelete?: (id: string) => void }) {
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; title: string } | null>(null);
+  
   // Mostrar tanto memos como análisis
   const memos = items.filter(item => 
     item.type === "memo" || 
@@ -694,27 +696,7 @@ function BandejaLocal({ items, onDelete }: { items: any[]; onDelete?: (id: strin
                         className="p-1.5 rounded-md hover:bg-red-50 text-gray-600 hover:text-red-600 transition-colors"
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (confirm(`¿Estás seguro de que querés eliminar "${row.title || row.asunto}"? Esta acción no se puede deshacer.`)) {
-                            // Eliminar del localStorage
-                            const saved = localStorage.getItem("legal-memos");
-                            if (saved) {
-                              try {
-                                const memos = JSON.parse(saved);
-                                const filtered = memos.filter((m: any) => m.id !== row.id);
-                                localStorage.setItem("legal-memos", JSON.stringify(filtered));
-                                // Llamar al callback si existe para actualizar el estado sin recargar
-                                if (onDelete) {
-                                  onDelete(row.id);
-                                } else {
-                                  // Fallback: recargar la página
-                                  window.location.reload();
-                                }
-                              } catch (err) {
-                                console.error("Error al eliminar del localStorage:", err);
-                                alert("Error al eliminar el documento. Intenta de nuevo.");
-                              }
-                            }
-                          }
+                          setDeleteConfirm({ id: row.id, title: row.title || row.asunto || "documento" });
                         }}
                         title="Eliminar documento"
                       >
@@ -728,6 +710,58 @@ function BandejaLocal({ items, onDelete }: { items: any[]; onDelete?: (id: strin
           </tbody>
         </table>
       </div>
+      
+      {/* Modal de confirmación de eliminación */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4">
+            <h3 className="text-xl font-bold text-gray-900">Confirmar eliminación</h3>
+            <p className="text-sm text-gray-700">
+              ¿Estás seguro de que querés eliminar <span className="font-semibold">"{deleteConfirm.title}"</span>?
+            </p>
+            <p className="text-xs text-red-600 font-medium">
+              ⚠️ Esta acción no se puede deshacer.
+            </p>
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 font-medium rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  const idToDelete = deleteConfirm.id;
+                  setDeleteConfirm(null);
+                  
+                  // Eliminar del localStorage
+                  const saved = localStorage.getItem("legal-memos");
+                  if (saved) {
+                    try {
+                      const memos = JSON.parse(saved);
+                      const filtered = memos.filter((m: any) => m.id !== idToDelete);
+                      localStorage.setItem("legal-memos", JSON.stringify(filtered));
+                      // Llamar al callback si existe para actualizar el estado sin recargar
+                      if (onDelete) {
+                        onDelete(idToDelete);
+                      } else {
+                        // Fallback: recargar la página
+                        window.location.reload();
+                      }
+                    } catch (err) {
+                      console.error("Error al eliminar del localStorage:", err);
+                      alert("Error al eliminar el documento. Intenta de nuevo.");
+                    }
+                  }
+                }}
+                className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
