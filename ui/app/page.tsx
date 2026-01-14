@@ -669,6 +669,8 @@ function BandejaLocal({ items, onDelete, onUpdateItem }: { items: any[]; onDelet
   const [assigning, setAssigning] = useState(false);
   const [assignSuccess, setAssignSuccess] = useState<{ abogado: string } | null>(null);
   const [showAssignedInfo, setShowAssignedInfo] = useState<{ id: string; abogado: string; title: string } | null>(null);
+  const [abogados, setAbogados] = useState<Array<{id: string; nombre: string; telefono?: string; email: string}>>([]);
+  const [loadingAbogados, setLoadingAbogados] = useState(false);
   
   // Mostrar tanto memos como análisis
   const memos = items.filter(item => 

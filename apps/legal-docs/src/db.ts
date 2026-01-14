@@ -36,6 +36,26 @@ export const legalDb = {
    * Esto evita que el servicio quede "procesando" infinito si no se ejecutaron migraciones.
    */
   async ensureSchema() {
+    // Crear tabla de abogados senior si no existe
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS abogados_senior (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        nombre VARCHAR(255) NOT NULL,
+        telefono VARCHAR(50),
+        email VARCHAR(255) NOT NULL,
+        activo BOOLEAN DEFAULT true,
+        orden INTEGER DEFAULT 0,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+    await db.query(`
+      CREATE INDEX IF NOT EXISTS idx_abogados_senior_activo ON abogados_senior(activo)
+    `);
+    await db.query(`
+      CREATE INDEX IF NOT EXISTS idx_abogados_senior_orden ON abogados_senior(orden)
+    `);
+    
     await db.query(`
       CREATE TABLE IF NOT EXISTS legal_documents (
         id VARCHAR(255) PRIMARY KEY,

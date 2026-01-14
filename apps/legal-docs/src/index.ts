@@ -589,6 +589,121 @@ app.get("/stats", async (_req, res, next) => {
   }
 });
 
+// Endpoint para obtener lista de abogados senior
+app.get("/abogados", async (_req, res, next) => {
+  try {
+    console.log(`[ABOGADOS] Obteniendo lista de abogados senior...`);
+    
+    const result = await db.query(`
+      SELECT id, nombre, telefono, email, activo, orden
+      FROM abogados_senior
+      WHERE activo = true
+      ORDER BY orden ASC, nombre ASC
+    `);
+    
+    const abogados = result.rows.map((row: any) => ({
+      id: row.id,
+      nombre: row.nombre,
+      telefono: row.telefono || null,
+      email: row.email,
+      activo: row.activo,
+      orden: row.orden || 0
+    }));
+    
+    console.log(`[ABOGADOS] ✅ ${abogados.length} abogados encontrados`);
+    res.json({ abogados });
+  } catch (err: any) {
+    console.error(`[ABOGADOS] ❌ Error obteniendo abogados:`, err);
+    next(err);
+  }
+});
+
+// Endpoint para crear/actualizar abogado (admin)
+app.post("/abogados", async (req, res, next) => {
+  try {
+    const { nombre, telefono, email, activo, orden } = req.body;
+    
+    if (!nombre || !email) {
+      return res.status(400).json({ 
+        error: "Bad request",
+        message: "nombre y email son requeridos"
+      });
+    }
+    
+    const result = await db.query(`
+      INSERT INTO abogados_senior (nombre, telefono, email, activo, orden)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING id, nombre, telefono, email, activo, orden, created_at
+    `, [nombre, telefono || null, email, activo !== false, orden || 0]);
+    
+    console.log(`[ABOGADOS] ✅ Abogado creado: ${nombre}`);
+    res.json({ abogado: result.rows[0] });
+  } catch (err: any) {
+    console.error(`[ABOGADOS] ❌ Error creando abogado:`, err);
+    next(err);
+  }
+});
+
+// Endpoint para actualizar abogado
+app.put("/abogados/:id", async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { nombre, telefono, email, activo, orden } = req.body;
+    
+    const result = await db.query(`
+      UPDATE abogados_senior
+      SET nombre = COALESCE($1, nombre),
+          telefono = COALESCE($2, telefono),
+          email = COALESCE($3, email),
+          activo = COALESCE($4, activo),
+          orden = COALESCE($5, orden),
+          updated_at = NOW()
+      WHERE id = $6
+      RETURNING id, nombre, telefono, email, activo, orden, updated_at
+    `, [nombre, telefono, email, activo, orden, id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ 
+        error: "Not found",
+        message: "Abogado no encontrado"
+      });
+    }
+    
+    console.log(`[ABOGADOS] ✅ Abogado actualizado: ${id}`);
+    res.json({ abogado: result.rows[0] });
+  } catch (err: any) {
+    console.error(`[ABOGADOS] ❌ Error actualizando abogado:`, err);
+    next(err);
+  }
+});
+
+// Endpoint para eliminar abogado (soft delete - marcar como inactivo)
+app.delete("/abogados/:id", async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    
+    const result = await db.query(`
+      UPDATE abogados_senior
+      SET activo = false, updated_at = NOW()
+      WHERE id = $1
+      RETURNING id, nombre
+    `, [id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ 
+        error: "Not found",
+        message: "Abogado no encontrado"
+      });
+    }
+    
+    console.log(`[ABOGADOS] ✅ Abogado desactivado: ${id}`);
+    res.json({ message: "Abogado desactivado exitosamente", abogado: result.rows[0] });
+  } catch (err: any) {
+    console.error(`[ABOGADOS] ❌ Error desactivando abogado:`, err);
+    next(err);
+  }
+});
+
 app.get("/history", async (_req, res) => {
   try {
     const documents = await legalDb.getAllDocumentsWithAnalysis(100);
