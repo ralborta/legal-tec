@@ -702,6 +702,65 @@ function BandejaLocal({ items, onDelete, onUpdateItem }: { items: any[]; onDelet
     } catch {}
     return fecha || new Date().toLocaleDateString('es-AR');
   };
+
+  // Cargar lista de abogados desde la API
+  useEffect(() => {
+    const loadAbogados = async () => {
+      setLoadingAbogados(true);
+      try {
+        const API = getApiUrl();
+        if (!API) {
+          console.warn("[ABOGADOS] API URL no configurada");
+          // Fallback a lista hardcodeada si no hay API
+          setAbogados([
+            { id: "1", nombre: "Abogado 1", email: "abogado1@wns.com" },
+            { id: "2", nombre: "Abogado 2", email: "abogado2@wns.com" },
+            { id: "3", nombre: "Abogado 3", email: "abogado3@wns.com" },
+            { id: "4", nombre: "Abogado 4", email: "abogado4@wns.com" },
+            { id: "5", nombre: "Abogado 5", email: "abogado5@wns.com" },
+            { id: "6", nombre: "Abogado 6", email: "abogado6@wns.com" },
+          ]);
+          setLoadingAbogados(false);
+          return;
+        }
+
+        const response = await fetch(`${API}/legal/abogados`);
+        if (!response.ok) {
+          throw new Error(`Error ${response.status}`);
+        }
+
+        const data = await response.json();
+        if (data.abogados && data.abogados.length > 0) {
+          setAbogados(data.abogados);
+        } else {
+          // Fallback a lista hardcodeada si no hay abogados en DB
+          setAbogados([
+            { id: "1", nombre: "Abogado 1", email: "abogado1@wns.com" },
+            { id: "2", nombre: "Abogado 2", email: "abogado2@wns.com" },
+            { id: "3", nombre: "Abogado 3", email: "abogado3@wns.com" },
+            { id: "4", nombre: "Abogado 4", email: "abogado4@wns.com" },
+            { id: "5", nombre: "Abogado 5", email: "abogado5@wns.com" },
+            { id: "6", nombre: "Abogado 6", email: "abogado6@wns.com" },
+          ]);
+        }
+      } catch (err: any) {
+        console.error("[ABOGADOS] Error cargando abogados:", err);
+        // Fallback a lista hardcodeada en caso de error
+        setAbogados([
+          { id: "1", nombre: "Abogado 1", email: "abogado1@wns.com" },
+          { id: "2", nombre: "Abogado 2", email: "abogado2@wns.com" },
+          { id: "3", nombre: "Abogado 3", email: "abogado3@wns.com" },
+          { id: "4", nombre: "Abogado 4", email: "abogado4@wns.com" },
+          { id: "5", nombre: "Abogado 5", email: "abogado5@wns.com" },
+          { id: "6", nombre: "Abogado 6", email: "abogado6@wns.com" },
+        ]);
+      } finally {
+        setLoadingAbogados(false);
+      }
+    };
+
+    loadAbogados();
+  }, []);
   
   return (
     <div className="bg-white p-6 rounded-xl border border-gray-200 flex flex-col">
@@ -851,62 +910,90 @@ function BandejaLocal({ items, onDelete, onUpdateItem }: { items: any[]; onDelet
             </p>
             
             <div className="space-y-2 max-h-64 overflow-y-auto">
-              {[1, 2, 3, 4, 5, 6].map((num) => (
-                <button
-                  key={num}
-                  onClick={async () => {
-                    setAssigning(true);
-                    try {
-                      // Simular envío por correo (por ahora solo cambio de estado)
-                      await new Promise(resolve => setTimeout(resolve, 1000));
-                      
-                      // Actualizar el estado usando el callback PRIMERO para actualizar la UI inmediatamente
-                      if (onUpdateItem) {
-                        onUpdateItem(assignModal.id, { estado: "Asignado", abogadoAsignado: `Abogado ${num}` });
-                      }
-                      
-                      // Luego actualizar localStorage para persistir
-                      const saved = localStorage.getItem("legal-memos");
-                      if (saved) {
-                        try {
-                          const memos = JSON.parse(saved);
-                          const updated = memos.map((m: any) => 
-                            m.id === assignModal.id 
-                              ? { ...m, estado: "Asignado", abogadoAsignado: `Abogado ${num}` }
-                              : m
-                          );
-                          localStorage.setItem("legal-memos", JSON.stringify(updated));
-                        } catch (err) {
-                          console.error("Error al actualizar estado:", err);
+              {loadingAbogados ? (
+                <div className="text-center py-4">
+                  <Loader2 className="h-5 w-5 animate-spin text-[#C026D3] mx-auto" />
+                  <p className="text-sm text-gray-500 mt-2">Cargando abogados...</p>
+                </div>
+              ) : abogados.length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-4">No hay abogados disponibles</p>
+              ) : (
+                abogados.map((abogado) => (
+                  <button
+                    key={abogado.id}
+                    onClick={async () => {
+                      setAssigning(true);
+                      try {
+                        // Simular envío por correo (por ahora solo cambio de estado)
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        
+                        // Actualizar el estado usando el callback PRIMERO para actualizar la UI inmediatamente
+                        if (onUpdateItem) {
+                          onUpdateItem(assignModal.id, { 
+                            estado: "Asignado", 
+                            abogadoAsignado: abogado.nombre,
+                            abogadoId: abogado.id,
+                            abogadoEmail: abogado.email,
+                            abogadoTelefono: abogado.telefono
+                          });
                         }
+                        
+                        // Luego actualizar localStorage para persistir
+                        const saved = localStorage.getItem("legal-memos");
+                        if (saved) {
+                          try {
+                            const memos = JSON.parse(saved);
+                            const updated = memos.map((m: any) => 
+                              m.id === assignModal.id 
+                                ? { 
+                                    ...m, 
+                                    estado: "Asignado", 
+                                    abogadoAsignado: abogado.nombre,
+                                    abogadoId: abogado.id,
+                                    abogadoEmail: abogado.email,
+                                    abogadoTelefono: abogado.telefono
+                                  }
+                                : m
+                            );
+                            localStorage.setItem("legal-memos", JSON.stringify(updated));
+                          } catch (err) {
+                            console.error("Error al actualizar estado:", err);
+                          }
+                        }
+                        
+                        // Si no hay callback, recargar la página como fallback
+                        if (!onUpdateItem) {
+                          window.location.reload();
+                          return;
+                        }
+                        
+                        // Mostrar modal de confirmación personalizado
+                        setAssignModal(null);
+                        setAssignSuccess({ abogado: abogado.nombre });
+                      } catch (err: any) {
+                        console.error("Error al asignar:", err);
+                        setAssignModal(null);
+                        alert(`Error al asignar: ${err.message || "Intenta de nuevo"}`);
+                      } finally {
+                        setAssigning(false);
                       }
-                      
-                      // Si no hay callback, recargar la página como fallback
-                      if (!onUpdateItem) {
-                        window.location.reload();
-                        return;
-                      }
-                      
-                      // Mostrar modal de confirmación personalizado
-                      setAssignModal(null);
-                      setAssignSuccess({ abogado: `Abogado ${num}` });
-                    } catch (err: any) {
-                      console.error("Error al asignar:", err);
-                      setAssignModal(null);
-                      alert(`Error al asignar: ${err.message || "Intenta de nuevo"}`);
-                    } finally {
-                      setAssigning(false);
-                    }
-                  }}
-                  disabled={assigning}
-                  className="w-full text-left px-4 py-3 rounded-lg border border-gray-200 hover:border-[#C026D3] hover:bg-purple-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium text-gray-900">Abogado {num}</span>
-                    {assigning && <Loader2 className="h-4 w-4 animate-spin text-[#C026D3]" />}
-                  </div>
-                </button>
-              ))}
+                    }}
+                    disabled={assigning}
+                    className="w-full text-left px-4 py-3 rounded-lg border border-gray-200 hover:border-[#C026D3] hover:bg-purple-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex flex-col">
+                        <span className="font-medium text-gray-900">{abogado.nombre}</span>
+                        {abogado.telefono && (
+                          <span className="text-xs text-gray-500">{abogado.telefono}</span>
+                        )}
+                        <span className="text-xs text-gray-400">{abogado.email}</span>
+                      </div>
+                      {assigning && <Loader2 className="h-4 w-4 animate-spin text-[#C026D3]" />}
+                    </div>
+                  </button>
+                ))
+              )}
             </div>
             
             <div className="flex items-center justify-end gap-3 pt-2">
