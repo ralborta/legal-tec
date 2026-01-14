@@ -644,8 +644,10 @@ function KPIGrid() {
   );
 }
 
-function BandejaLocal({ items, onDelete }: { items: any[]; onDelete?: (id: string) => void }) {
+function BandejaLocal({ items, onDelete, onUpdateItem }: { items: any[]; onDelete?: (id: string) => void; onUpdateItem?: (id: string, updates: any) => void }) {
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; title: string } | null>(null);
+  const [assignModal, setAssignModal] = useState<{ id: string; title: string } | null>(null);
+  const [assigning, setAssigning] = useState(false);
   
   // Mostrar tanto memos como análisis
   const memos = items.filter(item => 
