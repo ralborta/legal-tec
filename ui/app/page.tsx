@@ -229,6 +229,19 @@ export default function CentroGestionLegalPage() {
                         console.warn("No se pudo actualizar localStorage:", e);
                       }
                     }}
+                    onUpdateItem={(id, updates) => {
+                      // Actualizar el item con los nuevos datos
+                      const updated = items.map(item => 
+                        item.id === id ? { ...item, ...updates } : item
+                      );
+                      setItems(updated);
+                      // Actualizar localStorage
+                      try {
+                        localStorage.setItem("legal-memos", JSON.stringify(updated.filter(item => item.type === "memo" || item.memoData)));
+                      } catch (e) {
+                        console.warn("No se pudo actualizar localStorage:", e);
+                      }
+                    }}
                   />
                 </div>
                 <div className="lg:col-span-1">
@@ -721,14 +734,26 @@ function BandejaLocal({ items, onDelete, onUpdateItem }: { items: any[]; onDelet
                   </td>
                   <td className="py-3 px-4 text-sm text-gray-600">{getAreaLegalLabel(row.areaLegal || "civil_comercial")}</td>
                   <td className="py-3 px-4">
-                    <span className="inline-flex items-center text-sm text-gray-600">
-                      <span className={`w-2 h-2 mr-2 rounded-full ${
-                        row.estado === "Listo para revisión" || row.status === "completed" 
-                          ? "bg-green-500" 
-                          : "bg-amber-500"
-                      }`}></span>
-                      {row.estado || row.status || "Pendiente"}
-                    </span>
+                    {(row.estado === "Listo para revisión" || row.status === "completed") && row.estado !== "Asignado" ? (
+                      <button
+                        onClick={() => setAssignModal({ id: row.id, title: row.title || row.asunto || "documento" })}
+                        className="inline-flex items-center text-sm text-gray-600 hover:text-[#C026D3] cursor-pointer transition-colors"
+                      >
+                        <span className="w-2 h-2 mr-2 rounded-full bg-green-500"></span>
+                        {row.estado || row.status || "Pendiente"}
+                      </button>
+                    ) : (
+                      <span className="inline-flex items-center text-sm text-gray-600">
+                        <span className={`w-2 h-2 mr-2 rounded-full ${
+                          row.estado === "Asignado" 
+                            ? "bg-blue-500" 
+                            : row.estado === "Listo para revisión" || row.status === "completed" 
+                              ? "bg-green-500" 
+                              : "bg-amber-500"
+                        }`}></span>
+                        {row.estado || row.status || "Pendiente"}
+                      </span>
+                    )}
                   </td>
                   <td className="py-3 px-4 text-sm text-gray-600">{formatFecha(row.createdAt || row.creado || new Date().toISOString())}</td>
                   <td className="py-3 px-4">
