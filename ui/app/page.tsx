@@ -215,7 +215,20 @@ export default function CentroGestionLegalPage() {
               <KPIGrid />
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 flex flex-col gap-8">
-                  <BandejaLocal items={items} />
+                  <BandejaLocal 
+                    items={items} 
+                    onDelete={(id) => {
+                      // Actualizar items removiendo el eliminado
+                      const updated = items.filter(item => item.id !== id);
+                      setItems(updated);
+                      // Actualizar localStorage
+                      try {
+                        localStorage.setItem("legal-memos", JSON.stringify(updated.filter(item => item.type === "memo" || item.memoData)));
+                      } catch (e) {
+                        console.warn("No se pudo actualizar localStorage:", e);
+                      }
+                    }}
+                  />
                 </div>
                 <div className="lg:col-span-1">
                   <GenerarPanel
@@ -544,7 +557,7 @@ function KPIGrid() {
   );
 }
 
-function BandejaLocal({ items }: { items: any[] }) {
+function BandejaLocal({ items, onDelete }: { items: any[]; onDelete?: (id: string) => void }) {
   // Mostrar tanto memos como análisis
   const memos = items.filter(item => 
     item.type === "memo" || 
@@ -678,7 +691,7 @@ function BandejaLocal({ items }: { items: any[] }) {
                         <Download className="h-4 w-4" />
                       </button>
                       <button 
-                        className="p-1.5 rounded-md hover:bg-red-50 text-gray-600 hover:text-red-600"
+                        className="p-1.5 rounded-md hover:bg-red-50 text-gray-600 hover:text-red-600 transition-colors"
                         onClick={(e) => {
                           e.stopPropagation();
                           if (confirm(`¿Estás seguro de que querés eliminar "${row.title || row.asunto}"? Esta acción no se puede deshacer.`)) {
@@ -689,8 +702,13 @@ function BandejaLocal({ items }: { items: any[] }) {
                                 const memos = JSON.parse(saved);
                                 const filtered = memos.filter((m: any) => m.id !== row.id);
                                 localStorage.setItem("legal-memos", JSON.stringify(filtered));
-                                // Recargar la página para actualizar la lista
-                                window.location.reload();
+                                // Llamar al callback si existe para actualizar el estado sin recargar
+                                if (onDelete) {
+                                  onDelete(row.id);
+                                } else {
+                                  // Fallback: recargar la página
+                                  window.location.reload();
+                                }
                               } catch (err) {
                                 console.error("Error al eliminar del localStorage:", err);
                                 alert("Error al eliminar el documento. Intenta de nuevo.");
