@@ -250,7 +250,12 @@ Devuelve SOLO el JSON válido, sin texto adicional.`;
 
 export async function generateReport(input: ReportInput): Promise<AnalysisReport> {
   const startTime = Date.now();
-  const timeout = 120000; // 120 segundos timeout (más tiempo para análisis extenso)
+  // Detectar si es análisis conjunto (múltiples documentos) por las instrucciones
+  const isConjointAnalysis = input.userInstructions?.includes("ANÁLISIS CONJUNTO") || 
+                             input.userInstructions?.includes("múltiples documentos") ||
+                             input.original.includes("DOCUMENTO 1 de") ||
+                             input.original.includes("DOCUMENTO 2 de");
+  const timeout = isConjointAnalysis ? 300000 : 180000; // 5 min para conjunto, 3 min para individual
   
   try {
     // Consultar jurisprudencia relevante usando RAG
@@ -431,7 +436,7 @@ NO ignores estas instrucciones. Son OBLIGATORIAS.`,
         response_format: { type: "json_object" },
       }, { timeout }),
       new Promise((_, reject) => 
-        setTimeout(() => reject(new Error("Report generation timeout after 120s")), timeout)
+        setTimeout(() => reject(new Error(`Report generation timeout after ${timeout / 1000}s`)), timeout)
       )
     ]) as any;
     
@@ -477,21 +482,36 @@ NO ignores estas instrucciones. Son OBLIGATORIAS.`,
   } catch (error) {
     console.error("Error generando reporte:", error);
     
+    const errorMessage = error instanceof Error ? error.message : "Error desconocido";
+    const isTimeout = errorMessage.includes("timeout") || errorMessage.includes("TIMEOUT");
+    
     // Devolver estructura mínima en caso de error
     return {
       titulo: "Error en el análisis",
       tipo_documento: input.type,
       jurisdiccion: "No determinada",
       area_legal: "No determinada",
-      resumen_ejecutivo: `Error al generar el análisis: ${error instanceof Error ? error.message : "Error desconocido"}`,
+      resumen_ejecutivo: isTimeout 
+        ? `El análisis excedió el tiempo máximo permitido. Esto puede ocurrir con documentos muy extensos o análisis conjunto de múltiples documentos. Por favor, intenta con documentos más pequeños o menos documentos a la vez. Error: ${errorMessage}`
+        : `Error al generar el análisis: ${errorMessage}`,
       clausulas_analizadas: [],
-      analisis_juridico: "No se pudo generar el análisis jurídico.",
+      analisis_juridico: isTimeout
+        ? "No se pudo generar el análisis jurídico debido a un timeout. El análisis conjunto de múltiples documentos puede requerir más tiempo. Intenta con menos documentos o documentos más pequeños."
+        : "No se pudo generar el análisis jurídico.",
       riesgos: [],
-      recomendaciones: [],
+      recomendaciones: isTimeout 
+        ? [
+            "Intentar con menos documentos a la vez (máximo 2-3 documentos)",
+            "Verificar que los documentos no sean excesivamente extensos",
+            "Dividir el análisis en grupos más pequeños si es necesario"
+          ]
+        : [],
       proximos_pasos: [],
       citas: [],
       documentos_sugeridos: [],
-      texto_formateado: `Error al generar reporte: ${error instanceof Error ? error.message : "Error desconocido"}`
+      texto_formateado: isTimeout
+        ? `Error: Timeout en generación de reporte\n\nEl análisis excedió el tiempo máximo permitido (${timeout / 1000} segundos). Esto puede ocurrir con:\n- Documentos muy extensos\n- Análisis conjunto de múltiples documentos\n- Documentos con mucho contenido para procesar\n\nRecomendaciones:\n- Intentar con menos documentos a la vez\n- Verificar que los documentos no sean excesivamente extensos\n- Dividir el análisis en grupos más pequeños si es necesario`
+        : `Error al generar reporte: ${errorMessage}`
     };
   }
 }

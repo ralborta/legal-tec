@@ -10,16 +10,21 @@ import { acquireAnalysisSlot } from "./concurrency-limit.js";
 // Función para análisis conjunto de múltiples documentos
 export async function runFullAnalysisMany(documentIds: string[], userInstructions?: string | null) {
   const startTime = Date.now();
-  const MAX_PIPELINE_TIME = 300000; // 5 minutos para múltiples documentos
+  const MAX_PIPELINE_TIME = 600000; // 10 minutos para múltiples documentos (más tiempo para análisis conjunto complejo)
   const trimmedInstructions = userInstructions?.trim() || null;
   
   // Adquirir slot de análisis
   const releaseSlot = await acquireAnalysisSlot();
   console.log(`[PIPELINE-MANY] Slot adquirido para análisis conjunto de ${documentIds.length} documentos`);
   
-  const pipelineTimeout = setTimeout(() => {
+  const pipelineTimeout = setTimeout(async () => {
     console.error(`[PIPELINE-MANY] TIMEOUT: Analysis exceeded ${MAX_PIPELINE_TIME}ms for ${documentIds.length} documents`);
     releaseSlot();
+    await updateAnalysisStatus(documentIds[0], "error", 0);
+    await legalDb.setAnalysisError(
+      documentIds[0],
+      `Timeout: El análisis conjunto de ${documentIds.length} documentos excedió el tiempo máximo de ${MAX_PIPELINE_TIME / 1000} segundos. Intenta con menos documentos o documentos más pequeños.`
+    );
     throw new Error(`Pipeline timeout: analysis took more than ${MAX_PIPELINE_TIME / 1000}s`);
   }, MAX_PIPELINE_TIME);
   
