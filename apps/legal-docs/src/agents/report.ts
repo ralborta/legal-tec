@@ -283,11 +283,15 @@ export async function generateReport(input: ReportInput): Promise<AnalysisReport
           .join("\n\n")
       : "No checklist disponible";
 
-    // Usar más texto del documento para mejor análisis
+    // Limitar texto para análisis conjunto (más rápido), más texto para individual
+    const isConjointAnalysis = input.userInstructions?.includes("ANÁLISIS CONJUNTO") || 
+                                 input.original.includes("DOCUMENTO 1 de");
+    const maxTextLength = isConjointAnalysis ? 12000 : 15000; // Menos texto para conjunto = más rápido
+    
     const translatedText = input.translated
       .map((c) => `${c.clause_number}. ${c.title_es}\n${c.body_es}`)
       .join("\n\n")
-      .substring(0, 15000); // Aumentado para análisis más profundo
+      .substring(0, maxTextLength);
 
     // Formatear jurisprudencia para el prompt
     const jurisprudenceText = jurisprudence.length > 0
@@ -301,9 +305,16 @@ export async function generateReport(input: ReportInput): Promise<AnalysisReport
 
     const response = await Promise.race([
       openai.chat.completions.create({
-      model: "gpt-4o", // Modelo más potente para análisis legales complejos
+      // Usar gpt-4o-mini para análisis conjunto (más rápido) o gpt-4o para individual (más calidad)
+      const isConjointAnalysis = input.userInstructions?.includes("ANÁLISIS CONJUNTO") || 
+                                 input.original.includes("DOCUMENTO 1 de") ||
+                                 input.original.includes("DOCUMENTO 2 de");
+      const model = isConjointAnalysis ? "gpt-4o-mini" : "gpt-4o"; // Más rápido para conjunto
+      const maxTokens = isConjointAnalysis ? 6000 : 8000; // Menos tokens para conjunto (más rápido)
+      
+      model: model,
       temperature: 0.3,
-        max_tokens: 8000, // Aumentado para análisis más profundos y extensos
+        max_tokens: maxTokens,
       messages: [
         {
           role: "system",
@@ -396,7 +407,7 @@ NO ignores estas instrucciones. Son OBLIGATORIAS y tienen PRIORIDAD ABSOLUTA sob
 TIPO DE DOCUMENTO: ${input.type}
 
 TEXTO ORIGINAL:
-${input.original.substring(0, 8000)}
+${isConjointAnalysis ? input.original.substring(0, 6000) : input.original.substring(0, 8000)}
 
 CLÁUSULAS DEL DOCUMENTO (analizar TODAS):
 ${translatedText}
