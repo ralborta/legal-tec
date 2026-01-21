@@ -1593,7 +1593,7 @@ function AnalizarDocumentosPanel() {
 
   const handleUpload = async () => {
     if (files.length === 0) {
-      setError("Por favor selecciona al menos un archivo (PDF o Word)");
+      setError("Por favor selecciona al menos un archivo (PDF, Word, TXT, JPG, PNG)");
       return;
     }
 
@@ -1789,7 +1789,15 @@ function AnalizarDocumentosPanel() {
                     type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
                     name.endsWith(".docx") ||
                     type === "application/msword" ||
-                    name.endsWith(".doc")
+                    name.endsWith(".doc") ||
+                    type === "text/plain" ||
+                    name.endsWith(".txt") ||
+                    type === "image/jpeg" ||
+                    type === "image/jpg" ||
+                    name.endsWith(".jpg") ||
+                    name.endsWith(".jpeg") ||
+                    type === "image/png" ||
+                    name.endsWith(".png")
                   );
                 }
               );
@@ -1798,10 +1806,10 @@ function AnalizarDocumentosPanel() {
                 setFiles(newFiles);
                 setError(null);
                 if (droppedFiles.length < e.dataTransfer.files.length) {
-                  setError("Algunos archivos no son PDF o Word y fueron ignorados");
+                  setError("Algunos archivos no son compatibles y fueron ignorados");
                 }
               } else {
-                setError("Solo se aceptan archivos PDF o Word (.docx, .doc)");
+                setError("Solo se aceptan: PDF, Word (.docx, .doc), TXT, JPG, PNG");
               }
             }}
             onClick={() => document.getElementById("legal-doc-upload")?.click()}
@@ -1835,14 +1843,14 @@ function AnalizarDocumentosPanel() {
                   )}
                 </div>
               ) : (
-                <p className="text-sm text-gray-500">Arrastrá PDFs o Word (.docx, .doc) o hacé click para subir (máx. 5)</p>
+                <p className="text-sm text-gray-500">Arrastrá archivos (PDF, Word, TXT, JPG, PNG) o hacé click para subir (máx. 5)</p>
               )}
             </div>
           </div>
           <input
             id="legal-doc-upload"
             type="file"
-            accept=".pdf,.docx,.doc,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword"
+            accept=".pdf,.docx,.doc,.txt,.jpg,.jpeg,.png,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword,text/plain,image/jpeg,image/jpg,image/png"
             multiple
             className="hidden"
             onChange={(e) => {
@@ -1856,7 +1864,15 @@ function AnalizarDocumentosPanel() {
                     type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
                     name.endsWith(".docx") ||
                     type === "application/msword" ||
-                    name.endsWith(".doc")
+                    name.endsWith(".doc") ||
+                    type === "text/plain" ||
+                    name.endsWith(".txt") ||
+                    type === "image/jpeg" ||
+                    type === "image/jpg" ||
+                    name.endsWith(".jpg") ||
+                    name.endsWith(".jpeg") ||
+                    type === "image/png" ||
+                    name.endsWith(".png")
                   );
                 }
               );
@@ -1865,13 +1881,13 @@ function AnalizarDocumentosPanel() {
                 setFiles(newFiles);
                 setError(null);
                 if (selectedFiles.length < (e.target.files?.length || 0)) {
-                  setError("Algunos archivos no son PDF o Word y fueron ignorados");
+                  setError("Algunos archivos no son compatibles y fueron ignorados");
                 }
                 if (newFiles.length >= 5) {
                   setError("Máximo 5 archivos permitidos");
                 }
               } else if (e.target.files && e.target.files.length > 0) {
-                setError("Solo se aceptan archivos PDF o Word (.docx, .doc)");
+                setError("Solo se aceptan: PDF, Word (.docx, .doc), TXT, JPG, PNG");
               }
             }}
           />
