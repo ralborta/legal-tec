@@ -1231,7 +1231,7 @@ function MemoCard({ memo }: { memo: any }) {
                 alert("No hay contenido disponible para descargar.");
               }
             }}
-            title="Descargar Markdown"
+            title="Descargar en Word (.docx)"
           >
             <Download className="h-5 w-5" />
           </button>
@@ -1297,7 +1297,7 @@ function DocCard({ row }: { row: any }) {
           <button className="icon-btn" title="Consultar con IA" onClick={() => { setQueryMode(v=>!v); setOpen(true); }}><Search className="h-4 w-4" /></button>
           <button 
             className="icon-btn" 
-            title="Descargar Markdown" 
+            title="Descargar en Word (.docx)" 
             onClick={async () => {
               const API = getApiUrl();
               let content = row.markdown || row.memoData?.texto_formateado || "";
@@ -2494,6 +2494,18 @@ function DocumentosSugeridosPanel({ analysisResult }: { analysisResult: any }) {
                 )}
               </button>
               <button
+                onClick={async () => {
+                  const content = editedContent || generatedDoc.contenido;
+                  const filename = `${generatedDoc.tipo}_${new Date().toISOString().split('T')[0]}`;
+                  await downloadMD(filename, content);
+                }}
+                className="text-xs px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 flex items-center gap-1"
+                title="Descargar en Word (.docx)"
+              >
+                <Download className="h-3 w-3" />
+                Descargar Word
+              </button>
+              <button
                 onClick={() => {
                   navigator.clipboard.writeText(editedContent || generatedDoc.contenido);
                 }}
@@ -2901,10 +2913,10 @@ function AnalysisResultPanel({
           <button
             onClick={handleDownloadAnalysis}
             className="flex items-center gap-2 px-4 py-2 bg-[#C026D3] hover:bg-[#A01FB8] text-white rounded-lg text-sm font-medium transition-colors"
-            title="Descargar análisis completo"
+            title="Descargar análisis completo en Word (.docx)"
           >
             <Download className="h-4 w-4" />
-            Descargar
+            Descargar Word
           </button>
         </div>
             </div>

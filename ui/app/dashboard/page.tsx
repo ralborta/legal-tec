@@ -224,7 +224,7 @@ function DocCard({ row }: { row: any }) {
         <div className="flex items-center gap-2">
           <button className="icon-btn" title="Ver" onClick={() => { setOpen(v=>!v); setQueryMode(false); }}><Eye className="h-4 w-4" /></button>
           <button className="icon-btn" title="Preguntar (tipo NotebookLM)" onClick={() => { setQueryMode(v=>!v); setOpen(true); }}><Search className="h-4 w-4" /></button>
-          <button className="icon-btn" title="Descargar Markdown" onClick={()=>downloadMD(row.asunto, row.markdown)}><Download className="h-4 w-4" /></button>
+          <button className="icon-btn" title="Descargar en Word (.docx)" onClick={()=>downloadMD(row.asunto, row.markdown)}><Download className="h-4 w-4" /></button>
           <button className="icon-btn" title="Eliminar"><Trash2 className="h-4 w-4" /></button>
         </div>
       </div>
