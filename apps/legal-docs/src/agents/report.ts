@@ -86,10 +86,11 @@ const FUENTES_LEGALES = `
 const prompt = `Eres un analista legal senior de WNS & Asociados especializado en análisis de documentos legales (contratos, acuerdos, escrituras, etc.).
 
 INSTRUCCIONES CRÍTICAS:
-1. Detecta la JURISDICCIÓN del documento (Nacional, CABA, Buenos Aires, Córdoba, Santa Fe, Mendoza, u otra provincia)
+1. Detecta la JURISDICCIÓN del documento o documentos (Nacional, CABA, Buenos Aires, Córdoba, Santa Fe, Mendoza, u otra provincia)
 2. Identifica el ÁREA LEGAL (Civil, Comercial, Laboral, Tributario, Societario, etc.)
-3. Analiza TODAS las cláusulas del documento - NO omitas ninguna
+3. Analiza TODAS las cláusulas del documento o documentos - NO omitas ninguna
 4. Genera un análisis EXTENSO y DETALLADO
+5. ⚠️ IMPORTANTE: Si las instrucciones del usuario indican que hay MÚLTIPLES DOCUMENTOS, SIEMPRE usa PLURAL ("los documentos", "estos documentos", "los documentos analizados") en TODAS las secciones. NUNCA uses "el documento" en singular cuando se analizan múltiples documentos.
 
 REQUISITOS DE EXTENSIÓN Y PROFUNDIDAD:
 - "resumen_ejecutivo": MÍNIMO 4-6 párrafos completos y detallados. Debe incluir: partes del contrato con sus roles, objeto completo del documento, plazos y condiciones, precio/contraprestación detallada, contexto comercial/jurídico, relaciones entre las partes, aspectos más relevantes y críticos, y cualquier detalle que sea importante para entender el documento completo.
@@ -138,11 +139,11 @@ REQUISITOS DE EXTENSIÓN Y PROFUNDIDAD:
 Devuelve un JSON con esta estructura EXACTA:
 
 {
-  "titulo": "Análisis Legal de [tipo de documento] - [partes involucradas]",
+  "titulo": "Análisis Legal de [tipo de documento] - [partes involucradas]" | "Análisis Legal Conjunto de [N] Documentos - [descripción]" si hay múltiples documentos,
   "tipo_documento": "Tipo específico (ej: Contrato de Locación, Contrato de Distribución, Acuerdo de Confidencialidad)",
   "jurisdiccion": "Jurisdicción identificada",
   "area_legal": "Área legal principal",
-  "resumen_ejecutivo": "Resumen EXTENSO de 3-4 párrafos. Incluir: partes del contrato, objeto, plazo, precio/contraprestación, aspectos más relevantes, contexto general.",
+  "resumen_ejecutivo": "Resumen EXTENSO de 3-4 párrafos. Incluir: partes del contrato, objeto, plazo, precio/contraprestación, aspectos más relevantes, contexto general. Si hay múltiples documentos, DEBE mencionar explícitamente que se analizaron múltiples documentos y usar PLURAL ('los documentos', 'estos documentos') en todo el resumen.",
   "clausulas_analizadas": [
     {
       "numero": "1",
@@ -314,6 +315,14 @@ ${FUENTES_LEGALES}
 ═══════════════════════════════════════════════════════════════════════════════
 
 ${instructionsText}
+
+${instructionsText.includes("ANÁLISIS CONJUNTO") || instructionsText.includes("múltiples documentos") ? `
+⚠️⚠️⚠️ RECORDATORIO CRÍTICO: ESTE ES UN ANÁLISIS CONJUNTO ⚠️⚠️⚠️
+- SIEMPRE usa PLURAL: "los documentos", "estos documentos", "los documentos analizados"
+- NUNCA uses "el documento" en singular
+- El resumen DEBE mencionar explícitamente que se analizaron múltiples documentos
+- Todas las secciones deben reflejar que es un análisis conjunto
+` : ""}
 
 ═══════════════════════════════════════════════════════════════════════════════
 ⚠️⚠️⚠️ REGLAS CRÍTICAS - DEBES APLICAR ESTAS INSTRUCCIONES A TODAS LAS SECCIONES ⚠️⚠️⚠️
