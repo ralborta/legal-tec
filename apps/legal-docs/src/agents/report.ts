@@ -303,15 +303,14 @@ export async function generateReport(input: ReportInput): Promise<AnalysisReport
           .join("\n\n")
       : "No se encontró jurisprudencia en la base de datos. Usar las fuentes de referencia proporcionadas.";
 
+    // Usar gpt-4o-mini para análisis conjunto (más rápido) o gpt-4o para individual (más calidad)
+    const model = isConjointAnalysis ? "gpt-4o-mini" : "gpt-4o"; // Más rápido para conjunto
+    const maxTokens = isConjointAnalysis ? 6000 : 8000; // Menos tokens para conjunto (más rápido)
+    
+    console.log(`[REPORT] Using model: ${model}, max_tokens: ${maxTokens}, conjoint: ${isConjointAnalysis}`);
+    
     const response = await Promise.race([
       openai.chat.completions.create({
-      // Usar gpt-4o-mini para análisis conjunto (más rápido) o gpt-4o para individual (más calidad)
-      const isConjointAnalysis = input.userInstructions?.includes("ANÁLISIS CONJUNTO") || 
-                                 input.original.includes("DOCUMENTO 1 de") ||
-                                 input.original.includes("DOCUMENTO 2 de");
-      const model = isConjointAnalysis ? "gpt-4o-mini" : "gpt-4o"; // Más rápido para conjunto
-      const maxTokens = isConjointAnalysis ? 6000 : 8000; // Menos tokens para conjunto (más rápido)
-      
       model: model,
       temperature: 0.3,
         max_tokens: maxTokens,
