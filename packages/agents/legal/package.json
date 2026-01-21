@@ -4,8 +4,8 @@
   "type": "module",
   "main": "index.ts",
   "dependencies": {
+    "mammoth": "^1.11.0",
     "openai": "4.57.0",
     "pdf-parse": "2.4.5"
   }
 }
-

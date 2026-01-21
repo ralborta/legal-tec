@@ -1593,7 +1593,7 @@ function AnalizarDocumentosPanel() {
 
   const handleUpload = async () => {
     if (files.length === 0) {
-      setError("Por favor selecciona al menos un archivo PDF");
+      setError("Por favor selecciona al menos un archivo (PDF o Word)");
       return;
     }
 
@@ -1780,17 +1780,28 @@ function AnalizarDocumentosPanel() {
               e.preventDefault();
               e.currentTarget.classList.remove("bg-slate-50");
               const droppedFiles = Array.from(e.dataTransfer.files).filter(
-                (f) => f.type === "application/pdf"
+                (f) => {
+                  const type = f.type.toLowerCase();
+                  const name = f.name.toLowerCase();
+                  return (
+                    type === "application/pdf" ||
+                    name.endsWith(".pdf") ||
+                    type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+                    name.endsWith(".docx") ||
+                    type === "application/msword" ||
+                    name.endsWith(".doc")
+                  );
+                }
               );
               if (droppedFiles.length > 0) {
                 const newFiles = [...files, ...droppedFiles].slice(0, 5);
                 setFiles(newFiles);
                 setError(null);
                 if (droppedFiles.length < e.dataTransfer.files.length) {
-                  setError("Algunos archivos no son PDF y fueron ignorados");
+                  setError("Algunos archivos no son PDF o Word y fueron ignorados");
                 }
               } else {
-                setError("Solo se aceptan archivos PDF");
+                setError("Solo se aceptan archivos PDF o Word (.docx, .doc)");
               }
             }}
             onClick={() => document.getElementById("legal-doc-upload")?.click()}
@@ -1824,32 +1835,43 @@ function AnalizarDocumentosPanel() {
                   )}
                 </div>
               ) : (
-                <p className="text-sm text-gray-500">Arrastrá PDFs o hacé click para subir (máx. 5)</p>
+                <p className="text-sm text-gray-500">Arrastrá PDFs o Word (.docx, .doc) o hacé click para subir (máx. 5)</p>
               )}
             </div>
           </div>
           <input
             id="legal-doc-upload"
             type="file"
-            accept="application/pdf"
+            accept=".pdf,.docx,.doc,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword"
             multiple
             className="hidden"
             onChange={(e) => {
               const selectedFiles = Array.from(e.target.files || []).filter(
-                (f) => f.type === "application/pdf"
+                (f) => {
+                  const type = f.type.toLowerCase();
+                  const name = f.name.toLowerCase();
+                  return (
+                    type === "application/pdf" ||
+                    name.endsWith(".pdf") ||
+                    type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+                    name.endsWith(".docx") ||
+                    type === "application/msword" ||
+                    name.endsWith(".doc")
+                  );
+                }
               );
               if (selectedFiles.length > 0) {
                 const newFiles = [...files, ...selectedFiles].slice(0, 5);
                 setFiles(newFiles);
                 setError(null);
                 if (selectedFiles.length < (e.target.files?.length || 0)) {
-                  setError("Algunos archivos no son PDF y fueron ignorados");
+                  setError("Algunos archivos no son PDF o Word y fueron ignorados");
                 }
                 if (newFiles.length >= 5) {
                   setError("Máximo 5 archivos permitidos");
                 }
               } else if (e.target.files && e.target.files.length > 0) {
-                setError("Solo se aceptan archivos PDF");
+                setError("Solo se aceptan archivos PDF o Word (.docx, .doc)");
               }
             }}
           />
