@@ -2261,6 +2261,48 @@ function DocumentosSugeridosPanel({ analysisResult }: { analysisResult: any }) {
     }
   };
 
+  // Función para generar y descargar directamente en Word
+  const handleGenerateAndDownload = async (doc: { tipo: string; descripcion: string }) => {
+    setGeneratingDoc(doc.tipo);
+    
+    try {
+      const response = await fetch(`${API}/api/generate-suggested-doc`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tipoDocumento: doc.tipo,
+          descripcion: doc.descripcion,
+          contextoAnalisis: report?.texto_formateado || "",
+          tipoDocumentoAnalizado: report?.tipo_documento || "",
+          jurisdiccion: report?.jurisdiccion || "",
+          areaLegal: report?.area_legal || "",
+          citas: report?.citas || [],
+          reportData: report
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error("Error al generar documento");
+      }
+
+      const data = await response.json();
+      const content = data.documento || data.contenido || "";
+      
+      if (content) {
+        // Descargar directamente en Word
+        const filename = `${doc.tipo}_${new Date().toISOString().split('T')[0]}`;
+        await downloadMD(filename, content);
+      } else {
+        alert("No se pudo generar el contenido del documento");
+      }
+    } catch (err) {
+      console.error("Error generando y descargando documento:", err);
+      alert("Error al generar el documento. Intenta de nuevo.");
+    } finally {
+      setGeneratingDoc(null);
+    }
+  };
+
   // Función para reemplazar un placeholder específico
   const handleReplacePlaceholder = (index: number, newValue: string) => {
     if (!editedContent) return;
@@ -2424,28 +2466,49 @@ function DocumentosSugeridosPanel({ analysisResult }: { analysisResult: any }) {
       <div className="space-y-2">
         {documentosSugeridos.map((doc: any, i: number) => (
           <div key={i} className="border border-gray-200 rounded-lg p-3 hover:border-[#C026D3]/40 transition">
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-900">{doc.tipo}</p>
                 <p className="text-xs text-gray-500">{doc.descripcion}</p>
               </div>
-              <button
-                onClick={() => handleGenerateDocument(doc)}
-                disabled={generatingDoc === doc.tipo}
-                className="ml-3 px-3 py-1.5 bg-[#C026D3] text-white text-xs font-medium rounded-lg hover:bg-[#A21CAF] disabled:opacity-50 flex items-center gap-1"
-              >
-                {generatingDoc === doc.tipo ? (
-                  <>
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    Generando...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-3 w-3" />
-                    Generar
-                  </>
-                )}
-              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => handleGenerateAndDownload(doc)}
+                  disabled={generatingDoc === doc.tipo}
+                  className="px-3 py-1.5 bg-blue-500 text-white text-xs font-medium rounded-lg hover:bg-blue-600 disabled:opacity-50 flex items-center gap-1"
+                  title="Generar y descargar en Word (.docx)"
+                >
+                  {generatingDoc === doc.tipo ? (
+                    <>
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Generando...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-3 w-3" />
+                      Descargar Word
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={() => handleGenerateDocument(doc)}
+                  disabled={generatingDoc === doc.tipo}
+                  className="px-3 py-1.5 bg-[#C026D3] text-white text-xs font-medium rounded-lg hover:bg-[#A21CAF] disabled:opacity-50 flex items-center gap-1"
+                  title="Generar y ver en pantalla"
+                >
+                  {generatingDoc === doc.tipo ? (
+                    <>
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Generando...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-3 w-3" />
+                      Ver
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         ))}
