@@ -123,6 +123,36 @@ export default function MemoDetailPage() {
             if (response.ok) {
               const result = await response.json();
               
+              // Si el documento existe pero no tiene análisis, mostrar mensaje
+              if (!result.analysis) {
+                const deletedMemo = {
+                  id: result.documentId || memoId,
+                  title: result.filename || 'Documento',
+                  asunto: result.filename || 'Documento',
+                  type: 'analysis',
+                  tipo: 'ANÁLISIS',
+                  tipoDocumento: 'Análisis Legal',
+                  areaLegal: 'civil_comercial',
+                  createdAt: result.uploadedAt || new Date().toISOString(),
+                  creado: result.uploadedAt ? new Date(result.uploadedAt).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : new Date().toLocaleDateString('es-AR'),
+                  estado: 'Análisis no disponible',
+                  markdown: '',
+                  memoData: {
+                    resumen: '⚠️ Este análisis fue eliminado automáticamente por el sistema de limpieza. El documento original puede haber sido borrado para liberar espacio.',
+                    puntos_tratados: [],
+                    riesgos: [],
+                    proximos_pasos: [],
+                    citas: [],
+                    texto_formateado: '⚠️ Este análisis fue eliminado automáticamente por el sistema de limpieza. El documento original puede haber sido borrado para liberar espacio.'
+                  },
+                  citations: [],
+                  filename: result.filename,
+                  deleted: true
+                };
+                setMemo(deletedMemo);
+                return;
+              }
+              
               // Convertir el resultado de análisis al formato esperado por la UI
               if (result.analysis) {
                 let report = result.analysis.report;
@@ -161,6 +191,34 @@ export default function MemoDetailPage() {
                 setMemo(analysisMemo);
                 return;
               }
+            } else if (response.status === 404) {
+              // Documento no encontrado - puede haber sido borrado
+              const deletedMemo = {
+                id: memoId,
+                title: 'Documento no encontrado',
+                asunto: 'Documento no encontrado',
+                type: 'analysis',
+                tipo: 'ANÁLISIS',
+                tipoDocumento: 'Análisis Legal',
+                areaLegal: 'civil_comercial',
+                createdAt: new Date().toISOString(),
+                creado: new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+                estado: 'Documento eliminado',
+                markdown: '',
+                memoData: {
+                  resumen: '⚠️ Este documento y su análisis fueron eliminados automáticamente por el sistema de limpieza para liberar espacio. Los documentos antiguos se eliminan automáticamente después de cierto tiempo o cuando se excede el límite de documentos.',
+                  puntos_tratados: [],
+                  riesgos: [],
+                  proximos_pasos: [],
+                  citas: [],
+                  texto_formateado: '⚠️ Este documento y su análisis fueron eliminados automáticamente por el sistema de limpieza para liberar espacio. Los documentos antiguos se eliminan automáticamente después de cierto tiempo o cuando se excede el límite de documentos.'
+                },
+                citations: [],
+                filename: 'Documento eliminado',
+                deleted: true
+              };
+              setMemo(deletedMemo);
+              return;
             }
           } catch (apiError) {
             console.warn("Error al cargar desde API:", apiError);
@@ -408,7 +466,7 @@ export default function MemoDetailPage() {
               {activeTab === "resumen" && (
                 <div className="bg-blue-50 p-5 rounded-lg">
                   <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">
-                    {memoData.resumen || "No hay resumen disponible."}
+                    {memoData.resumen || (memo.deleted ? "⚠️ Este análisis fue eliminado automáticamente por el sistema de limpieza." : "No hay resumen disponible.")}
                   </p>
                 </div>
               )}

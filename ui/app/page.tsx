@@ -165,10 +165,39 @@ export default function CentroGestionLegalPage() {
         .then(r => r.json())
         .then(data => {
           const dbItems = data.items || [];
-          // Combinar items locales con los de la DB, evitando duplicados por ID
-          const localIds = new Set(localItems.map((i: any) => i.id));
+          // Verificar qué items de localStorage ya no existen en la DB (fueron borrados)
+          const dbIds = new Set(dbItems.map((i: any) => i.id));
+          const validLocalItems = localItems.filter((i: any) => {
+            // Si el item está en la DB, mantenerlo (la versión de la DB es más actualizada)
+            if (dbIds.has(i.id)) {
+              return false; // No incluir, la DB tiene la versión actualizada
+            }
+            // Si el item no está en la DB pero es un memo local (no analysis), mantenerlo
+            if (i.type === 'memo' || !i.type) {
+              return true;
+            }
+            // Si es un análisis que no está en la DB, marcarlo como posiblemente borrado
+            // pero mantenerlo en la lista con un estado especial
+            return true;
+          });
+          
+          // Combinar items locales válidos con los de la DB, evitando duplicados por ID
+          const localIds = new Set(validLocalItems.map((i: any) => i.id));
           const combinedItems = [
-            ...localItems,
+            ...validLocalItems.map((item: any) => {
+              // Si es un análisis que no está en la DB, marcarlo como posiblemente borrado
+              if ((item.type === 'analysis' || item.tipo === 'ANÁLISIS') && !dbIds.has(item.id)) {
+                return {
+                  ...item,
+                  estado: item.estado || 'Posiblemente eliminado',
+                  memoData: {
+                    ...item.memoData,
+                    resumen: item.memoData?.resumen || '⚠️ Este análisis puede haber sido eliminado automáticamente por el sistema de limpieza.'
+                  }
+                };
+              }
+              return item;
+            }),
             ...dbItems.filter((i: any) => !localIds.has(i.id))
           ];
           // Ordenar por fecha
