@@ -1772,9 +1772,16 @@ function AnalizarDocumentosPanel() {
             onDrop={(e) => {
               e.preventDefault();
               e.currentTarget.classList.remove("bg-slate-50");
-              const droppedFile = e.dataTransfer.files[0];
+              const files = e.dataTransfer.files;
+              if (!files || files.length === 0) return;
+              if (files.length > 1) {
+                setError("Solo se permite subir un archivo por vez");
+                return;
+              }
+              const droppedFile = files[0];
               if (droppedFile && droppedFile.type === "application/pdf") {
                 setFile(droppedFile);
+                setError(null);
               } else {
                 setError("Solo se aceptan archivos PDF");
               }
@@ -1799,7 +1806,7 @@ function AnalizarDocumentosPanel() {
                   </button>
                 </div>
               ) : (
-                <p className="text-sm text-gray-500">Arrastrá PDFs o hacé click para subir</p>
+                <p className="text-sm text-gray-500">Arrastrá un PDF o hacé click para subir (1 archivo)</p>
               )}
             </div>
           </div>
@@ -3534,10 +3541,17 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
             onDrop={(e) => {
               e.preventDefault();
               e.currentTarget.classList.remove("bg-slate-50");
-              const droppedFile = e.dataTransfer.files[0];
+              const files = e.dataTransfer.files;
+              if (!files || files.length === 0) return;
+              if (files.length > 1) {
+                setError("Solo se permite subir un archivo por vez");
+                return;
+              }
+              const droppedFile = files[0];
               if (droppedFile && droppedFile.type === "application/pdf") {
                 setFile(droppedFile);
                 setGenerationMode("memo");
+                setError(null);
               } else {
                 setError("Solo se aceptan archivos PDF");
               }
@@ -3557,7 +3571,7 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
                   </button>
                 </div>
               ) : (
-                <p className="text-sm text-gray-500">Arrastrá PDFs o hacé click para subir</p>
+                <p className="text-sm text-gray-500">Arrastrá un PDF o hacé click para subir (1 archivo)</p>
               )}
             </div>
           </div>
