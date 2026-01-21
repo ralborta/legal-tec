@@ -1553,8 +1553,8 @@ function sanitize(s: string) { return s.replace(/[^a-z0-9\-\_\ ]/gi, "_"); }
 
 // Componente para analizar documentos legales
 function AnalizarDocumentosPanel() {
-  const [file, setFile] = useState<File | null>(null);
-  const [documentId, setDocumentId] = useState<string | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [documentIds, setDocumentIds] = useState<string[]>([]);
   const [analyzing, setAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -1592,29 +1592,36 @@ function AnalizarDocumentosPanel() {
   }
 
   const handleUpload = async () => {
-    if (!file) {
-      setError("Por favor selecciona un archivo PDF");
+    if (files.length === 0) {
+      setError("Por favor selecciona al menos un archivo PDF");
+      return;
+    }
+
+    if (files.length > 5) {
+      setError("Máximo 5 archivos permitidos");
       return;
     }
 
     setError(null);
     setAnalyzing(true);
     setProgress(0);
-    setStatusLabel("Subiendo…");
+    setStatusLabel(`Subiendo ${files.length} archivo${files.length > 1 ? 's' : ''}…`);
     const trimmedInstructions = instructions.trim().slice(0, instructionsLimit);
 
     try {
       const formData = new FormData();
-      formData.append("file", file);
+      files.forEach((file) => {
+        formData.append("files", file);
+      });
 
       // ✅ UPLOAD DIRECTO a legal-docs (sin proxy) para evitar ERR_STREAM_PREMATURE_CLOSE
       // Si NEXT_PUBLIC_LEGAL_DOCS_URL está configurada, usa esa (directo)
       // Si no, usa API gateway (fallback)
       const uploadUrl = LEGAL_DOCS_URL !== API 
-        ? `${LEGAL_DOCS_URL}/upload`  // Directo a legal-docs
-        : `${API}/legal/upload`;       // Vía gateway (fallback)
+        ? `${LEGAL_DOCS_URL}/upload-many`  // Directo a legal-docs
+        : `${API}/legal/upload-many`;       // Vía gateway (fallback)
       
-      console.log(`[UPLOAD] Subiendo a: ${uploadUrl}`);
+      console.log(`[UPLOAD] Subiendo ${files.length} archivo(s) a: ${uploadUrl}`);
       
       const response = await fetchWithTimeout(uploadUrl, {
         method: "POST",
@@ -1623,40 +1630,40 @@ function AnalizarDocumentosPanel() {
 
       if (!response.ok) {
         const errorText = await response.text().catch(() => "");
-        throw new Error(`Error al subir archivo (${response.status}): ${errorText || response.statusText || "Sin detalles"}`);
+        throw new Error(`Error al subir archivos (${response.status}): ${errorText || response.statusText || "Sin detalles"}`);
       }
 
       const data = await response.json();
-      setDocumentId(data.documentId);
+      const uploadedDocumentIds = data.documents.map((doc: any) => doc.documentId);
+      setDocumentIds(uploadedDocumentIds);
 
-      // Iniciar análisis (timeout corto: /analyze es fire-and-forget, solo necesita confirmación)
-      setStatusLabel("Iniciando análisis…");
-      const analyzeResponse = await fetchWithTimeout(`${API}/legal/analyze/${data.documentId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(
-          trimmedInstructions
-            ? { instructions: trimmedInstructions }
-            : {}
-        ),
-      }, 30000); // 30s - suficiente para confirmación (gateway tiene 10s, pero damos margen para cold start)
+      // Iniciar análisis para cada documento (timeout corto: /analyze es fire-and-forget, solo necesita confirmación)
+      setStatusLabel(`Iniciando análisis de ${uploadedDocumentIds.length} documento(s)…`);
+      
+      const analyzePromises = uploadedDocumentIds.map((docId: string) =>
+        fetchWithTimeout(`${API}/legal/analyze/${docId}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(
+            trimmedInstructions
+              ? { instructions: trimmedInstructions }
+              : {}
+          ),
+        }, 30000)
+      );
 
-      if (!analyzeResponse.ok) {
-        const errorText = await analyzeResponse.text().catch(() => "");
-        let errorData;
-        try {
-          errorData = JSON.parse(errorText);
-        } catch {
-          errorData = { error: errorText || "Error desconocido" };
-        }
-        throw new Error(`Error al iniciar análisis (${analyzeResponse.status}): ${errorData.error || errorData.message || "Sin detalles"}`);
+      const analyzeResults = await Promise.allSettled(analyzePromises);
+      const failed = analyzeResults.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.ok));
+      
+      if (failed.length > 0) {
+        console.warn(`[UPLOAD] ${failed.length} análisis fallaron al iniciar`);
       }
 
-      // Iniciar polling para obtener resultados
+      // Iniciar polling para obtener resultados del primer documento (o podemos hacer polling de todos)
       setPolling(true);
-      pollForResults(data.documentId);
+      pollForResults(uploadedDocumentIds[0]);
     } catch (err: any) {
-      setError(toUserFriendlyError(err, "Error al procesar documento"));
+      setError(toUserFriendlyError(err, "Error al procesar documentos"));
       setAnalyzing(false);
     }
   };
@@ -1772,9 +1779,16 @@ function AnalizarDocumentosPanel() {
             onDrop={(e) => {
               e.preventDefault();
               e.currentTarget.classList.remove("bg-slate-50");
-              const droppedFile = e.dataTransfer.files[0];
-              if (droppedFile && droppedFile.type === "application/pdf") {
-                setFile(droppedFile);
+              const droppedFiles = Array.from(e.dataTransfer.files).filter(
+                (f) => f.type === "application/pdf"
+              );
+              if (droppedFiles.length > 0) {
+                const newFiles = [...files, ...droppedFiles].slice(0, 5);
+                setFiles(newFiles);
+                setError(null);
+                if (droppedFiles.length < e.dataTransfer.files.length) {
+                  setError("Algunos archivos no son PDF y fueron ignorados");
+                }
               } else {
                 setError("Solo se aceptan archivos PDF");
               }
@@ -1783,23 +1797,34 @@ function AnalizarDocumentosPanel() {
           >
             <div className="space-y-2 text-center">
               <Upload className="h-12 w-12 mx-auto text-gray-400" />
-              {file ? (
-                <div className="text-sm text-gray-900">
-                  <span className="font-medium">{file.name}</span>
-                  <button
-                    className="ml-2 text-rose-600 hover:text-rose-700"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setFile(null);
-                      setDocumentId(null);
-                      setAnalysisResult(null);
-                    }}
-                  >
-                    ✕
-                  </button>
+              {files.length > 0 ? (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-900">
+                    {files.length} archivo{files.length > 1 ? 's' : ''} seleccionado{files.length > 1 ? 's' : ''}
+                  </p>
+                  <div className="max-h-32 overflow-y-auto space-y-1">
+                    {files.map((file, index) => (
+                      <div key={index} className="flex items-center justify-between text-xs text-gray-700 bg-white px-2 py-1 rounded border">
+                        <span className="truncate flex-1">{file.name}</span>
+                        <button
+                          className="ml-2 text-rose-600 hover:text-rose-700 flex-shrink-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setFiles(files.filter((_, i) => i !== index));
+                            setError(null);
+                          }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  {files.length < 5 && (
+                    <p className="text-xs text-gray-500">Podés agregar hasta {5 - files.length} archivo{5 - files.length > 1 ? 's' : ''} más</p>
+                  )}
                 </div>
               ) : (
-                <p className="text-sm text-gray-500">Arrastrá PDFs o hacé click para subir</p>
+                <p className="text-sm text-gray-500">Arrastrá PDFs o hacé click para subir (máx. 5)</p>
               )}
             </div>
           </div>
@@ -1807,12 +1832,24 @@ function AnalizarDocumentosPanel() {
             id="legal-doc-upload"
             type="file"
             accept="application/pdf"
+            multiple
             className="hidden"
             onChange={(e) => {
-              const selectedFile = e.target.files?.[0];
-              if (selectedFile) {
-                setFile(selectedFile);
+              const selectedFiles = Array.from(e.target.files || []).filter(
+                (f) => f.type === "application/pdf"
+              );
+              if (selectedFiles.length > 0) {
+                const newFiles = [...files, ...selectedFiles].slice(0, 5);
+                setFiles(newFiles);
                 setError(null);
+                if (selectedFiles.length < (e.target.files?.length || 0)) {
+                  setError("Algunos archivos no son PDF y fueron ignorados");
+                }
+                if (newFiles.length >= 5) {
+                  setError("Máximo 5 archivos permitidos");
+                }
+              } else if (e.target.files && e.target.files.length > 0) {
+                setError("Solo se aceptan archivos PDF");
               }
             }}
           />
@@ -1837,27 +1874,46 @@ function AnalizarDocumentosPanel() {
             </div>
           </div>
 
-          <button
-            className="w-full bg-gradient-to-r from-[#C026D3] to-[#A21CAF] text-white py-3 px-6 rounded-lg font-medium hover:from-[#A21CAF] hover:to-[#7E1A8A] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            onClick={handleUpload}
-            disabled={!file || analyzing}
-          >
-            {analyzing ? (
-              <>
-                <Loader2 className="h-5 w-5 animate-spin" />
-                {polling ? "Analizando documento..." : "Subiendo..."}
-              </>
-            ) : (
-              <>
-                <Sparkles className="h-5 w-5" />
-                Analizar Documento
-              </>
+          <div className="flex gap-2">
+            <button
+              className="flex-1 bg-gradient-to-r from-[#C026D3] to-[#A21CAF] text-white py-3 px-6 rounded-lg font-medium hover:from-[#A21CAF] hover:to-[#7E1A8A] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              onClick={handleUpload}
+              disabled={files.length === 0 || analyzing}
+            >
+              {analyzing ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  {polling ? `Analizando ${files.length} documento(s)...` : `Subiendo ${files.length} archivo(s)...`}
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-5 w-5" />
+                  Analizar {files.length > 0 ? `${files.length} ` : ''}Documento{files.length > 1 ? 's' : ''}
+                </>
+              )}
+            </button>
+            {files.length > 0 && !analyzing && (
+              <button
+                className="px-4 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-all flex items-center justify-center"
+                onClick={() => {
+                  setFiles([]);
+                  setDocumentIds([]);
+                  setAnalysisResult(null);
+                  setError(null);
+                }}
+                title="Limpiar archivos"
+              >
+                Limpiar
+              </button>
             )}
-          </button>
+          </div>
 
-          {documentId && (
-            <div className="text-xs text-gray-500 text-center">
-              ID: {documentId}
+          {documentIds.length > 0 && (
+            <div className="text-xs text-gray-500 text-center space-y-1">
+              <p>ID{documentIds.length > 1 ? 's' : ''} de documento{documentIds.length > 1 ? 's' : ''}:</p>
+              {documentIds.map((id, idx) => (
+                <p key={idx} className="font-mono">{id}</p>
+              ))}
             </div>
           )}
 
@@ -1876,7 +1932,7 @@ function AnalizarDocumentosPanel() {
       {analyzing && (
         <div className="bg-white p-6 rounded-xl border border-gray-200 animate-in fade-in duration-300">
           <h3 className="font-bold text-lg text-gray-900 mb-4">
-            {statusLabel?.includes("Regenerando") ? "🔄 Regenerando análisis..." : "Analizando documento..."}
+            {statusLabel?.includes("Regenerando") ? "🔄 Regenerando análisis..." : `Analizando ${files.length} documento${files.length > 1 ? 's' : ''}...`}
           </h3>
           <div className="space-y-4">
             <div className="flex items-center gap-3">
@@ -2013,12 +2069,14 @@ function AnalizarDocumentosPanel() {
       <AnalysisResultPanel 
         analysisResult={analysisResult} 
         analyzing={analyzing} 
-        documentId={documentId}
+        documentId={documentIds[0] || null}
         originalInstructions={instructions}
         onRegenerate={(docId) => {
           // Activar el estado de análisis y comenzar polling
           if (docId) {
-            setDocumentId(docId);
+            if (!documentIds.includes(docId)) {
+              setDocumentIds([...documentIds, docId]);
+            }
             setAnalyzing(true);
             setPolling(true);
             setProgress(0);

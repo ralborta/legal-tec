@@ -200,7 +200,7 @@ app.post("/upload", upload.single("file"), handleUpload);
 // Alias para compatibilidad si este servicio queda expuesto directo (sin proxy del API)
 app.post("/legal/upload", upload.single("file"), handleUpload);
 
-// ✅ Upload múltiple (máximo 3 archivos)
+// ✅ Upload múltiple (máximo 5 archivos)
 async function handleUploadMany(req: express.Request, res: express.Response, next: express.NextFunction) {
   console.log(`[UPLOAD-MANY] Request recibido`);
   
@@ -237,8 +237,8 @@ async function handleUploadMany(req: express.Request, res: express.Response, nex
   }
 }
 
-app.post("/upload-many", upload.array("files", 3), handleUploadMany);
-app.post("/legal/upload-many", upload.array("files", 3), handleUploadMany);
+app.post("/upload-many", upload.array("files", 5), handleUploadMany);
+app.post("/legal/upload-many", upload.array("files", 5), handleUploadMany);
 
 console.log("[LEGAL-DOCS] Rutas registradas:");
 console.log("  POST /upload");
