@@ -91,15 +91,49 @@ INSTRUCCIONES CRÍTICAS:
 3. Analiza TODAS las cláusulas del documento - NO omitas ninguna
 4. Genera un análisis EXTENSO y DETALLADO
 
-REQUISITOS DE EXTENSIÓN:
-- "resumen_ejecutivo": MÍNIMO 3-4 párrafos completos describiendo el documento, partes, objeto, y aspectos más relevantes
-- "clausulas_analizadas": OBLIGATORIO analizar CADA cláusula del documento. Mínimo 5-10 cláusulas. Para cada una incluir análisis detallado.
-- "analisis_juridico": MÍNIMO 4-5 párrafos con análisis legal profundo, normativa aplicable, interpretación jurídica
-- "riesgos": MÍNIMO 3-5 riesgos identificados con nivel y recomendación específica
-- "recomendaciones": MÍNIMO 5 recomendaciones prácticas y específicas
-- "proximos_pasos": MÍNIMO 3-5 acciones concretas a tomar
-- "citas": MÍNIMO 3-5 citas de normativa/jurisprudencia relevante CON URLs
-- "documentos_sugeridos": MÍNIMO 2-3 documentos que podrían complementar o ser necesarios
+REQUISITOS DE EXTENSIÓN Y PROFUNDIDAD:
+- "resumen_ejecutivo": MÍNIMO 4-6 párrafos completos y detallados. Debe incluir: partes del contrato con sus roles, objeto completo del documento, plazos y condiciones, precio/contraprestación detallada, contexto comercial/jurídico, relaciones entre las partes, aspectos más relevantes y críticos, y cualquier detalle que sea importante para entender el documento completo.
+- "clausulas_analizadas": OBLIGATORIO analizar CADA cláusula del documento sin excepción. Mínimo 8-15 cláusulas (o todas si hay menos). Para cada cláusula incluir:
+  * Análisis DETALLADO de qué establece la cláusula (no solo resumen)
+  * Implicancias legales profundas y consecuencias prácticas
+  * Si es favorable/desfavorable para cada parte y por qué
+  * Comparación con estándares del mercado y mejores prácticas
+  * Posibles interpretaciones alternativas y su validez
+  * Relación con otras cláusulas del documento
+  * Nivel de riesgo específico con justificación detallada
+- "analisis_juridico": MÍNIMO 6-8 párrafos con análisis legal MUY PROFUNDO. Debe incluir:
+  * Marco normativo aplicable completo (leyes, decretos, resoluciones)
+  * Interpretación jurídica detallada de cláusulas clave
+  * Validez legal de cada disposición importante
+  * Posibles conflictos con normativa vigente
+  * Jurisprudencia relevante y cómo aplica al caso
+  * Análisis de derechos y obligaciones de cada parte
+  * Consideraciones sobre cumplimiento y ejecución
+  * Comparación con estándares legales del sector
+  * Análisis de posibles vacíos legales o ambigüedades
+- "riesgos": MÍNIMO 5-8 riesgos identificados con análisis profundo. Cada riesgo debe incluir:
+  * Descripción ESPECÍFICA y DETALLADA del riesgo
+  * Probabilidad de ocurrencia y impacto potencial
+  * Nivel de riesgo (bajo/medio/alto) con justificación
+  * Recomendación CONCRETA y ACCIONABLE para mitigar
+  * Escenarios donde el riesgo podría materializarse
+  * Costos potenciales (económicos, legales, reputacionales)
+- "recomendaciones": MÍNIMO 7-10 recomendaciones prácticas, específicas y detalladas. Cada recomendación debe ser:
+  * Accionable y concreta (no genérica)
+  * Específica sobre qué hacer, cómo y cuándo
+  * Incluir consideraciones prácticas de implementación
+  * Priorizada según importancia y urgencia
+- "proximos_pasos": MÍNIMO 5-8 acciones concretas a tomar. Cada acción debe incluir:
+  * Qué hacer específicamente
+  * Quién debe hacerlo (si aplica)
+  * Plazo o prioridad
+  * Recursos necesarios
+- "citas": MÍNIMO 5-8 citas de normativa/jurisprudencia relevante CON URLs. Debe incluir:
+  * Normativa aplicable específica (artículos, leyes, decretos)
+  * Jurisprudencia relevante del caso
+  * Doctrina cuando sea pertinente
+  * URLs de fuentes oficiales verificables
+- "documentos_sugeridos": MÍNIMO 3-5 documentos que podrían complementar o ser necesarios, con justificación de por qué cada uno es relevante
 
 Devuelve un JSON con esta estructura EXACTA:
 
@@ -113,11 +147,11 @@ Devuelve un JSON con esta estructura EXACTA:
     {
       "numero": "1",
       "titulo": "Título de la cláusula",
-      "analisis": "Análisis DETALLADO de la cláusula: qué establece, implicancias legales, si es favorable/desfavorable, comparación con estándares del mercado",
+      "analisis": "Análisis MUY DETALLADO y PROFUNDO de la cláusula: qué establece exactamente (no solo resumen), implicancias legales profundas y consecuencias prácticas, si es favorable/desfavorable para cada parte y por qué, comparación con estándares del mercado y mejores prácticas, posibles interpretaciones alternativas y su validez, relación con otras cláusulas del documento, nivel de riesgo específico con justificación detallada",
       "riesgo": "bajo" | "medio" | "alto"
     }
   ],
-  "analisis_juridico": "Análisis jurídico EXTENSO de 4-5 párrafos. Incluir: marco normativo aplicable, interpretación de cláusulas clave, validez legal, posibles conflictos, jurisprudencia relevante si aplica.",
+  "analisis_juridico": "Análisis jurídico MUY EXTENSO y PROFUNDO de 6-8 párrafos. Debe incluir: marco normativo aplicable completo (leyes, decretos, resoluciones), interpretación jurídica detallada de cláusulas clave, validez legal de cada disposición importante, posibles conflictos con normativa vigente, jurisprudencia relevante y cómo aplica al caso, análisis de derechos y obligaciones de cada parte, consideraciones sobre cumplimiento y ejecución, comparación con estándares legales del sector, análisis de posibles vacíos legales o ambigüedades.",
   "riesgos": [
     {
       "descripcion": "Descripción ESPECÍFICA del riesgo interpretando y aplicando el enfoque, punto de vista, criterios y preocupaciones mencionados en el chat. El riesgo DEBE ser coherente con el enfoque interpretado: si el chat menciona un punto de vista específico, el riesgo DEBE ser un riesgo PARA ESE PUNTO DE VISTA. Si menciona beneficios, preocupaciones o criterios específicos, el riesgo DEBE reflejarlos desde esa perspectiva. DEBE ser coherente con el enfoque del análisis completo en todas sus secciones.",
@@ -247,7 +281,7 @@ export async function generateReport(input: ReportInput): Promise<AnalysisReport
     const translatedText = input.translated
       .map((c) => `${c.clause_number}. ${c.title_es}\n${c.body_es}`)
       .join("\n\n")
-      .substring(0, 10000); // Aumentado para mejor análisis
+      .substring(0, 15000); // Aumentado para análisis más profundo
 
     // Formatear jurisprudencia para el prompt
     const jurisprudenceText = jurisprudence.length > 0
@@ -263,7 +297,7 @@ export async function generateReport(input: ReportInput): Promise<AnalysisReport
       openai.chat.completions.create({
       model: "gpt-4o", // Modelo más potente para análisis legales complejos
       temperature: 0.3,
-        max_tokens: 6000, // Aumentado para respuestas más extensas
+        max_tokens: 8000, // Aumentado para análisis más profundos y extensos
       messages: [
         {
           role: "system",
@@ -348,7 +382,7 @@ NO ignores estas instrucciones. Son OBLIGATORIAS y tienen PRIORIDAD ABSOLUTA sob
 TIPO DE DOCUMENTO: ${input.type}
 
 TEXTO ORIGINAL:
-${input.original.substring(0, 5000)}
+${input.original.substring(0, 8000)}
 
 CLÁUSULAS DEL DOCUMENTO (analizar TODAS):
 ${translatedText}
@@ -359,7 +393,16 @@ ${checklistText}
 JURISPRUDENCIA Y NORMATIVA RELEVANTE:
 ${jurisprudenceText}
 
-IMPORTANTE: El análisis debe ser EXTENSO y DETALLADO. Analiza TODAS las cláusulas del documento.
+IMPORTANTE: El análisis debe ser MUY EXTENSO, DETALLADO y PROFUNDO. Analiza TODAS las cláusulas del documento sin excepción. 
+
+🚨 PROFUNDIDAD REQUERIDA:
+- No uses análisis superficiales o genéricos
+- Profundiza en cada aspecto legal, comercial y práctico
+- Analiza las implicancias desde múltiples perspectivas
+- Incluye contexto, comparaciones y consideraciones detalladas
+- Sé exhaustivo en el análisis de cada cláusula
+- Considera escenarios y casos de uso reales
+- Analiza relaciones entre cláusulas y su impacto conjunto
 
 ⚠️⚠️⚠️ RECORDATORIO FINAL CRÍTICO ⚠️⚠️⚠️
 TODAS las secciones del JSON que generes (resumen_ejecutivo, clausulas_analizadas, analisis_juridico, riesgos, recomendaciones, proximos_pasos, texto_formateado) DEBEN reflejar las instrucciones del usuario mostradas arriba en la sección "INSTRUCCIONES Y CONTEXTO DEL USUARIO".

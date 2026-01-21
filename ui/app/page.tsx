@@ -1659,9 +1659,27 @@ function AnalizarDocumentosPanel() {
         console.warn(`[UPLOAD] ${failed.length} análisis fallaron al iniciar`);
       }
 
-      // Iniciar polling para obtener resultados del primer documento (o podemos hacer polling de todos)
+      // Iniciar polling para obtener resultados de todos los documentos
       setPolling(true);
+      // Polling del primer documento para mostrar resultado, pero todos se están procesando
+      if (uploadedDocumentIds.length > 1) {
+        setStatusLabel(`Analizando ${uploadedDocumentIds.length} documentos... Mostrando resultado del primero cuando esté listo. Los demás se procesan en segundo plano.`);
+      }
+      // Procesar el primer documento (se mostrará en la UI)
       pollForResults(uploadedDocumentIds[0]);
+      
+      // Iniciar procesamiento en background para los demás documentos
+      // Esto asegura que todos los documentos se analicen, aunque solo mostremos el primero
+      if (uploadedDocumentIds.length > 1) {
+        uploadedDocumentIds.slice(1).forEach((docId, index) => {
+          // Procesar en background sin bloquear la UI
+          setTimeout(() => {
+            pollForResults(docId).catch(err => {
+              console.warn(`[UPLOAD] Error procesando documento ${index + 2}/${uploadedDocumentIds.length}:`, err);
+            });
+          }, 1000 * (index + 1)); // Espaciar las peticiones ligeramente
+        });
+      }
     } catch (err: any) {
       setError(toUserFriendlyError(err, "Error al procesar documentos"));
       setAnalyzing(false);
