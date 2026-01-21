@@ -354,6 +354,56 @@ async function handleAnalyze(req: express.Request, res: express.Response, next: 
 }
 
 app.post("/analyze/:documentId", handleAnalyze);
+
+// Analizar múltiples documentos como conjunto
+async function handleAnalyzeMany(req: express.Request, res: express.Response, next: express.NextFunction) {
+  try {
+    const { documentIds } = req.body;
+    const rawInstructions = typeof req.body?.instructions === "string"
+      ? req.body.instructions
+      : (req.body?.instructions ? String(req.body.instructions) : "");
+    const userInstructions = rawInstructions.trim().slice(0, 2000);
+    
+    if (!documentIds || !Array.isArray(documentIds) || documentIds.length === 0) {
+      return res.status(400).json({ 
+        error: "Invalid documentIds",
+        message: "documentIds must be a non-empty array"
+      });
+    }
+    
+    if (documentIds.length > 5) {
+      return res.status(400).json({ 
+        error: "Too many documents",
+        message: "Maximum 5 documents allowed for conjoint analysis"
+      });
+    }
+    
+    console.log(`[ANALYZE-MANY] Starting conjoint analysis for ${documentIds.length} documents`);
+    console.log(`[ANALYZE-MANY] Document IDs: ${documentIds.join(", ")}`);
+    
+    // Importar la función de análisis conjunto
+    const { runFullAnalysisMany } = await import("./pipeline.js");
+    
+    // Disparar análisis conjunto de forma asíncrona
+    runFullAnalysisMany(documentIds, userInstructions || undefined).catch((error) => {
+      console.error(`[ANALYZE-MANY] Error en análisis conjunto:`, error);
+    });
+    
+    console.log(`[ANALYZE-MANY] Análisis conjunto iniciado, respondiendo 200`);
+    res.json({ 
+      status: "processing", 
+      documentIds,
+      primaryDocumentId: documentIds[0],
+      message: `Análisis conjunto iniciado para ${documentIds.length} documentos`
+    });
+  } catch (err) {
+    console.error(`[ANALYZE-MANY] Error inesperado:`, err);
+    next(err);
+  }
+}
+
+app.post("/analyze-many", handleAnalyzeMany);
+app.post("/legal/analyze-many", handleAnalyzeMany);
 // ✅ También registrar con prefijo /legal por si el proxy no lo quita
 app.post("/legal/analyze/:documentId", handleAnalyze);
 

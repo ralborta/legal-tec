@@ -1637,11 +1637,35 @@ function AnalizarDocumentosPanel() {
       const uploadedDocumentIds = data.documents.map((doc: any) => doc.documentId);
       setDocumentIds(uploadedDocumentIds);
 
-      // Iniciar análisis para cada documento (timeout corto: /analyze es fire-and-forget, solo necesita confirmación)
-      setStatusLabel(`Iniciando análisis de ${uploadedDocumentIds.length} documento(s)…`);
+      // Iniciar análisis CONJUNTO de todos los documentos
+      setStatusLabel(`Iniciando análisis conjunto de ${uploadedDocumentIds.length} documento(s)…`);
       
-      const analyzePromises = uploadedDocumentIds.map((docId: string) =>
-        fetchWithTimeout(`${API}/legal/analyze/${docId}`, {
+      // Si hay múltiples documentos, hacer análisis conjunto
+      if (uploadedDocumentIds.length > 1) {
+        const analyzeResponse = await fetchWithTimeout(`${API}/legal/analyze-many`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            documentIds: uploadedDocumentIds,
+            instructions: trimmedInstructions || undefined,
+          }),
+        }, 30000);
+
+        if (!analyzeResponse.ok) {
+          const errorText = await analyzeResponse.text().catch(() => "");
+          throw new Error(`Error al iniciar análisis conjunto (${analyzeResponse.status}): ${errorText || "Sin detalles"}`);
+        }
+
+        const analyzeData = await analyzeResponse.json();
+        console.log(`[UPLOAD] Análisis conjunto iniciado:`, analyzeData);
+        
+        // El análisis conjunto se guarda en el primer documento
+        setStatusLabel(`Analizando ${uploadedDocumentIds.length} documentos como conjunto...`);
+        setPolling(true);
+        pollForResults(uploadedDocumentIds[0]); // Polling del documento principal donde está el análisis conjunto
+      } else {
+        // Un solo documento: análisis normal
+        const analyzeResponse = await fetchWithTimeout(`${API}/legal/analyze/${uploadedDocumentIds[0]}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(
@@ -1649,36 +1673,16 @@ function AnalizarDocumentosPanel() {
               ? { instructions: trimmedInstructions }
               : {}
           ),
-        }, 30000)
-      );
+        }, 30000);
 
-      const analyzeResults = await Promise.allSettled(analyzePromises);
-      const failed = analyzeResults.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.ok));
-      
-      if (failed.length > 0) {
-        console.warn(`[UPLOAD] ${failed.length} análisis fallaron al iniciar`);
-      }
+        if (!analyzeResponse.ok) {
+          const errorText = await analyzeResponse.text().catch(() => "");
+          throw new Error(`Error al iniciar análisis (${analyzeResponse.status}): ${errorText || "Sin detalles"}`);
+        }
 
-      // Iniciar polling para obtener resultados de todos los documentos
-      setPolling(true);
-      // Polling del primer documento para mostrar resultado, pero todos se están procesando
-      if (uploadedDocumentIds.length > 1) {
-        setStatusLabel(`Analizando ${uploadedDocumentIds.length} documentos... Mostrando resultado del primero cuando esté listo. Los demás se procesan en segundo plano.`);
-      }
-      // Procesar el primer documento (se mostrará en la UI)
-      pollForResults(uploadedDocumentIds[0]);
-      
-      // Iniciar procesamiento en background para los demás documentos
-      // Esto asegura que todos los documentos se analicen, aunque solo mostremos el primero
-      if (uploadedDocumentIds.length > 1) {
-        uploadedDocumentIds.slice(1).forEach((docId, index) => {
-          // Procesar en background sin bloquear la UI
-          setTimeout(() => {
-            pollForResults(docId).catch(err => {
-              console.warn(`[UPLOAD] Error procesando documento ${index + 2}/${uploadedDocumentIds.length}:`, err);
-            });
-          }, 1000 * (index + 1)); // Espaciar las peticiones ligeramente
-        });
+        setStatusLabel("Analizando documento...");
+        setPolling(true);
+        pollForResults(uploadedDocumentIds[0]);
       }
     } catch (err: any) {
       setError(toUserFriendlyError(err, "Error al procesar documentos"));
@@ -1990,6 +1994,34 @@ function AnalizarDocumentosPanel() {
           <h3 className="font-bold text-lg text-gray-900 mb-4">
             {statusLabel?.includes("Regenerando") ? "🔄 Regenerando análisis..." : `Analizando ${files.length} documento${files.length > 1 ? 's' : ''}...`}
           </h3>
+          
+          {/* Lista de documentos siendo analizados */}
+          {files.length > 0 && (
+            <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-sm font-medium text-blue-900 mb-2">
+                {files.length > 1 ? "📄 Documentos incluidos en el análisis:" : "📄 Documento siendo analizado:"}
+              </p>
+              <div className="space-y-1">
+                {files.map((file, index) => (
+                  <div key={index} className="flex items-center gap-2 text-sm text-blue-800">
+                    <span className="text-blue-600">•</span>
+                    <span className="truncate">{file.name}</span>
+                    {file.size && (
+                      <span className="text-xs text-blue-600 ml-auto">
+                        ({(file.size / 1024).toFixed(1)} KB)
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+              {files.length > 1 && (
+                <p className="text-xs text-blue-700 mt-2 italic">
+                  Estos documentos se analizarán como un conjunto relacionado
+                </p>
+              )}
+            </div>
+          )}
+          
           <div className="space-y-4">
             <div className="flex items-center gap-3">
               <div className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${

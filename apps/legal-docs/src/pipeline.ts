@@ -7,6 +7,151 @@ import { runDistributionAnalyzer } from "./agents/analyzerDistribution.js";
 import { generateReport } from "./agents/report.js";
 import { acquireAnalysisSlot } from "./concurrency-limit.js";
 
+// Función para análisis conjunto de múltiples documentos
+export async function runFullAnalysisMany(documentIds: string[], userInstructions?: string | null) {
+  const startTime = Date.now();
+  const MAX_PIPELINE_TIME = 300000; // 5 minutos para múltiples documentos
+  const trimmedInstructions = userInstructions?.trim() || null;
+  
+  // Adquirir slot de análisis
+  const releaseSlot = await acquireAnalysisSlot();
+  console.log(`[PIPELINE-MANY] Slot adquirido para análisis conjunto de ${documentIds.length} documentos`);
+  
+  const pipelineTimeout = setTimeout(() => {
+    console.error(`[PIPELINE-MANY] TIMEOUT: Analysis exceeded ${MAX_PIPELINE_TIME}ms for ${documentIds.length} documents`);
+    releaseSlot();
+    throw new Error(`Pipeline timeout: analysis took more than ${MAX_PIPELINE_TIME / 1000}s`);
+  }, MAX_PIPELINE_TIME);
+  
+  try {
+    // El primer documento será el "principal" donde guardaremos el análisis conjunto
+    const primaryDocumentId = documentIds[0];
+    const otherDocumentIds = documentIds.slice(1);
+    
+    console.log(`[PIPELINE-MANY] Starting CONJOINT analysis for ${documentIds.length} documents`);
+    console.log(`[PIPELINE-MANY] Primary document: ${primaryDocumentId}`);
+    console.log(`[PIPELINE-MANY] Other documents: ${otherDocumentIds.join(", ")}`);
+    
+    await updateAnalysisStatus(primaryDocumentId, "ocr", 10);
+    
+    // 1. Extraer texto de TODOS los documentos
+    const allTexts: Array<{ documentId: string; filename: string; text: string }> = [];
+    
+    for (const docId of documentIds) {
+      const doc = await legalDb.getDocument(docId);
+      if (!doc) {
+        throw new Error(`Document ${docId} not found`);
+      }
+      
+      const fileBuffer = await getDocumentBuffer(docId);
+      if (!fileBuffer) {
+        throw new Error(`Could not read file for document ${docId}`);
+      }
+      
+      const text = await ocrAgent({
+        buffer: fileBuffer,
+        mimeType: doc.mime_type,
+        filename: doc.filename,
+      });
+      
+      allTexts.push({
+        documentId: docId,
+        filename: doc.filename,
+        text: text,
+      });
+      
+      console.log(`[PIPELINE-MANY] ✅ Extracted ${text.length} chars from ${doc.filename}`);
+    }
+    
+    // 2. Combinar todos los textos con separadores claros
+    const combinedText = allTexts.map((item, index) => {
+      return `\n\n═══════════════════════════════════════════════════════════════════════════════
+DOCUMENTO ${index + 1} de ${allTexts.length}: ${item.filename}
+Document ID: ${item.documentId}
+═══════════════════════════════════════════════════════════════════════════════\n${item.text}`;
+    }).join("\n\n");
+    
+    console.log(`[PIPELINE-MANY] Combined text length: ${combinedText.length} characters`);
+    await updateAnalysisStatus(primaryDocumentId, "translating", 25);
+    
+    // 3. Traducción y estructuración del texto combinado
+    const translated = await translatorAgent(combinedText);
+    console.log(`[PIPELINE-MANY] Translation completed, ${translated.length} clauses from all documents`);
+    await updateAnalysisStatus(primaryDocumentId, "classifying", 40);
+    
+    // 4. Clasificación (del conjunto)
+    const { type } = await classifierAgent(translated);
+    console.log(`[PIPELINE-MANY] Classification: ${type}`);
+    await updateAnalysisStatus(primaryDocumentId, "analyzing", 60);
+    
+    // 5. Análisis específico según tipo
+    let checklist: any = null;
+    if (type === "distribution_contract") {
+      checklist = await runDistributionAnalyzer(translated);
+      console.log(`[PIPELINE-MANY] Distribution analysis completed`);
+    } else {
+      checklist = { type, note: "No specific analyzer implemented yet" };
+    }
+    await updateAnalysisStatus(primaryDocumentId, "generating_report", 80);
+    
+    // 6. Generar reporte conjunto con instrucciones especiales
+    const manyInstructions = trimmedInstructions 
+      ? `${trimmedInstructions}\n\nIMPORTANTE: Este análisis incluye ${documentIds.length} documentos relacionados. Analiza el CONJUNTO de todos los documentos, sus relaciones, consistencias, contradicciones, y cómo se complementan entre sí. Identifica si forman parte de una transacción o proceso legal conjunto.`
+      : `IMPORTANTE: Este análisis incluye ${documentIds.length} documentos relacionados. Analiza el CONJUNTO de todos los documentos, sus relaciones, consistencias, contradicciones, y cómo se complementan entre sí. Identifica si forman parte de una transacción o proceso legal conjunto.`;
+    
+    const report = await generateReport({
+      original: combinedText,
+      translated,
+      type,
+      checklist,
+      userInstructions: manyInstructions,
+    });
+    console.log(`[PIPELINE-MANY] Report generated for ${documentIds.length} documents`);
+    await updateAnalysisStatus(primaryDocumentId, "saving", 90);
+    
+    // 7. Guardar análisis en el documento principal
+    await legalDb.upsertAnalysis({
+      documentId: primaryDocumentId,
+      type,
+      original: { text: combinedText, documents: allTexts.map(t => ({ id: t.documentId, filename: t.filename })) },
+      translated,
+      checklist,
+      report,
+      userInstructions: trimmedInstructions,
+    });
+    
+    // Guardar referencia en los otros documentos también
+    for (const docId of otherDocumentIds) {
+      await legalDb.upsertAnalysis({
+        documentId: docId,
+        type,
+        original: { text: "", isPartOfConjointAnalysis: true, primaryDocumentId },
+        translated: [],
+        checklist: null,
+        report: null,
+        userInstructions: trimmedInstructions,
+      });
+    }
+    
+    const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+    console.log(`[PIPELINE-MANY] Conjoint analysis completed for ${documentIds.length} documents in ${duration}s`);
+    await updateAnalysisStatus(primaryDocumentId, "completed", 100);
+    clearTimeout(pipelineTimeout);
+    releaseSlot();
+  } catch (error) {
+    clearTimeout(pipelineTimeout);
+    releaseSlot();
+    const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+    console.error(`[PIPELINE-MANY] ERROR after ${duration}s:`, error);
+    await updateAnalysisStatus(documentIds[0], "error", 0);
+    await legalDb.setAnalysisError(
+      documentIds[0],
+      error instanceof Error ? error.message : "Error desconocido"
+    );
+    throw error;
+  }
+}
+
 // Función helper para actualizar estado del análisis
 async function updateAnalysisStatus(documentId: string, status: string, progress: number) {
   try {
