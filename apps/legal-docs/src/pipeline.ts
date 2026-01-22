@@ -10,7 +10,7 @@ import { acquireAnalysisSlot } from "./concurrency-limit.js";
 // Función para análisis conjunto de múltiples documentos
 export async function runFullAnalysisMany(documentIds: string[], userInstructions?: string | null) {
   const startTime = Date.now();
-  const MAX_PIPELINE_TIME = 600000; // 10 minutos para múltiples documentos (más tiempo para análisis conjunto complejo)
+  const MAX_PIPELINE_TIME = 900000; // 15 minutos para múltiples documentos (análisis ultra profundo y exhaustivo)
   const trimmedInstructions = userInstructions?.trim() || null;
   
   // Adquirir slot de análisis

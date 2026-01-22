@@ -92,49 +92,89 @@ INSTRUCCIONES CRÍTICAS:
 4. Genera un análisis EXTENSO y DETALLADO
 5. ⚠️ IMPORTANTE: Si las instrucciones del usuario indican que hay MÚLTIPLES DOCUMENTOS, SIEMPRE usa PLURAL ("los documentos", "estos documentos", "los documentos analizados") en TODAS las secciones. NUNCA uses "el documento" en singular cuando se analizan múltiples documentos.
 
-REQUISITOS DE EXTENSIÓN Y PROFUNDIDAD:
-- "resumen_ejecutivo": MÍNIMO 4-6 párrafos completos y detallados. Debe incluir: partes del contrato con sus roles, objeto completo del documento, plazos y condiciones, precio/contraprestación detallada, contexto comercial/jurídico, relaciones entre las partes, aspectos más relevantes y críticos, y cualquier detalle que sea importante para entender el documento completo.
-- "clausulas_analizadas": OBLIGATORIO analizar CADA cláusula del documento sin excepción. Mínimo 8-15 cláusulas (o todas si hay menos). Para cada cláusula incluir:
-  * Análisis DETALLADO de qué establece la cláusula (no solo resumen)
-  * Implicancias legales profundas y consecuencias prácticas
-  * Si es favorable/desfavorable para cada parte y por qué
-  * Comparación con estándares del mercado y mejores prácticas
-  * Posibles interpretaciones alternativas y su validez
-  * Relación con otras cláusulas del documento
-  * Nivel de riesgo específico con justificación detallada
-- "analisis_juridico": MÍNIMO 6-8 párrafos con análisis legal MUY PROFUNDO. Debe incluir:
-  * Marco normativo aplicable completo (leyes, decretos, resoluciones)
-  * Interpretación jurídica detallada de cláusulas clave
-  * Validez legal de cada disposición importante
-  * Posibles conflictos con normativa vigente
-  * Jurisprudencia relevante y cómo aplica al caso
-  * Análisis de derechos y obligaciones de cada parte
-  * Consideraciones sobre cumplimiento y ejecución
-  * Comparación con estándares legales del sector
-  * Análisis de posibles vacíos legales o ambigüedades
-- "riesgos": MÍNIMO 5-8 riesgos identificados con análisis profundo. Cada riesgo debe incluir:
-  * Descripción ESPECÍFICA y DETALLADA del riesgo
-  * Probabilidad de ocurrencia y impacto potencial
-  * Nivel de riesgo (bajo/medio/alto) con justificación
-  * Recomendación CONCRETA y ACCIONABLE para mitigar
-  * Escenarios donde el riesgo podría materializarse
-  * Costos potenciales (económicos, legales, reputacionales)
-- "recomendaciones": MÍNIMO 7-10 recomendaciones prácticas, específicas y detalladas. Cada recomendación debe ser:
-  * Accionable y concreta (no genérica)
-  * Específica sobre qué hacer, cómo y cuándo
-  * Incluir consideraciones prácticas de implementación
-  * Priorizada según importancia y urgencia
-- "proximos_pasos": MÍNIMO 5-8 acciones concretas a tomar. Cada acción debe incluir:
-  * Qué hacer específicamente
-  * Quién debe hacerlo (si aplica)
-  * Plazo o prioridad
-  * Recursos necesarios
-- "citas": MÍNIMO 5-8 citas de normativa/jurisprudencia relevante CON URLs. Debe incluir:
-  * Normativa aplicable específica (artículos, leyes, decretos)
-  * Jurisprudencia relevante del caso
-  * Doctrina cuando sea pertinente
+REQUISITOS DE EXTENSIÓN Y PROFUNDIDAD - ANÁLISIS ULTRA PROFUNDO Y COMPLETO:
+⚠️ IMPORTANTE: Este análisis debe ser EXHAUSTIVO, COMPLETO y MUY PROFUNDO. NO uses análisis superficiales o genéricos.
+
+- "resumen_ejecutivo": MÍNIMO 8-12 párrafos completos y MUY DETALLADOS. Debe incluir:
+  * Identificación completa de TODAS las partes con sus roles, razones sociales, datos de identificación
+  * Objeto COMPLETO y DETALLADO del documento con todos sus aspectos
+  * Plazos, fechas, condiciones y términos ESPECÍFICOS mencionados
+  * Precio/contraprestación DETALLADA con desglose si aplica
+  * Contexto comercial/jurídico COMPLETO y profundo
+  * Relaciones entre las partes y su naturaleza jurídica
+  * TODOS los aspectos relevantes y críticos identificados
+  * Comparación con contratos similares del mercado
+  * Análisis de la estructura general del documento
+  * Cualquier detalle que sea importante para entender el documento completo
+  * Si hay múltiples documentos: análisis comparativo, relaciones, consistencias e inconsistencias
+
+- "clausulas_analizadas": OBLIGATORIO analizar CADA cláusula del documento sin excepción. Mínimo 15-25 cláusulas (o TODAS si hay menos). Para cada cláusula incluir:
+  * Análisis ULTRA DETALLADO de qué establece EXACTAMENTE la cláusula (texto completo, no resumen)
+  * Implicancias legales MUY PROFUNDAS y consecuencias prácticas detalladas
+  * Análisis desde la perspectiva de CADA parte (favorable/desfavorable y por qué en detalle)
+  * Comparación EXHAUSTIVA con estándares del mercado y mejores prácticas del sector
+  * Posibles interpretaciones alternativas, su validez legal y consecuencias
+  * Relación DETALLADA con otras cláusulas del documento y su impacto conjunto
+  * Nivel de riesgo específico con justificación MUY DETALLADA
+  * Casos prácticos donde esta cláusula podría aplicarse o generar conflictos
+  * Recomendaciones específicas para mejorar o modificar la cláusula
+  * Análisis de cumplimiento y posibles dificultades de ejecución
+  * Comparación con normativa aplicable específica
+
+- "analisis_juridico": MÍNIMO 12-18 párrafos con análisis legal ULTRA PROFUNDO Y EXHAUSTIVO. Debe incluir:
+  * Marco normativo aplicable COMPLETO Y DETALLADO (leyes, decretos, resoluciones, artículos específicos)
+  * Interpretación jurídica MUY DETALLADA de TODAS las cláusulas clave
+  * Validez legal de CADA disposición importante con fundamentación
+  * Posibles conflictos con normativa vigente y cómo resolverlos
+  * Jurisprudencia relevante DETALLADA y cómo aplica específicamente al caso
+  * Análisis EXHAUSTIVO de derechos y obligaciones de cada parte
+  * Consideraciones sobre cumplimiento y ejecución con escenarios detallados
+  * Comparación con estándares legales del sector y mejores prácticas
+  * Análisis DETALLADO de posibles vacíos legales o ambigüedades
+  * Análisis de la estructura contractual y su coherencia jurídica
+  * Consideraciones sobre posibles litigios y defensas disponibles
+  * Análisis de aspectos procesales y jurisdiccionales
+  * Evaluación de la eficacia y ejecutabilidad de las disposiciones
+  * Análisis comparativo con normativa internacional si aplica
+
+- "riesgos": MÍNIMO 10-15 riesgos identificados con análisis ULTRA PROFUNDO. Cada riesgo debe incluir:
+  * Descripción ULTRA ESPECÍFICA y MUY DETALLADA del riesgo con ejemplos concretos
+  * Probabilidad de ocurrencia (baja/media/alta) con justificación detallada
+  * Impacto potencial DETALLADO (económico, legal, operativo, reputacional)
+  * Nivel de riesgo (bajo/medio/alto/crítico) con justificación exhaustiva
+  * Recomendación MUY CONCRETA y ACCIONABLE para mitigar con pasos específicos
+  * Escenarios DETALLADOS donde el riesgo podría materializarse
+  * Costos potenciales CUANTIFICADOS cuando sea posible (económicos, legales, reputacionales)
+  * Tiempo estimado para que el riesgo se materialice
+  * Factores que aumentan o disminuyen el riesgo
+  * Medidas preventivas específicas y su efectividad
+
+- "recomendaciones": MÍNIMO 12-18 recomendaciones prácticas, MUY ESPECÍFICAS y DETALLADAS. Cada recomendación debe ser:
+  * Accionable y MUY concreta (no genérica, con pasos específicos)
+  * Específica sobre QUÉ hacer exactamente, CÓMO hacerlo, CUÁNDO y QUIÉN
+  * Incluir consideraciones prácticas DETALLADAS de implementación
+  * Priorizada según importancia (alta/media/baja) y urgencia (inmediata/corto plazo/mediano plazo)
+  * Incluir recursos necesarios y costos estimados si aplica
+  * Incluir plazos específicos y responsables
+  * Justificación de por qué esta recomendación es importante
+
+- "proximos_pasos": MÍNIMO 10-15 acciones MUY CONCRETAS a tomar. Cada acción debe incluir:
+  * Qué hacer ESPECÍFICAMENTE con detalle
+  * Quién debe hacerlo (rol, persona, departamento)
+  * Plazo o prioridad ESPECÍFICA (fecha límite si aplica)
+  * Recursos necesarios DETALLADOS (humanos, económicos, técnicos)
+  * Dependencias con otras acciones
+  * Criterios de éxito para considerar la acción completada
+
+- "citas": MÍNIMO 10-15 citas de normativa/jurisprudencia relevante CON URLs. Debe incluir:
+  * Normativa aplicable ESPECÍFICA con artículos, incisos, párrafos (leyes, decretos, resoluciones)
+  * Jurisprudencia relevante DETALLADA del caso con referencias completas
+  * Doctrina cuando sea pertinente con referencias completas
   * URLs de fuentes oficiales verificables
-- "documentos_sugeridos": MÍNIMO 3-5 documentos que podrían complementar o ser necesarios, con justificación de por qué cada uno es relevante
+  * Explicación de cómo cada cita aplica al documento analizado
+  * Referencias cruzadas entre normativas cuando sea relevante
+
+- "documentos_sugeridos": MÍNIMO 5-8 documentos que podrían complementar o ser necesarios, con justificación DETALLADA de por qué cada uno es relevante, cuándo sería necesario y qué aspectos cubriría
 
 Devuelve un JSON con esta estructura EXACTA:
 
@@ -143,16 +183,16 @@ Devuelve un JSON con esta estructura EXACTA:
   "tipo_documento": "Tipo específico (ej: Contrato de Locación, Contrato de Distribución, Acuerdo de Confidencialidad)",
   "jurisdiccion": "Jurisdicción identificada",
   "area_legal": "Área legal principal",
-  "resumen_ejecutivo": "Resumen EXTENSO de 3-4 párrafos. Incluir: partes del contrato, objeto, plazo, precio/contraprestación, aspectos más relevantes, contexto general. Si hay múltiples documentos, DEBE mencionar explícitamente que se analizaron múltiples documentos y usar PLURAL ('los documentos', 'estos documentos') en todo el resumen.",
+  "resumen_ejecutivo": "Resumen ULTRA EXTENSO de 8-12 párrafos COMPLETOS. Incluir: identificación completa de TODAS las partes con roles y datos, objeto COMPLETO y DETALLADO, plazos y condiciones ESPECÍFICAS, precio/contraprestación DETALLADA, contexto comercial/jurídico COMPLETO, relaciones entre partes, TODOS los aspectos relevantes, comparación con contratos similares, análisis de estructura general. Si hay múltiples documentos, DEBE mencionar explícitamente que se analizaron múltiples documentos, usar PLURAL ('los documentos', 'estos documentos') en todo el resumen, e incluir análisis comparativo, relaciones, consistencias e inconsistencias.",
   "clausulas_analizadas": [
     {
       "numero": "1",
       "titulo": "Título de la cláusula",
-      "analisis": "Análisis MUY DETALLADO y PROFUNDO de la cláusula: qué establece exactamente (no solo resumen), implicancias legales profundas y consecuencias prácticas, si es favorable/desfavorable para cada parte y por qué, comparación con estándares del mercado y mejores prácticas, posibles interpretaciones alternativas y su validez, relación con otras cláusulas del documento, nivel de riesgo específico con justificación detallada",
+      "analisis": "Análisis ULTRA DETALLADO y ULTRA PROFUNDO de la cláusula: qué establece EXACTAMENTE (texto completo, no resumen), implicancias legales MUY PROFUNDAS y consecuencias prácticas detalladas, análisis desde la perspectiva de CADA parte (favorable/desfavorable y por qué en detalle), comparación EXHAUSTIVA con estándares del mercado y mejores prácticas del sector, posibles interpretaciones alternativas, su validez legal y consecuencias, relación DETALLADA con otras cláusulas del documento y su impacto conjunto, nivel de riesgo específico con justificación MUY DETALLADA, casos prácticos donde esta cláusula podría aplicarse o generar conflictos, recomendaciones específicas para mejorar o modificar la cláusula, análisis de cumplimiento y posibles dificultades de ejecución, comparación con normativa aplicable específica",
       "riesgo": "bajo" | "medio" | "alto"
     }
   ],
-  "analisis_juridico": "Análisis jurídico MUY EXTENSO y PROFUNDO de 6-8 párrafos. Debe incluir: marco normativo aplicable completo (leyes, decretos, resoluciones), interpretación jurídica detallada de cláusulas clave, validez legal de cada disposición importante, posibles conflictos con normativa vigente, jurisprudencia relevante y cómo aplica al caso, análisis de derechos y obligaciones de cada parte, consideraciones sobre cumplimiento y ejecución, comparación con estándares legales del sector, análisis de posibles vacíos legales o ambigüedades.",
+  "analisis_juridico": "Análisis jurídico ULTRA EXTENSO y ULTRA PROFUNDO de 12-18 párrafos. Debe incluir: marco normativo aplicable COMPLETO Y DETALLADO (leyes, decretos, resoluciones, artículos específicos), interpretación jurídica MUY DETALLADA de TODAS las cláusulas clave, validez legal de CADA disposición importante con fundamentación, posibles conflictos con normativa vigente y cómo resolverlos, jurisprudencia relevante DETALLADA y cómo aplica específicamente al caso, análisis EXHAUSTIVO de derechos y obligaciones de cada parte, consideraciones sobre cumplimiento y ejecución con escenarios detallados, comparación con estándares legales del sector y mejores prácticas, análisis DETALLADO de posibles vacíos legales o ambigüedades, análisis de la estructura contractual y su coherencia jurídica, consideraciones sobre posibles litigios y defensas disponibles, análisis de aspectos procesales y jurisdiccionales, evaluación de la eficacia y ejecutabilidad de las disposiciones.",
   "riesgos": [
     {
       "descripcion": "Descripción ESPECÍFICA del riesgo interpretando y aplicando el enfoque, punto de vista, criterios y preocupaciones mencionados en el chat. El riesgo DEBE ser coherente con el enfoque interpretado: si el chat menciona un punto de vista específico, el riesgo DEBE ser un riesgo PARA ESE PUNTO DE VISTA. Si menciona beneficios, preocupaciones o criterios específicos, el riesgo DEBE reflejarlos desde esa perspectiva. DEBE ser coherente con el enfoque del análisis completo en todas sus secciones.",
@@ -255,8 +295,8 @@ export async function generateReport(input: ReportInput): Promise<AnalysisReport
                              input.userInstructions?.includes("múltiples documentos") ||
                              input.original.includes("DOCUMENTO 1 de") ||
                              input.original.includes("DOCUMENTO 2 de");
-  // Análisis conjunto requiere más tiempo por ser más complejo y profundo
-  const timeout = isConjointAnalysis ? 400000 : 180000; // 6.5 min para conjunto (más profundo), 3 min para individual
+  // Análisis ultra profundo requiere más tiempo - el usuario quiere análisis exhaustivo
+  const timeout = isConjointAnalysis ? 600000 : 300000; // 10 min para conjunto (ultra profundo), 5 min para individual (ultra profundo)
   
   try {
     // Consultar jurisprudencia relevante usando RAG
@@ -310,7 +350,8 @@ export async function generateReport(input: ReportInput): Promise<AnalysisReport
     // Usar gpt-4o para ambos (máxima calidad y profundidad)
     // Análisis conjunto requiere MÁS profundidad, no menos
     const model = "gpt-4o"; // Siempre usar el modelo más potente para análisis profundo
-    const maxTokens = isConjointAnalysis ? 10000 : 8000; // MÁS tokens para conjunto (más documentos = más análisis)
+    // Aumentar tokens significativamente para análisis ultra profundo
+    const maxTokens = isConjointAnalysis ? 16000 : 12000; // MUCHO MÁS tokens para análisis exhaustivo
     
     console.log(`[REPORT] Using model: ${model}, max_tokens: ${maxTokens}, conjoint: ${isConjointAnalysis}`);
     
@@ -424,14 +465,19 @@ ${jurisprudenceText}
 
 IMPORTANTE: El análisis debe ser MUY EXTENSO, DETALLADO y PROFUNDO. Analiza TODAS las cláusulas del documento sin excepción. 
 
-🚨 PROFUNDIDAD REQUERIDA:
-- No uses análisis superficiales o genéricos
-- Profundiza en cada aspecto legal, comercial y práctico
-- Analiza las implicancias desde múltiples perspectivas
-- Incluye contexto, comparaciones y consideraciones detalladas
-- Sé exhaustivo en el análisis de cada cláusula
-- Considera escenarios y casos de uso reales
-- Analiza relaciones entre cláusulas y su impacto conjunto
+🚨🚨🚨 PROFUNDIDAD ULTRA REQUERIDA - ANÁLISIS EXHAUSTIVO 🚨🚨🚨:
+- PROHIBIDO usar análisis superficiales, genéricos o resúmenes breves
+- DEBES profundizar EXHAUSTIVAMENTE en cada aspecto legal, comercial, práctico y estratégico
+- Analiza las implicancias desde MÚLTIPLES perspectivas (jurídica, comercial, operativa, financiera, reputacional)
+- Incluye contexto COMPLETO, comparaciones DETALLADAS y consideraciones EXHAUSTIVAS
+- Sé ULTRA EXHAUSTIVO en el análisis de CADA cláusula - no dejes ningún aspecto sin analizar
+- Considera escenarios DETALLADOS y casos de uso reales con ejemplos concretos
+- Analiza relaciones DETALLADAS entre cláusulas y su impacto conjunto
+- Incluye análisis comparativo con contratos similares y mejores prácticas del sector
+- Profundiza en aspectos procesales, jurisdiccionales y de ejecución
+- Analiza posibles conflictos futuros y cómo prevenirlos o resolverlos
+- Incluye recomendaciones específicas y accionables para cada aspecto identificado
+- El análisis debe ser TAN COMPLETO que un abogado senior pueda usarlo directamente sin necesidad de revisar el documento original
 
 ⚠️⚠️⚠️ RECORDATORIO FINAL CRÍTICO ⚠️⚠️⚠️
 TODAS las secciones del JSON que generes (resumen_ejecutivo, clausulas_analizadas, analisis_juridico, riesgos, recomendaciones, proximos_pasos, texto_formateado) DEBEN reflejar las instrucciones del usuario mostradas arriba en la sección "INSTRUCCIONES Y CONTEXTO DEL USUARIO".
