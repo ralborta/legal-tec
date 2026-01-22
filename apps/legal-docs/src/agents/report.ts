@@ -255,7 +255,8 @@ export async function generateReport(input: ReportInput): Promise<AnalysisReport
                              input.userInstructions?.includes("múltiples documentos") ||
                              input.original.includes("DOCUMENTO 1 de") ||
                              input.original.includes("DOCUMENTO 2 de");
-  const timeout = isConjointAnalysis ? 300000 : 180000; // 5 min para conjunto, 3 min para individual
+  // Análisis conjunto requiere más tiempo por ser más complejo y profundo
+  const timeout = isConjointAnalysis ? 400000 : 180000; // 6.5 min para conjunto (más profundo), 3 min para individual
   
   try {
     // Consultar jurisprudencia relevante usando RAG
@@ -283,10 +284,13 @@ export async function generateReport(input: ReportInput): Promise<AnalysisReport
           .join("\n\n")
       : "No checklist disponible";
 
-    // Limitar texto para análisis conjunto (más rápido), más texto para individual
+    // Para análisis conjunto, necesitamos MÁS texto (múltiples documentos)
     const isConjointAnalysis = input.userInstructions?.includes("ANÁLISIS CONJUNTO") || 
-                                 input.original.includes("DOCUMENTO 1 de");
-    const maxTextLength = isConjointAnalysis ? 12000 : 15000; // Menos texto para conjunto = más rápido
+                                 input.userInstructions?.includes("múltiples documentos") ||
+                                 input.original.includes("DOCUMENTO 1 de") ||
+                                 input.original.includes("DOCUMENTO 2 de");
+    // Análisis conjunto necesita MÁS contexto, no menos
+    const maxTextLength = isConjointAnalysis ? 20000 : 15000; // MÁS texto para conjunto (más documentos = más contexto necesario)
     
     const translatedText = input.translated
       .map((c) => `${c.clause_number}. ${c.title_es}\n${c.body_es}`)
@@ -303,9 +307,10 @@ export async function generateReport(input: ReportInput): Promise<AnalysisReport
           .join("\n\n")
       : "No se encontró jurisprudencia en la base de datos. Usar las fuentes de referencia proporcionadas.";
 
-    // Usar gpt-4o-mini para análisis conjunto (más rápido) o gpt-4o para individual (más calidad)
-    const model = isConjointAnalysis ? "gpt-4o-mini" : "gpt-4o"; // Más rápido para conjunto
-    const maxTokens = isConjointAnalysis ? 6000 : 8000; // Menos tokens para conjunto (más rápido)
+    // Usar gpt-4o para ambos (máxima calidad y profundidad)
+    // Análisis conjunto requiere MÁS profundidad, no menos
+    const model = "gpt-4o"; // Siempre usar el modelo más potente para análisis profundo
+    const maxTokens = isConjointAnalysis ? 10000 : 8000; // MÁS tokens para conjunto (más documentos = más análisis)
     
     console.log(`[REPORT] Using model: ${model}, max_tokens: ${maxTokens}, conjoint: ${isConjointAnalysis}`);
     
@@ -406,7 +411,7 @@ NO ignores estas instrucciones. Son OBLIGATORIAS y tienen PRIORIDAD ABSOLUTA sob
 TIPO DE DOCUMENTO: ${input.type}
 
 TEXTO ORIGINAL:
-${isConjointAnalysis ? input.original.substring(0, 6000) : input.original.substring(0, 8000)}
+${isConjointAnalysis ? input.original.substring(0, 10000) : input.original.substring(0, 8000)}
 
 CLÁUSULAS DEL DOCUMENTO (analizar TODAS):
 ${translatedText}
