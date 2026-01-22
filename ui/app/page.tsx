@@ -7163,15 +7163,15 @@ function LoginModal({ onLogin, onClose }: { onLogin: (usuario: {id: string; emai
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-2xl max-w-md w-full flex flex-col">
         {/* Logo WNS arriba */}
-        <div className="flex items-center justify-center pt-6 pb-4">
+        <div className="flex items-center justify-center pt-8 pb-6">
           {wnsLogoExists === true ? (
             <img 
               src="/wns-logo.png" 
               alt="WNS & Asociados" 
-              className="h-20 w-auto object-contain"
+              className="h-40 w-auto object-contain max-w-full"
             />
           ) : (
-            <div className="text-xl font-bold text-gray-700">WNS & Asociados</div>
+            <div className="text-2xl font-bold text-gray-700">WNS & Asociados</div>
           )}
         </div>
 
