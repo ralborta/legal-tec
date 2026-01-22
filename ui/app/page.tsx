@@ -4864,6 +4864,7 @@ function ChatDocumentoPersonalizado({
   const [documentoGenerado, setDocumentoGenerado] = useState<string | null>(null);
   const [tituloDocumento, setTituloDocumento] = useState<string>("Documento Personalizado");
   const [downloading, setDownloading] = useState(false);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
   const API = useMemo(() => getApiUrl(), []);
 
   // Mensaje inicial del asistente
@@ -4876,6 +4877,13 @@ function ChatDocumentoPersonalizado({
       setMessages([mensajeInicial]);
     }
   }, []);
+
+  // Scroll automático al final cuando se agregan nuevos mensajes
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [messages, loading]);
 
   const handleSendMessage = async () => {
     if (!currentMessage.trim() || !API || loading) return;
@@ -5131,7 +5139,7 @@ function ChatDocumentoPersonalizado({
 
       {/* Chat */}
       <div className="border border-gray-200 rounded-lg bg-white" style={{ maxHeight: "500px", display: "flex", flexDirection: "column" }}>
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
           {messages.map((msg, idx) => (
             <div
               key={idx}
