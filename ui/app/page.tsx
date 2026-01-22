@@ -4191,6 +4191,7 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
       {modoGeneracion === "plantilla" ? (
         <GenerarDesdePlantilla onGenerated={onGenerated} setError={setError} setLoading={setLoading} />
       ) : (
+      <>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Columna izquierda: Formulario - Ocupa 2 columnas */}
         <div className="lg:col-span-2 space-y-6">
@@ -4444,39 +4445,59 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
             />
           ) : (
             <>
-              <h4 className="font-bold text-lg text-gray-900 mb-4">Dictamen Jurídico</h4>
-              <div className="bg-white rounded-lg border border-gray-300 p-4 min-h-[400px] relative">
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-10">
-                  <span className="text-6xl font-bold text-gray-400">DRAFT</span>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-purple-100 rounded-lg">
+                  <FileText className="h-5 w-5 text-purple-600" />
+                </div>
+                <h4 className="font-bold text-lg text-gray-900">Vista Previa</h4>
+              </div>
+              <div className="bg-gradient-to-br from-gray-50 to-purple-50/30 rounded-lg border-2 border-dashed border-gray-300 p-6 min-h-[500px] relative">
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-5">
+                  <span className="text-7xl font-bold text-gray-400">DRAFT</span>
                 </div>
                 <div className="relative z-10 space-y-4">
                   {title && (
-                    <div>
-                      <h5 className="font-semibold text-gray-900 mb-2">{title}</h5>
+                    <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+                      <h5 className="font-bold text-lg text-gray-900 mb-1">{title}</h5>
+                      <p className="text-xs text-gray-500">{type === "memo" ? "Transcripción de reunión" : type}</p>
                     </div>
                   )}
                   {instructions ? (
-                    <div className="text-sm text-gray-700 whitespace-pre-wrap">
-                      <p className="font-medium mb-2">1. Contexto y consulta</p>
-                      <p className="text-gray-600">{instructions}</p>
+                    <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+                      <p className="font-semibold text-sm text-gray-900 mb-2 flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-xs font-bold">1</span>
+                        Contexto y consulta
+                      </p>
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{instructions}</p>
                     </div>
                   ) : (
-                    <div className="text-sm text-gray-400 italic">
-                      <p className="font-medium mb-2">1. Contexto y consulta</p>
-                      <p>Completá el formulario para ver el preview del dictamen...</p>
+                    <div className="bg-white rounded-lg p-6 border-2 border-dashed border-gray-300 text-center">
+                      <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                      <p className="text-sm font-medium text-gray-600 mb-1">Vista Previa</p>
+                      <p className="text-xs text-gray-500">Completá el formulario para ver el preview del documento...</p>
+                    </div>
+                  )}
+                  {file && (
+                    <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+                      <div className="flex items-center gap-2 text-sm text-blue-700">
+                        <FileText className="h-4 w-4" />
+                        <span className="font-medium">PDF cargado: {file.name}</span>
+                      </div>
                     </div>
                   )}
                 </div>
               </div>
             </>
           )}
+          </div>
         </div>
+      </div>
 
       {/* Indicador de progreso moderno */}
       {loadingLocal && (
         <ProgressIndicator />
       )}
-      </div>
+      </>
       )}
     </div>
   );
