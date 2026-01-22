@@ -1710,7 +1710,7 @@ function AnalizarDocumentosPanel() {
         // El análisis conjunto se guarda en el primer documento
         setStatusLabel(`Analizando ${uploadedDocumentIds.length} documentos como conjunto...`);
         setPolling(true);
-        pollForResults(uploadedDocumentIds[0]); // Polling del documento principal donde está el análisis conjunto
+        pollForResults(uploadedDocumentIds[0], true); // Polling del documento principal donde está el análisis conjunto (true = es conjunto)
       } else {
         // Un solo documento: análisis normal
         const analyzeResponse = await fetchWithTimeout(`${API}/legal/analyze/${uploadedDocumentIds[0]}`, {
@@ -1730,7 +1730,7 @@ function AnalizarDocumentosPanel() {
 
         setStatusLabel("Analizando documento...");
         setPolling(true);
-        pollForResults(uploadedDocumentIds[0]);
+        pollForResults(uploadedDocumentIds[0], false); // false = análisis individual
       }
     } catch (err: any) {
       setError(toUserFriendlyError(err, "Error al procesar documentos"));
@@ -1738,9 +1738,8 @@ function AnalizarDocumentosPanel() {
     }
   };
 
-  const pollForResults = async (docId: string) => {
+  const pollForResults = async (docId: string, isConjointAnalysis: boolean = false) => {
     // Aumentar tiempo de espera para análisis conjunto (puede tardar hasta 10 minutos)
-    const isConjointAnalysis = documentIds.length > 1;
     const maxAttempts = isConjointAnalysis ? 200 : 60; // ~10 min para conjunto, ~3 min para individual
     let attempts = 0;
     let consecutive502s = 0;
@@ -1768,7 +1767,7 @@ function AnalizarDocumentosPanel() {
                 'processing': 'Procesando...'
               };
               const statusMsg = statusMessages[s.status] || s.status;
-              setStatusLabel(`${statusMsg}${isConjointAnalysis ? ` (${documentIds.length} documentos)` : ''} - Intento ${attempts + 1}/${maxAttempts}`);
+              setStatusLabel(`${statusMsg}${isConjointAnalysis ? ` (análisis conjunto)` : ''} - Intento ${attempts + 1}/${maxAttempts}`);
             }
             if (s.status === "error") {
               setError(s.error || "Error durante el análisis");
