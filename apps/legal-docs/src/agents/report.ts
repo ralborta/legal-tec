@@ -108,7 +108,7 @@ REQUISITOS DE EXTENSIÓN Y PROFUNDIDAD - ANÁLISIS ULTRA PROFUNDO Y COMPLETO:
   * Cualquier detalle que sea importante para entender el documento completo
   * Si hay múltiples documentos: análisis comparativo, relaciones, consistencias e inconsistencias
 
-- "clausulas_analizadas": OBLIGATORIO analizar CADA cláusula del documento sin excepción. Mínimo 15-25 cláusulas (o TODAS si hay menos). Para cada cláusula incluir:
+- "clausulas_analizadas": ⚠️ OBLIGATORIO analizar CADA cláusula del documento sin excepción. MÍNIMO ABSOLUTO 15 cláusulas (o TODAS si hay menos, pero si hay más de 15, analiza TODAS). Si el documento tiene menos de 15 cláusulas, analiza TODAS con EXTRA profundidad. Para cada cláusula incluir:
   * Análisis ULTRA DETALLADO de qué establece EXACTAMENTE la cláusula (texto completo, no resumen)
   * Implicancias legales MUY PROFUNDAS y consecuencias prácticas detalladas
   * Análisis desde la perspectiva de CADA parte (favorable/desfavorable y por qué en detalle)
@@ -137,7 +137,7 @@ REQUISITOS DE EXTENSIÓN Y PROFUNDIDAD - ANÁLISIS ULTRA PROFUNDO Y COMPLETO:
   * Evaluación de la eficacia y ejecutabilidad de las disposiciones
   * Análisis comparativo con normativa internacional si aplica
 
-- "riesgos": MÍNIMO 10-15 riesgos identificados con análisis ULTRA PROFUNDO. Cada riesgo debe incluir:
+- "riesgos": ⚠️ MÍNIMO ABSOLUTO 10 riesgos identificados (preferiblemente 15 o más). Si no encuentras 10 riesgos obvios, profundiza MÁS y busca riesgos desde diferentes perspectivas (jurídica, comercial, operativa, financiera, reputacional, contractual, de cumplimiento, etc.). Cada riesgo debe incluir:
   * Descripción ULTRA ESPECÍFICA y MUY DETALLADA del riesgo con ejemplos concretos
   * Probabilidad de ocurrencia (baja/media/alta) con justificación detallada
   * Impacto potencial DETALLADO (económico, legal, operativo, reputacional)
@@ -174,7 +174,7 @@ REQUISITOS DE EXTENSIÓN Y PROFUNDIDAD - ANÁLISIS ULTRA PROFUNDO Y COMPLETO:
   * Explicación de cómo cada cita aplica al documento analizado
   * Referencias cruzadas entre normativas cuando sea relevante
 
-- "documentos_sugeridos": MÍNIMO 5-8 documentos que podrían complementar o ser necesarios, con justificación DETALLADA de por qué cada uno es relevante, cuándo sería necesario y qué aspectos cubriría
+- "documentos_sugeridos": ⚠️ MÍNIMO ABSOLUTO 5 documentos (preferiblemente 8 o más). Debes identificar documentos complementarios, relacionados, necesarios para completar el marco contractual, o que podrían ser útiles. Incluye: contratos relacionados, anexos necesarios, documentos de respaldo, acuerdos complementarios, etc. Cada uno con justificación DETALLADA de por qué es relevante, cuándo sería necesario y qué aspectos cubriría
 
 Devuelve un JSON con esta estructura EXACTA:
 
@@ -188,10 +188,10 @@ Devuelve un JSON con esta estructura EXACTA:
     {
       "numero": "1",
       "titulo": "Título de la cláusula",
-      "analisis": "Análisis ULTRA DETALLADO y ULTRA PROFUNDO de la cláusula: qué establece EXACTAMENTE (texto completo, no resumen), implicancias legales MUY PROFUNDAS y consecuencias prácticas detalladas, análisis desde la perspectiva de CADA parte (favorable/desfavorable y por qué en detalle), comparación EXHAUSTIVA con estándares del mercado y mejores prácticas del sector, posibles interpretaciones alternativas, su validez legal y consecuencias, relación DETALLADA con otras cláusulas del documento y su impacto conjunto, nivel de riesgo específico con justificación MUY DETALLADA, casos prácticos donde esta cláusula podría aplicarse o generar conflictos, recomendaciones específicas para mejorar o modificar la cláusula, análisis de cumplimiento y posibles dificultades de ejecución, comparación con normativa aplicable específica",
-      "riesgo": "bajo" | "medio" | "alto"
+      "analisis": "Análisis ULTRA DETALLADO y ULTRA PROFUNDO de la cláusula: qué establece EXACTAMENTE (texto completo, no resumen), implicancias legales MUY PROFUNDAS y consecuencias prácticas detalladas, análisis desde la perspectiva de CADA parte (favorable/desfavorable y por qué en detalle), comparación EXHAUSTIVA con estándares del mercado y mejores prácticas del sector, posibles interpretaciones alternativas, su validez legal y consecuencias, relación DETALLADA con otras cláusulas del documento y su impacto conjunto, nivel de riesgo específico con justificación MUY DETALLADA, casos prácticos donde esta cláusula podría aplicarse o generar conflictos, recomendaciones específicas para mejorar o modificar la cláusula, análisis de cumplimiento y posibles dificultades de ejecución, comparación con normativa aplicable específica"
     }
   ],
+  ⚠️ IMPORTANTE: Debes analizar MÍNIMO 15 cláusulas. Si el documento tiene menos, analiza TODAS con EXTRA profundidad. Si tiene más, analiza TODAS sin excepción.
   "analisis_juridico": "Análisis jurídico ULTRA EXTENSO y ULTRA PROFUNDO de 12-18 párrafos. Debe incluir: marco normativo aplicable COMPLETO Y DETALLADO (leyes, decretos, resoluciones, artículos específicos), interpretación jurídica MUY DETALLADA de TODAS las cláusulas clave, validez legal de CADA disposición importante con fundamentación, posibles conflictos con normativa vigente y cómo resolverlos, jurisprudencia relevante DETALLADA y cómo aplica específicamente al caso, análisis EXHAUSTIVO de derechos y obligaciones de cada parte, consideraciones sobre cumplimiento y ejecución con escenarios detallados, comparación con estándares legales del sector y mejores prácticas, análisis DETALLADO de posibles vacíos legales o ambigüedades, análisis de la estructura contractual y su coherencia jurídica, consideraciones sobre posibles litigios y defensas disponibles, análisis de aspectos procesales y jurisdiccionales, evaluación de la eficacia y ejecutabilidad de las disposiciones.",
   "riesgos": [
     {
@@ -219,9 +219,10 @@ Devuelve un JSON con esta estructura EXACTA:
   "documentos_sugeridos": [
     {
       "tipo": "Tipo de documento",
-      "descripcion": "Por qué se sugiere y para qué serviría"
+      "descripcion": "Justificación DETALLADA de por qué se sugiere, para qué serviría, cuándo sería necesario y qué aspectos cubriría. Incluye: contratos relacionados, anexos necesarios, documentos de respaldo, acuerdos complementarios, garantías, seguros, etc."
     }
   ],
+  ⚠️ IMPORTANTE: Debes sugerir MÍNIMO 5 documentos (preferiblemente 8). Piensa en: contratos relacionados, anexos técnicos, garantías, seguros, documentos de respaldo, acuerdos complementarios, etc.
   "texto_formateado": "Reporte completo formateado profesionalmente (ver formato abajo)"
 }
 
@@ -447,6 +448,17 @@ LEE Y APLICA CADA PUNTO DE LAS INSTRUCCIONES DEL USUARIO MOSTRADAS ARRIBA EN TOD
 
 NO ignores estas instrucciones. Son OBLIGATORIAS y tienen PRIORIDAD ABSOLUTA sobre cualquier análisis genérico. APLÍCALAS A TODAS LAS SECCIONES SIN EXCEPCIÓN.
 
+🚨🚨🚨 VERIFICACIÓN FINAL OBLIGATORIA ANTES DE GENERAR EL JSON 🚨🚨🚨:
+1. ¿Tienes MÍNIMO 15 cláusulas en "clausulas_analizadas"? Si no, analiza MÁS o profundiza MÁS en las existentes.
+2. ¿Tienes MÍNIMO 10 riesgos en "riesgos"? Si no, identifica MÁS desde diferentes perspectivas.
+3. ¿Tienes MÍNIMO 12 recomendaciones en "recomendaciones"? Si no, genera MÁS recomendaciones específicas.
+4. ¿Tienes MÍNIMO 5 documentos en "documentos_sugeridos"? Si no, identifica MÁS documentos complementarios.
+5. ¿Tienes MÍNIMO 10 citas en "citas"? Si no, busca MÁS normativa y jurisprudencia.
+6. ¿El "resumen_ejecutivo" tiene MÍNIMO 8 párrafos completos? Si no, expande MÁS.
+7. ¿El "analisis_juridico" tiene MÍNIMO 12 párrafos? Si no, profundiza MÁS.
+
+⚠️ NO generes el JSON hasta cumplir TODOS estos mínimos. Si el documento es pequeño, profundiza EXTRA en cada sección para cumplir los mínimos.
+
 ═══════════════════════════════════════════════════════════════════════════════
 
 TIPO DE DOCUMENTO: ${input.type}
@@ -466,6 +478,10 @@ ${jurisprudenceText}
 IMPORTANTE: El análisis debe ser MUY EXTENSO, DETALLADO y PROFUNDO. Analiza TODAS las cláusulas del documento sin excepción. 
 
 🚨🚨🚨 PROFUNDIDAD ULTRA REQUERIDA - ANÁLISIS EXHAUSTIVO 🚨🚨🚨:
+⚠️⚠️⚠️ CUMPLIMIENTO OBLIGATORIO DE MÍNIMOS ⚠️⚠️⚠️:
+- Los MÍNIMOS especificados son OBLIGATORIOS. NO puedes generar menos cláusulas, riesgos, recomendaciones, etc.
+- Si el documento tiene menos cláusulas que el mínimo, analiza TODAS las que tenga con EXTRA profundidad
+- Si el documento tiene más cláusulas que el mínimo, analiza TODAS sin excepción
 - PROHIBIDO usar análisis superficiales, genéricos o resúmenes breves
 - DEBES profundizar EXHAUSTIVAMENTE en cada aspecto legal, comercial, práctico y estratégico
 - Analiza las implicancias desde MÚLTIPLES perspectivas (jurídica, comercial, operativa, financiera, reputacional)
@@ -478,6 +494,14 @@ IMPORTANTE: El análisis debe ser MUY EXTENSO, DETALLADO y PROFUNDO. Analiza TOD
 - Analiza posibles conflictos futuros y cómo prevenirlos o resolverlos
 - Incluye recomendaciones específicas y accionables para cada aspecto identificado
 - El análisis debe ser TAN COMPLETO que un abogado senior pueda usarlo directamente sin necesidad de revisar el documento original
+
+🚨 VERIFICACIÓN OBLIGATORIA ANTES DE RESPONDER:
+- ¿Tienes MÍNIMO 15-25 cláusulas analizadas? Si no, analiza MÁS cláusulas o profundiza MÁS en las existentes
+- ¿Tienes MÍNIMO 10-15 riesgos? Si no, identifica MÁS riesgos desde diferentes perspectivas
+- ¿Tienes MÍNIMO 12-18 recomendaciones? Si no, genera MÁS recomendaciones específicas
+- ¿Tienes MÍNIMO 5-8 documentos sugeridos? Si no, identifica MÁS documentos complementarios
+- ¿Tienes MÍNIMO 10-15 citas? Si no, busca MÁS normativa y jurisprudencia relevante
+- NO respondas hasta cumplir TODOS los mínimos
 
 ⚠️⚠️⚠️ RECORDATORIO FINAL CRÍTICO ⚠️⚠️⚠️
 TODAS las secciones del JSON que generes (resumen_ejecutivo, clausulas_analizadas, analisis_juridico, riesgos, recomendaciones, proximos_pasos, texto_formateado) DEBEN reflejar las instrucciones del usuario mostradas arriba en la sección "INSTRUCCIONES Y CONTEXTO DEL USUARIO".
