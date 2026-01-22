@@ -5148,9 +5148,11 @@ function ChatDocumentoPersonalizado({
                   <div className="space-y-3">
                     <div className="text-sm font-semibold text-green-700 mb-2">✅ Documento generado exitosamente!</div>
                     <div className="bg-white rounded-lg p-4 border border-gray-300 max-h-96 overflow-y-auto">
-                      <ReactMarkdown className="text-sm prose prose-sm max-w-none">
-                        {msg.content.replace(/✅ \*\*Documento generado exitosamente!\*\*\n\n/, "").split("\n\n¿Querés hacer")[0]}
-                      </ReactMarkdown>
+                      <div className="text-sm prose prose-sm max-w-none">
+                        <ReactMarkdown>
+                          {msg.content.replace(/✅ \*\*Documento generado exitosamente!\*\*\n\n/, "").split("\n\n¿Querés hacer")[0]}
+                        </ReactMarkdown>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2 mt-2">
                       <button
