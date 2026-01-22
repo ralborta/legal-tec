@@ -448,6 +448,200 @@ app.post("/legal/analyze/:documentId", handleAnalyze);
 console.log("[ROUTES] ✅ POST /analyze/:documentId registrada");
 console.log("[ROUTES] ✅ POST /legal/analyze/:documentId registrada");
 
+// Almacenamiento temporal de comparaciones (en memoria)
+const comparisonResults = new Map<string, {
+  status: "processing" | "completed" | "error";
+  result?: any;
+  error?: string;
+  progress?: number;
+  statusLabel?: string;
+}>();
+
+// Análisis comparativo de documentos
+app.post("/compare-documents", async (req, res, next) => {
+  try {
+    const { documentIdA, documentIdB, instructions, additionalInstructions, areaLegal } = req.body;
+    
+    if (!documentIdA || !documentIdB) {
+      return res.status(400).json({ error: "Se requieren documentIdA y documentIdB" });
+    }
+
+    const comparisonId = `${documentIdA}_${documentIdB}_${Date.now()}`;
+    
+    // Iniciar comparación en background
+    runComparison(documentIdA, documentIdB, instructions, additionalInstructions, areaLegal || "civil_comercial", comparisonId)
+      .catch((error) => {
+        console.error(`[COMPARE] Error en comparación ${comparisonId}:`, error);
+        comparisonResults.set(comparisonId, {
+          status: "error",
+          error: error instanceof Error ? error.message : "Error desconocido",
+        });
+      });
+
+    // Inicializar estado
+    comparisonResults.set(comparisonId, {
+      status: "processing",
+      progress: 0,
+      statusLabel: "Iniciando comparación...",
+    });
+
+    res.json({ 
+      comparisonId,
+      status: "processing",
+      message: "Comparación iniciada"
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Obtener resultado de comparación
+app.get("/compare-documents/:comparisonId", async (req, res, next) => {
+  try {
+    const { comparisonId } = req.params;
+    const result = comparisonResults.get(comparisonId);
+    
+    if (!result) {
+      return res.status(404).json({ error: "Comparación no encontrada" });
+    }
+
+    return res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Función para ejecutar la comparación
+async function runComparison(
+  documentIdA: string,
+  documentIdB: string,
+  instructions: string | undefined,
+  additionalInstructions: string | undefined,
+  areaLegal: string,
+  comparisonId: string
+) {
+  try {
+    comparisonResults.set(comparisonId, { status: "processing", progress: 10, statusLabel: "Obteniendo documentos..." });
+
+    // Obtener textos de ambos documentos
+    const resultA = await getFullResult(documentIdA);
+    const resultB = await getFullResult(documentIdB);
+
+    if (!resultA || !resultA.analysis) {
+      throw new Error(`Documento A (${documentIdA}) no tiene análisis disponible`);
+    }
+    if (!resultB || !resultB.analysis) {
+      throw new Error(`Documento B (${documentIdB}) no tiene análisis disponible`);
+    }
+
+    const textA = resultA.analysis.original || "";
+    const textB = resultB.analysis.original || "";
+
+    if (!textA || textA.trim().length === 0) {
+      throw new Error("Documento A no tiene texto extraído");
+    }
+    if (!textB || textB.trim().length === 0) {
+      throw new Error("Documento B no tiene texto extraído");
+    }
+
+    comparisonResults.set(comparisonId, { status: "processing", progress: 30, statusLabel: "Analizando documentos..." });
+
+    // Generar análisis comparativo con OpenAI
+    const openaiKey = process.env.OPENAI_API_KEY;
+    if (!openaiKey) {
+      throw new Error("OPENAI_API_KEY no configurada");
+    }
+
+    const OpenAI = (await import("openai")).default;
+    const openai = new OpenAI({ apiKey: openaiKey });
+
+    const systemPrompt = `Sos un abogado argentino senior de WNS & Asociados, especializado en análisis jurídico comparativo de documentos legales.
+
+Tu tarea es realizar un ANÁLISIS COMPARATIVO JURÍDICO EXHAUSTIVO de dos documentos legales, identificando diferencias, ventajas, desventajas, riesgos y proporcionando recomendaciones profesionales.
+
+IMPORTANTE:
+- NO asumas que hay "cambios" o "versiones" - estos pueden ser documentos completamente diferentes
+- Analiza ambos documentos como entidades independientes
+- Compara aspectos jurídicos relevantes
+- Identifica ventajas y desventajas de cada documento
+- Evalúa riesgos legales
+- Proporciona recomendaciones prácticas
+
+ESTRUCTURA DEL ANÁLISIS COMPARATIVO (OBLIGATORIA):
+1. RESUMEN EJECUTIVO COMPARATIVO (mínimo 8-12 párrafos)
+2. ANÁLISIS POR ASPECTOS:
+   - Objeto y alcance
+   - Obligaciones y derechos
+   - Precios y términos de pago
+   - Plazos y duración
+   - Penalidades y garantías
+   - Resolución de conflictos
+   - Otras cláusulas relevantes
+3. EVALUACIÓN COMPARATIVA:
+   - Ventajas del Documento A
+   - Ventajas del Documento B
+   - Desventajas del Documento A
+   - Desventajas del Documento B
+4. ANÁLISIS DE RIESGOS:
+   - Riesgos del Documento A
+   - Riesgos del Documento B
+   - Comparativa de nivel de riesgo
+5. LEGALIDAD Y VALIDEZ
+6. RECOMENDACIONES Y SUGERENCIAS (mínimo 15 recomendaciones)
+7. CONCLUSIÓN COMPARATIVA
+
+El análisis debe ser PROFUNDO, EXHAUSTIVO y PROFESIONAL.`;
+
+    const userPrompt = `Compara los siguientes dos documentos legales:
+
+═══════════════════════════════════════════════════════════════════════════════
+DOCUMENTO A (ID: ${documentIdA})
+═══════════════════════════════════════════════════════════════════════════════
+${textA.substring(0, 100000)}${textA.length > 100000 ? "\n\n[... texto truncado por longitud ...]" : ""}
+
+═══════════════════════════════════════════════════════════════════════════════
+DOCUMENTO B (ID: ${documentIdB})
+═══════════════════════════════════════════════════════════════════════════════
+${textB.substring(0, 100000)}${textB.length > 100000 ? "\n\n[... texto truncado por longitud ...]" : ""}
+
+${instructions ? `\n\nINSTRUCCIONES DEL USUARIO:\n${instructions}` : ""}
+${additionalInstructions ? `\n\nINDICACIONES ADICIONALES:\n${additionalInstructions}` : ""}
+
+Área Legal: ${areaLegal}
+
+Realiza un análisis comparativo jurídico exhaustivo siguiendo la estructura indicada.`;
+
+    comparisonResults.set(comparisonId, { status: "processing", progress: 50, statusLabel: "Generando análisis comparativo con IA..." });
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ],
+      temperature: 0.3,
+      max_tokens: 8000,
+    });
+
+    const comparisonText = response.choices[0]?.message?.content || "Error al generar análisis comparativo";
+
+    comparisonResults.set(comparisonId, {
+      status: "completed",
+      result: comparisonText,
+      progress: 100,
+      statusLabel: "Comparación completada",
+    });
+
+    console.log(`[COMPARE] ✅ Comparación ${comparisonId} completada`);
+  } catch (error) {
+    console.error(`[COMPARE] ❌ Error en comparación ${comparisonId}:`, error);
+    comparisonResults.set(comparisonId, {
+      status: "error",
+      error: error instanceof Error ? error.message : "Error desconocido",
+    });
+  }
+}
+
 // Obtener resultado
 async function handleResult(req: express.Request, res: express.Response, next: express.NextFunction) {
   try {
