@@ -7111,7 +7111,22 @@ function LoginModal({ onLogin, onClose }: { onLogin: (usuario: {id: string; emai
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [wnsLogoExists, setWnsLogoExists] = useState<boolean | null>(null);
+  const [iasLogoExists, setIasLogoExists] = useState<boolean | null>(null);
   const API = useMemo(() => getApiUrl(), []);
+
+  // Verificar logos
+  React.useEffect(() => {
+    const wnsImg = new Image();
+    wnsImg.onload = () => setWnsLogoExists(true);
+    wnsImg.onerror = () => setWnsLogoExists(false);
+    wnsImg.src = '/wns-logo.png';
+
+    const iasImg = new Image();
+    iasImg.onload = () => setIasLogoExists(true);
+    iasImg.onerror = () => setIasLogoExists(false);
+    iasImg.src = '/ia-solutions-logo.png';
+  }, []);
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -7146,56 +7161,91 @@ function LoginModal({ onLogin, onClose }: { onLogin: (usuario: {id: string; emai
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4">
-        <h3 className="text-xl font-bold text-gray-900">Iniciar Sesión</h3>
-        <p className="text-sm text-gray-600">Ingresá tus credenciales para acceder al sistema</p>
-        
-        {error && (
-          <div className="rounded-lg border border-rose-200 bg-rose-50 text-rose-700 p-3 text-sm">
-            {error}
-          </div>
-        )}
+      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full flex flex-col">
+        {/* Logo WNS arriba */}
+        <div className="flex items-center justify-center pt-6 pb-4">
+          {wnsLogoExists === true ? (
+            <img 
+              src="/wns-logo.png" 
+              alt="WNS & Asociados" 
+              className="h-20 w-auto object-contain"
+            />
+          ) : (
+            <div className="text-xl font-bold text-gray-700">WNS & Asociados</div>
+          )}
+        </div>
 
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-              placeholder="adm@wns.com"
-            />
+        {/* Contenido del formulario */}
+        <div className="px-6 pb-6 space-y-4">
+          <div className="text-center">
+            <h3 className="text-xl font-bold text-gray-900">Iniciar Sesión</h3>
+            <p className="text-sm text-gray-600 mt-1">Ingresá tus credenciales para acceder al sistema</p>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-              placeholder="adm123"
-            />
+          
+          {error && (
+            <div className="rounded-lg border border-rose-200 bg-rose-50 text-rose-700 p-3 text-sm">
+              {error}
+            </div>
+          )}
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                placeholder="adm@wns.com"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                placeholder="adm123"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-2">
+            <button
+              onClick={handleLogin}
+              disabled={loading || !email.trim() || !password.trim()}
+              className="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-500 text-white rounded-lg font-medium hover:from-purple-700 hover:to-purple-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Iniciando sesión...
+                </>
+              ) : (
+                "Iniciar Sesión"
+              )}
+            </button>
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-3 pt-2">
-          <button
-            onClick={handleLogin}
-            disabled={loading || !email.trim() || !password.trim()}
-            className="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-500 text-white rounded-lg font-medium hover:from-purple-700 hover:to-purple-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Iniciando sesión...
-              </>
+        {/* Logo IAS abajo con Powered by y versión */}
+        <div className="border-t border-gray-200 px-6 py-4 flex flex-col items-center justify-center gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500">Powered by</span>
+            {iasLogoExists === true ? (
+              <img 
+                src="/ia-solutions-logo.png" 
+                alt="IA Solutions" 
+                className="h-5 w-auto object-contain"
+              />
             ) : (
-              "Iniciar Sesión"
+              <span className="text-xs font-semibold text-gray-700">IA Solutions</span>
             )}
-          </button>
+          </div>
+          <span className="text-xs text-gray-400">Versión 2.5.3</span>
         </div>
       </div>
     </div>
