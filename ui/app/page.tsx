@@ -1739,60 +1739,99 @@ function AnalizarDocumentosPanel() {
   };
 
   const pollForResults = async (docId: string) => {
-    const maxAttempts = 60; // ~3 min
+    // Aumentar tiempo de espera para análisis conjunto (puede tardar hasta 10 minutos)
+    const isConjointAnalysis = documentIds.length > 1;
+    const maxAttempts = isConjointAnalysis ? 200 : 60; // ~10 min para conjunto, ~3 min para individual
     let attempts = 0;
     let consecutive502s = 0;
-    const maxConsecutive502s = 5; // Si hay 5 502s seguidos, parar
+    const maxConsecutive502s = 10; // Aumentar a 10 para análisis conjunto (más tolerante)
+    let lastSuccessfulStatus = Date.now();
 
     const poll = async () => {
       try {
         // 1) Obtener status/progreso primero (si existe)
         try {
-          const statusRes = await fetchWithTimeout(`${API}/legal/status/${docId}`, {}, 15000);
+          const statusRes = await fetchWithTimeout(`${API}/legal/status/${docId}`, {}, 20000);
           if (statusRes.ok) {
             const s = await statusRes.json();
             if (typeof s.progress === "number") setProgress(s.progress);
-            if (s.status) setStatusLabel(`Estado: ${s.status}`);
+            if (s.status) {
+              const statusMessages: Record<string, string> = {
+                'ocr': 'Extrayendo texto de documentos...',
+                'translating': 'Traduciendo cláusulas...',
+                'classifying': 'Clasificando documento...',
+                'analyzing': 'Analizando contenido...',
+                'generating_report': 'Generando reporte con IA...',
+                'saving': 'Guardando análisis...',
+                'completed': 'Completado',
+                'error': 'Error',
+                'processing': 'Procesando...'
+              };
+              const statusMsg = statusMessages[s.status] || s.status;
+              setStatusLabel(`${statusMsg}${isConjointAnalysis ? ` (${documentIds.length} documentos)` : ''} - Intento ${attempts + 1}/${maxAttempts}`);
+            }
             if (s.status === "error") {
               setError(s.error || "Error durante el análisis");
               setAnalyzing(false);
               setPolling(false);
               return;
             }
+            if (s.status === "completed") {
+              lastSuccessfulStatus = Date.now();
+            }
           }
-        } catch {
-          // ignorar: seguimos con /result
+        } catch (statusErr) {
+          // Si falla el status, continuar con /result
+          console.warn(`[POLL] Error obteniendo status:`, statusErr);
         }
 
         // 2) Intentar obtener resultado
-        const response = await fetchWithTimeout(`${API}/legal/result/${docId}`, {}, 15000);
+        const response = await fetchWithTimeout(`${API}/legal/result/${docId}`, {}, 20000);
         if (!response.ok) {
-          // Si es 502, puede ser cold start - continuar intentando
+          // Si es 502, puede ser cold start o servicio sobrecargado - continuar intentando
           if (response.status === 502) {
             consecutive502s++;
+            console.warn(`[POLL] Error 502 (intento ${consecutive502s}/${maxConsecutive502s})`);
+            
             if (consecutive502s >= maxConsecutive502s) {
-              setError("El servicio de análisis no está disponible. Por favor, intenta más tarde o verifica el estado del servicio.");
+              setError("El servicio de análisis no está disponible después de múltiples intentos. Esto puede deberse a que el servicio está sobrecargado o iniciando. Por favor, intenta más tarde.");
               setAnalyzing(false);
               setPolling(false);
               return;
             }
-            // Continuar polling - puede ser un cold start temporal
+            
+            // Continuar polling - puede ser un cold start temporal o servicio sobrecargado
             if (attempts < maxAttempts) {
               attempts++;
-              setStatusLabel(`Servicio iniciando... (intento ${attempts}/${maxAttempts})`);
-              setTimeout(poll, 5000); // Esperar un poco más en caso de cold start
+              const waitTime = isConjointAnalysis ? 10000 : 5000; // Esperar más para análisis conjunto
+              setStatusLabel(`Servicio no disponible temporalmente... (intento ${attempts}/${maxAttempts}, esperando ${waitTime/1000}s)`);
+              setTimeout(poll, waitTime);
               return;
             }
           }
+          
+          // Para otros errores HTTP, verificar si es temporal
+          if (response.status >= 500 && response.status < 600) {
+            // Errores del servidor - pueden ser temporales
+            if (attempts < maxAttempts) {
+              attempts++;
+              console.warn(`[POLL] Error ${response.status}, reintentando...`);
+              setStatusLabel(`Error temporal del servidor (${response.status}), reintentando... (${attempts}/${maxAttempts})`);
+              setTimeout(poll, 5000);
+              return;
+            }
+          }
+          
           // Para otros errores, lanzar excepción
           throw new Error(`Error al obtener resultados (${response.status})`);
         }
         
         // Si llegamos aquí, la respuesta fue exitosa - resetear contador de 502s
         consecutive502s = 0;
+        lastSuccessfulStatus = Date.now();
         const result = await response.json();
 
-        if (result.analysis) {
+        if (result.analysis && result.analysis.report) {
           setAnalysisResult(result);
           setAnalyzing(false);
           setPolling(false);
@@ -1800,26 +1839,44 @@ function AnalizarDocumentosPanel() {
           setStatusLabel("Completado");
         } else if (attempts < maxAttempts) {
           attempts++;
-          setTimeout(poll, 3000); // Poll cada 3 segundos
+          const pollInterval = isConjointAnalysis ? 5000 : 3000; // Poll cada 5s para conjunto, 3s para individual
+          setTimeout(poll, pollInterval);
         } else {
-          setError("El análisis está tomando más tiempo del esperado. Intenta más tarde.");
+          // Verificar si hubo algún progreso reciente
+          const timeSinceLastSuccess = Date.now() - lastSuccessfulStatus;
+          if (timeSinceLastSuccess > 300000) { // 5 minutos sin progreso
+            setError("El análisis está tomando más tiempo del esperado y no hay progreso reciente. El servicio puede estar sobrecargado. Por favor, intenta más tarde o con menos documentos.");
+          } else {
+            setError("El análisis está tomando más tiempo del esperado. Intenta más tarde.");
+          }
           setAnalyzing(false);
           setPolling(false);
         }
       } catch (err: any) {
-        // Solo detener si no es un 502 (ya manejado arriba)
-        if (!err.message?.includes("502")) {
-        setError(err.message || "Error al obtener resultados");
-        setAnalyzing(false);
-        setPolling(false);
+        // Manejar errores de red/timeout
+        const isNetworkError = err.name === 'AbortError' || err.message?.includes('timeout') || err.message?.includes('fetch');
+        
+        if (isNetworkError && attempts < maxAttempts) {
+          attempts++;
+          console.warn(`[POLL] Error de red/timeout, reintentando... (${attempts}/${maxAttempts})`);
+          setStatusLabel(`Error de conexión, reintentando... (${attempts}/${maxAttempts})`);
+          setTimeout(poll, 5000);
+          return;
+        }
+        
+        // Solo detener si no es un error temporal
+        if (!err.message?.includes("502") && !isNetworkError) {
+          setError(err.message || "Error al obtener resultados");
+          setAnalyzing(false);
+          setPolling(false);
         } else if (attempts < maxAttempts) {
-          // Si es un 502 y aún tenemos intentos, continuar
+          // Si es un error temporal y aún tenemos intentos, continuar
           attempts++;
           setTimeout(poll, 5000);
         } else {
-          setError("El servicio no está respondiendo. Por favor, intenta más tarde.");
-        setAnalyzing(false);
-        setPolling(false);
+          setError("El servicio de análisis no está disponible después de múltiples intentos. Por favor, intenta más tarde.");
+          setAnalyzing(false);
+          setPolling(false);
         }
       }
     };
