@@ -765,15 +765,9 @@ function BandejaLocal({ items, onDelete, onUpdateItem }: { items: any[]; onDelet
         const API = getApiUrl();
         if (!API) {
           console.warn("[ABOGADOS] API URL no configurada");
-          // Fallback a lista hardcodeada si no hay API
-          setAbogados([
-            { id: "1", nombre: "Abogado 1", email: "abogado1@wns.com" },
-            { id: "2", nombre: "Abogado 2", email: "abogado2@wns.com" },
-            { id: "3", nombre: "Abogado 3", email: "abogado3@wns.com" },
-            { id: "4", nombre: "Abogado 4", email: "abogado4@wns.com" },
-            { id: "5", nombre: "Abogado 5", email: "abogado5@wns.com" },
-            { id: "6", nombre: "Abogado 6", email: "abogado6@wns.com" },
-          ]);
+          // No usar fallback - dejar lista vacía si no hay API
+          // Esto evita intentar asignar con IDs inválidos
+          setAbogados([]);
           setLoadingAbogados(false);
           return;
         }
@@ -787,27 +781,16 @@ function BandejaLocal({ items, onDelete, onUpdateItem }: { items: any[]; onDelet
         if (data.abogados && data.abogados.length > 0) {
           setAbogados(data.abogados);
         } else {
-          // Fallback a lista hardcodeada si no hay abogados en DB
-          setAbogados([
-            { id: "1", nombre: "Abogado 1", email: "abogado1@wns.com" },
-            { id: "2", nombre: "Abogado 2", email: "abogado2@wns.com" },
-            { id: "3", nombre: "Abogado 3", email: "abogado3@wns.com" },
-            { id: "4", nombre: "Abogado 4", email: "abogado4@wns.com" },
-            { id: "5", nombre: "Abogado 5", email: "abogado5@wns.com" },
-            { id: "6", nombre: "Abogado 6", email: "abogado6@wns.com" },
-          ]);
+          // No usar fallback - dejar lista vacía si no hay abogados en DB
+          // Esto evita intentar asignar con IDs inválidos
+          console.warn("[ABOGADOS] No hay abogados en la base de datos");
+          setAbogados([]);
         }
       } catch (err: any) {
         console.error("[ABOGADOS] Error cargando abogados:", err);
-        // Fallback a lista hardcodeada en caso de error
-        setAbogados([
-          { id: "1", nombre: "Abogado 1", email: "abogado1@wns.com" },
-          { id: "2", nombre: "Abogado 2", email: "abogado2@wns.com" },
-          { id: "3", nombre: "Abogado 3", email: "abogado3@wns.com" },
-          { id: "4", nombre: "Abogado 4", email: "abogado4@wns.com" },
-          { id: "5", nombre: "Abogado 5", email: "abogado5@wns.com" },
-          { id: "6", nombre: "Abogado 6", email: "abogado6@wns.com" },
-        ]);
+        // No usar fallback - dejar lista vacía en caso de error
+        // Esto evita intentar asignar con IDs inválidos
+        setAbogados([]);
       } finally {
         setLoadingAbogados(false);
       }
@@ -1077,7 +1060,10 @@ function BandejaLocal({ items, onDelete, onUpdateItem }: { items: any[]; onDelet
                   <p className="text-sm text-gray-500 mt-2">Cargando abogados...</p>
                 </div>
               ) : abogados.length === 0 ? (
-                <p className="text-sm text-gray-500 text-center py-4">No hay abogados disponibles</p>
+                <div className="text-center py-4 space-y-2">
+                  <p className="text-sm text-gray-500">No hay abogados disponibles</p>
+                  <p className="text-xs text-gray-400">Por favor, asegurate de que haya abogados registrados en la base de datos.</p>
+                </div>
               ) : (
                 abogados.map((abogado) => (
                   <button
@@ -1088,6 +1074,15 @@ function BandejaLocal({ items, onDelete, onUpdateItem }: { items: any[]; onDelet
                         const API = getApiUrl();
                         if (!API) {
                           throw new Error("API URL no configurada");
+                        }
+
+                        // Validar que el ID del abogado sea un UUID válido
+                        // Los IDs del fallback ("1", "2", etc.) no son UUIDs válidos
+                        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+                        if (!uuidRegex.test(abogado.id)) {
+                          throw new Error(
+                            "No se puede asignar con abogados de prueba. Por favor, asegurate de que haya abogados registrados en la base de datos."
+                          );
                         }
 
                         // Obtener información del documento
