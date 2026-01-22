@@ -14,12 +14,24 @@ export async function runFullAnalysisMany(documentIds: string[], userInstruction
   const trimmedInstructions = userInstructions?.trim() || null;
   
   // Adquirir slot de análisis
-  const releaseSlot = await acquireAnalysisSlot();
-  console.log(`[PIPELINE-MANY] Slot adquirido para análisis conjunto de ${documentIds.length} documentos`);
+  let releaseSlot: (() => void) | null = null;
+  try {
+    releaseSlot = await acquireAnalysisSlot();
+    console.log(`[PIPELINE-MANY] Slot adquirido para análisis conjunto de ${documentIds.length} documentos`);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Error desconocido al adquirir slot";
+    console.error(`[PIPELINE-MANY] Error adquiriendo slot: ${errorMessage}`);
+    await updateAnalysisStatus(documentIds[0], "error", 0);
+    await legalDb.setAnalysisError(
+      documentIds[0],
+      `El sistema está procesando demasiados análisis simultáneamente. ${errorMessage} Por favor, intenta nuevamente en unos momentos.`
+    );
+    throw error;
+  }
   
   const pipelineTimeout = setTimeout(async () => {
     console.error(`[PIPELINE-MANY] TIMEOUT: Analysis exceeded ${MAX_PIPELINE_TIME}ms for ${documentIds.length} documents`);
-    releaseSlot();
+    if (releaseSlot) releaseSlot();
     await updateAnalysisStatus(documentIds[0], "error", 0);
     await legalDb.setAnalysisError(
       documentIds[0],
@@ -143,10 +155,10 @@ Document ID: ${item.documentId}
     console.log(`[PIPELINE-MANY] Conjoint analysis completed for ${documentIds.length} documents in ${duration}s`);
     await updateAnalysisStatus(primaryDocumentId, "completed", 100);
     clearTimeout(pipelineTimeout);
-    releaseSlot();
+    if (releaseSlot) releaseSlot();
   } catch (error) {
     clearTimeout(pipelineTimeout);
-    releaseSlot();
+    if (releaseSlot) releaseSlot();
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
     console.error(`[PIPELINE-MANY] ERROR after ${duration}s:`, error);
     await updateAnalysisStatus(documentIds[0], "error", 0);
@@ -173,13 +185,25 @@ export async function runFullAnalysis(documentId: string, userInstructions?: str
   const trimmedInstructions = userInstructions?.trim() || null;
   
   // Adquirir slot de análisis (limita concurrencia)
-  const releaseSlot = await acquireAnalysisSlot();
-  console.log(`[PIPELINE] Slot adquirido para análisis ${documentId}`);
+  let releaseSlot: (() => void) | null = null;
+  try {
+    releaseSlot = await acquireAnalysisSlot();
+    console.log(`[PIPELINE] Slot adquirido para análisis ${documentId}`);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Error desconocido al adquirir slot";
+    console.error(`[PIPELINE] Error adquiriendo slot: ${errorMessage}`);
+    await updateAnalysisStatus(documentId, "error", 0);
+    await legalDb.setAnalysisError(
+      documentId,
+      `El sistema está procesando demasiados análisis simultáneamente. ${errorMessage} Por favor, intenta nuevamente en unos momentos.`
+    );
+    throw error;
+  }
   
   // Timeout global para todo el pipeline
   const pipelineTimeout = setTimeout(() => {
     console.error(`[PIPELINE] TIMEOUT: Analysis exceeded ${MAX_PIPELINE_TIME}ms for document ${documentId}`);
-    releaseSlot(); // Liberar slot en caso de timeout
+    if (releaseSlot) releaseSlot(); // Liberar slot en caso de timeout
     throw new Error(`Pipeline timeout: analysis took more than ${MAX_PIPELINE_TIME / 1000}s`);
   }, MAX_PIPELINE_TIME);
   
@@ -270,10 +294,10 @@ export async function runFullAnalysis(documentId: string, userInstructions?: str
     console.log(`[PIPELINE] Analysis completed for document ${documentId} in ${duration}s`);
     await updateAnalysisStatus(documentId, "completed", 100);
     clearTimeout(pipelineTimeout);
-    releaseSlot(); // Liberar slot al completar
+    if (releaseSlot) releaseSlot(); // Liberar slot al completar
   } catch (error) {
     clearTimeout(pipelineTimeout);
-    releaseSlot(); // Liberar slot en caso de error
+    if (releaseSlot) releaseSlot(); // Liberar slot en caso de error
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
     console.error(`[PIPELINE] ERROR after ${duration}s:`, error);
     await updateAnalysisStatus(documentId, "error", 0);

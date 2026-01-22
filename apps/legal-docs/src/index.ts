@@ -374,7 +374,9 @@ async function handleAnalyzeMany(req: express.Request, res: express.Response, ne
     if (documentIds.length > 5) {
       return res.status(400).json({ 
         error: "Too many documents",
-        message: "Maximum 5 documents allowed for conjoint analysis"
+        message: `Máximo 5 documentos permitidos para análisis conjunto. Has enviado ${documentIds.length} documentos. Por favor, selecciona máximo 5 archivos.`,
+        received: documentIds.length,
+        maxAllowed: 5
       });
     }
     

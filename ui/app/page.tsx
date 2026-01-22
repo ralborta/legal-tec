@@ -1627,7 +1627,7 @@ function AnalizarDocumentosPanel() {
     }
 
     if (files.length > 5) {
-      setError("Máximo 5 archivos permitidos");
+      setError(`Máximo 5 archivos permitidos. Has seleccionado ${files.length} archivos. Por favor, selecciona máximo 5 archivos.`);
       return;
     }
 
