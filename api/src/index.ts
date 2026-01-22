@@ -14,6 +14,7 @@ import { generarMemoJuridicoDirect } from "./memos/generate-memo-direct.js";
 import { queryMemo } from "./memos/query-memo.js";
 import { chatMemo } from "./memos/chat-memo.js";
 import { chatAnalysis } from "./memos/chat-analysis.js";
+import { chatCompare } from "./memos/chat-compare.js";
 import OpenAI from "openai";
 import * as knowledgeBases from "./knowledge-bases.js";
 import { scrapeAndIngestUrls, scrapeUrl } from "./url-scraper.js";
@@ -848,6 +849,37 @@ Generá el documento completo, profesional y listo para usar:`;
       app.log.error(error, "Error en /api/analysis/chat");
       return rep.status(500).send({
         error: "Error interno en el chat de análisis",
+        message: error instanceof Error ? error.message : "Error desconocido"
+      });
+    }
+  });
+
+  // Chat para análisis comparativo
+  app.post("/api/compare-chat", async (req, rep) => {
+    try {
+      const body = z.object({
+        comparisonText: z.string().optional(),
+        messages: z.array(z.object({
+          role: z.enum(["user", "assistant"]),
+          content: z.string()
+        })),
+        areaLegal: z.string().optional(),
+        documentIdA: z.string().optional(),
+        documentIdB: z.string().optional(),
+      }).parse(req.body);
+
+      const openaiKey = process.env.OPENAI_API_KEY;
+      if (!openaiKey) {
+        return rep.status(500).send({ error: "OPENAI_API_KEY no configurada" });
+      }
+
+      const result = await chatCompare(openaiKey, body);
+      return rep.send(result);
+
+    } catch (error) {
+      app.log.error(error, "Error en /api/compare-chat");
+      return rep.status(500).send({
+        error: "Error interno en el chat de comparación",
         message: error instanceof Error ? error.message : "Error desconocido"
       });
     }
