@@ -364,7 +364,16 @@ export async function generateReport(input: ReportInput): Promise<AnalysisReport
       messages: [
         {
           role: "system",
-            content: "Eres un analista legal senior. Genera análisis EXTENSOS y DETALLADOS. Devuelve SOLO JSON válido.",
+            content: `Eres un analista legal senior de WNS & Asociados. Genera análisis ULTRA EXTENSOS, ULTRA DETALLADOS y EXHAUSTIVOS.
+
+⚠️⚠️⚠️ REGLAS CRÍTICAS OBLIGATORIAS ⚠️⚠️⚠️:
+1. DEBES cumplir TODOS los mínimos especificados (cláusulas, riesgos, recomendaciones, etc.)
+2. NO puedes generar menos elementos que los mínimos requeridos
+3. Si el documento es pequeño, profundiza EXTRA en cada sección para cumplir los mínimos
+4. Si el documento es grande, analiza TODAS las cláusulas sin excepción
+5. Los mínimos son OBLIGATORIOS, no sugerencias
+6. Antes de responder, VERIFICA que cumpliste todos los mínimos
+7. Devuelve SOLO JSON válido, sin texto adicional`,
         },
         {
           role: "user",
@@ -529,6 +538,140 @@ NO ignores estas instrucciones. Son OBLIGATORIAS.`,
     console.log(`[REPORT] Completed in ${duration}s`);
 
     const content = response.choices[0]?.message?.content;
+    
+    // Validar que el contenido cumple con los mínimos requeridos
+    if (content) {
+      try {
+        const jsonText = content.trim();
+        const parsed = JSON.parse(jsonText) as any;
+        
+        // Verificar mínimos
+        const clausulasCount = Array.isArray(parsed.clausulas_analizadas) ? parsed.clausulas_analizadas.length : 0;
+        const riesgosCount = Array.isArray(parsed.riesgos) ? parsed.riesgos.length : 0;
+        const recomendacionesCount = Array.isArray(parsed.recomendaciones) ? parsed.recomendaciones.length : 0;
+        const documentosSugeridosCount = Array.isArray(parsed.documentos_sugeridos) ? parsed.documentos_sugeridos.length : 0;
+        const citasCount = Array.isArray(parsed.citas) ? parsed.citas.length : 0;
+        
+        const minClausulas = 15;
+        const minRiesgos = 10;
+        const minRecomendaciones = 12;
+        const minDocumentosSugeridos = 5;
+        const minCitas = 10;
+        
+        const issues: string[] = [];
+        if (clausulasCount < minClausulas) {
+          issues.push(`Solo ${clausulasCount} cláusulas (mínimo ${minClausulas})`);
+        }
+        if (riesgosCount < minRiesgos) {
+          issues.push(`Solo ${riesgosCount} riesgos (mínimo ${minRiesgos})`);
+        }
+        if (recomendacionesCount < minRecomendaciones) {
+          issues.push(`Solo ${recomendacionesCount} recomendaciones (mínimo ${minRecomendaciones})`);
+        }
+        if (documentosSugeridosCount < minDocumentosSugeridos) {
+          issues.push(`Solo ${documentosSugeridosCount} documentos sugeridos (mínimo ${minDocumentosSugeridos})`);
+        }
+        if (citasCount < minCitas) {
+          issues.push(`Solo ${citasCount} citas (mínimo ${minCitas})`);
+        }
+        
+        if (issues.length > 0) {
+          console.warn(`[REPORT] ⚠️ Análisis no cumple mínimos: ${issues.join(", ")}`);
+          console.warn(`[REPORT] Regenerando con instrucciones más estrictas...`);
+          
+          // Regenerar con instrucciones más estrictas
+          const strictPrompt = `${prompt}
+
+🚨🚨🚨 REGENERACIÓN OBLIGATORIA - NO CUMPLIO MÍNIMOS 🚨🚨🚨:
+El análisis anterior NO cumplió los mínimos requeridos:
+${issues.map(i => `- ${i}`).join("\n")}
+
+DEBES regenerar el análisis cumpliendo TODOS los mínimos:
+- MÍNIMO ${minClausulas} cláusulas analizadas (tienes ${clausulasCount})
+- MÍNIMO ${minRiesgos} riesgos identificados (tienes ${riesgosCount})
+- MÍNIMO ${minRecomendaciones} recomendaciones (tienes ${recomendacionesCount})
+- MÍNIMO ${minDocumentosSugeridos} documentos sugeridos (tienes ${documentosSugeridosCount})
+- MÍNIMO ${minCitas} citas (tienes ${citasCount})
+
+⚠️ NO puedes generar menos elementos. Si el documento es pequeño, profundiza EXTRA en cada sección.
+⚠️ Si necesitas más riesgos, busca desde diferentes perspectivas: jurídica, comercial, operativa, financiera, reputacional, contractual, de cumplimiento, etc.
+⚠️ Si necesitas más documentos sugeridos, piensa en: contratos relacionados, anexos, garantías, seguros, documentos de respaldo, acuerdos complementarios, etc.
+⚠️ Si necesitas más citas, busca más normativa aplicable, jurisprudencia relevante, doctrina, etc.
+
+NO respondas hasta cumplir TODOS los mínimos.`;
+
+          // Regenerar con prompt más estricto
+          const retryResponse = await Promise.race([
+            openai.chat.completions.create({
+              model: model,
+              temperature: 0.3,
+              max_tokens: maxTokens,
+              messages: [
+                {
+                  role: "system",
+                  content: `Eres un analista legal senior. Genera análisis ULTRA EXTENSOS y ULTRA DETALLADOS. Los mínimos son OBLIGATORIOS. Devuelve SOLO JSON válido.`,
+                },
+                {
+                  role: "user",
+                  content: `${strictPrompt}
+
+${FUENTES_LEGALES}
+
+═══════════════════════════════════════════════════════════════════════════════
+🚨🚨🚨 INSTRUCCIONES Y CONTEXTO DEL USUARIO - PRIORIDAD ABSOLUTA 🚨🚨🚨
+═══════════════════════════════════════════════════════════════════════════════
+
+${instructionsText}
+
+${instructionsText.includes("ANÁLISIS CONJUNTO") || instructionsText.includes("múltiples documentos") ? `
+⚠️⚠️⚠️ RECORDATORIO CRÍTICO PARA ANÁLISIS CONJUNTO ⚠️⚠️⚠️:
+- Estás analizando MÚLTIPLES DOCUMENTOS como un conjunto
+- SIEMPRE usa PLURAL ("los documentos", "estos documentos", "los documentos analizados") en TODAS las secciones
+- NUNCA uses "el documento" en singular
+- El título DEBE ser "Análisis Legal Conjunto de [N] Documentos - [descripción]"
+- El resumen_ejecutivo DEBE mencionar explícitamente que se analizaron múltiples documentos
+- Analiza relaciones, consistencias e inconsistencias entre los documentos
+- Compara cláusulas similares entre documentos
+- Identifica riesgos que surgen de la interacción entre documentos
+` : ""}
+
+═══════════════════════════════════════════════════════════════════════════════
+
+TIPO DE DOCUMENTO: ${input.type}
+
+TEXTO ORIGINAL:
+${isConjointAnalysis ? input.original.substring(0, 10000) : input.original.substring(0, 8000)}
+
+CLÁUSULAS DEL DOCUMENTO (analizar TODAS):
+${translatedText}
+
+CHECKLIST DE ANÁLISIS PREVIO:
+${checklistText}
+
+JURISPRUDENCIA Y NORMATIVA RELEVANTE:
+${jurisprudenceText}`,
+                },
+              ],
+              response_format: { type: "json_object" },
+            }, { timeout }),
+            new Promise((_, reject) => 
+              setTimeout(() => reject(new Error(`Report generation timeout after ${timeout / 1000}s`)), timeout)
+            )
+          ]) as any;
+          
+          const retryContent = retryResponse.choices[0]?.message?.content;
+          if (retryContent) {
+            console.log(`[REPORT] ✅ Análisis regenerado cumpliendo mínimos`);
+            return JSON.parse(retryContent.trim()) as AnalysisReport;
+          }
+        } else {
+          console.log(`[REPORT] ✅ Análisis cumple mínimos: ${clausulasCount} cláusulas, ${riesgosCount} riesgos, ${recomendacionesCount} recomendaciones, ${documentosSugeridosCount} documentos sugeridos, ${citasCount} citas`);
+        }
+      } catch (validationError) {
+        console.warn(`[REPORT] Error validando mínimos:`, validationError);
+        // Continuar con el análisis original si falla la validación
+      }
+    }
     if (!content) {
       throw new Error("OpenAI no devolvió contenido");
     }
