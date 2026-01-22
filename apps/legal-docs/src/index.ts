@@ -796,11 +796,69 @@ app.get("/history", async (_req, res) => {
   try {
     const documents = await legalDb.getAllDocumentsWithAnalysis(100);
     
+    // Primero identificar todos los análisis conjuntos
+    const conjointAnalyses = documents.filter((doc: any) => {
+      if (!doc.report) return false;
+      let report = doc.report;
+      if (typeof report === 'string') {
+        try {
+          report = JSON.parse(report);
+        } catch {
+          return false;
+        }
+      }
+      if (report && typeof report === 'object') {
+        const reportText = JSON.stringify(report).toLowerCase();
+        const title = (report.titulo || '').toLowerCase();
+        return reportText.includes('conjunto') || 
+               reportText.includes('múltiples documentos') ||
+               title.includes('conjunto') ||
+               title.includes('múltiples');
+      }
+      return false;
+    });
+    
+    // Obtener IDs de documentos que son parte de análisis conjuntos (desde original.documents)
+    const documentsInConjoint = new Set<string>();
+    conjointAnalyses.forEach((conjointDoc: any) => {
+      if (conjointDoc.original) {
+        let original = conjointDoc.original;
+        if (typeof original === 'string') {
+          try {
+            original = JSON.parse(original);
+          } catch {
+            return;
+          }
+        }
+        if (original && original.documents && Array.isArray(original.documents)) {
+          original.documents.forEach((d: any) => {
+            if (d.id) documentsInConjoint.add(d.id);
+          });
+        }
+      }
+    });
+    
+    // También identificar documentos con isPartOfConjointAnalysis
+    documents.forEach((doc: any) => {
+      if (doc.original) {
+        let original = doc.original;
+        if (typeof original === 'string') {
+          try {
+            original = JSON.parse(original);
+          } catch {
+            return;
+          }
+        }
+        if (original && original.isPartOfConjointAnalysis === true && original.primaryDocumentId) {
+          documentsInConjoint.add(doc.id);
+        }
+      }
+    });
+    
     // Transformar al formato esperado por el frontend
     const items = documents
       .filter((doc: any) => {
-        // Filtrar documentos que son parte de un análisis conjunto
-        // Estos documentos tienen isPartOfConjointAnalysis: true en su análisis
+        // 1. Filtrar documentos que son parte de un análisis conjunto (tienen isPartOfConjointAnalysis)
         if (doc.original) {
           let original = doc.original;
           if (typeof original === 'string') {
@@ -811,42 +869,30 @@ app.get("/history", async (_req, res) => {
             }
           }
           
-          // Si es parte de un análisis conjunto y no tiene report, no mostrarlo
           if (original && original.isPartOfConjointAnalysis === true && !doc.report) {
-            console.log(`[HISTORY] Filtrando documento ${doc.id} (parte de análisis conjunto)`);
+            console.log(`[HISTORY] Filtrando documento ${doc.id} (parte de análisis conjunto - isPartOfConjointAnalysis)`);
             return false;
           }
         }
         
-        // Si tiene estado "uploaded" pero no tiene análisis y no tiene report, puede ser parte de un conjunto
-        // Verificar si hay otro documento con el mismo nombre y un análisis conjunto
+        // 2. Filtrar documentos que están en la lista de documentos de un análisis conjunto
+        if (documentsInConjoint.has(doc.id) && !doc.report) {
+          console.log(`[HISTORY] Filtrando documento ${doc.id} (está en lista de documentos de análisis conjunto)`);
+          return false;
+        }
+        
+        // 3. Filtrar documentos con estado "uploaded" sin análisis si hay un análisis conjunto reciente
         if (doc.status === 'uploaded' && !doc.analysis_type && !doc.report) {
-          // Verificar si hay un análisis conjunto que incluya este documento
-          const hasConjointAnalysis = documents.some((otherDoc: any) => {
-            if (otherDoc.id === doc.id || !otherDoc.report) return false;
-            
-            let otherReport = otherDoc.report;
-            if (typeof otherReport === 'string') {
-              try {
-                otherReport = JSON.parse(otherReport);
-              } catch {
-                return false;
-              }
-            }
-            
-            // Verificar si el report menciona múltiples documentos o es un análisis conjunto
-            if (otherReport && typeof otherReport === 'object') {
-              const reportText = JSON.stringify(otherReport).toLowerCase();
-              return reportText.includes('conjunto') || 
-                     reportText.includes('múltiples documentos') ||
-                     reportText.includes('análisis legal conjunto');
-            }
-            
-            return false;
+          // Si hay algún análisis conjunto creado en la misma fecha o después, filtrar este documento
+          const hasRecentConjoint = conjointAnalyses.some((conjointDoc: any) => {
+            const docDate = new Date(doc.created_at).getTime();
+            const conjointDate = new Date(conjointDoc.created_at || conjointDoc.analyzed_at).getTime();
+            // Si el análisis conjunto fue creado en la misma fecha o después (dentro de 1 hora), probablemente es del mismo batch
+            return Math.abs(conjointDate - docDate) < 3600000; // 1 hora de diferencia
           });
           
-          if (hasConjointAnalysis) {
-            console.log(`[HISTORY] Filtrando documento ${doc.id} (uploaded sin análisis, probablemente parte de conjunto)`);
+          if (hasRecentConjoint) {
+            console.log(`[HISTORY] Filtrando documento ${doc.id} (uploaded sin análisis, hay análisis conjunto reciente)`);
             return false;
           }
         }
