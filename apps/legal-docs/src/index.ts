@@ -523,26 +523,52 @@ async function runComparison(
   try {
     comparisonResults.set(comparisonId, { status: "processing", progress: 10, statusLabel: "Obteniendo documentos..." });
 
-    // Obtener textos de ambos documentos
-    const resultA = await getFullResult(documentIdA);
-    const resultB = await getFullResult(documentIdB);
+    // Función helper para obtener texto de un documento (con o sin análisis previo)
+    const getDocumentText = async (documentId: string, docLabel: string): Promise<string> => {
+      // Primero intentar obtener del análisis si existe
+      const result = await getFullResult(documentId);
+      if (result?.analysis?.original) {
+        const text = result.analysis.original.trim();
+        if (text.length > 0) {
+          console.log(`[COMPARE] ✅ Texto obtenido de análisis previo para ${docLabel}`);
+          return text;
+        }
+      }
 
-    if (!resultA || !resultA.analysis) {
-      throw new Error(`Documento A (${documentIdA}) no tiene análisis disponible`);
-    }
-    if (!resultB || !resultB.analysis) {
-      throw new Error(`Documento B (${documentIdB}) no tiene análisis disponible`);
-    }
+      // Si no hay análisis, extraer texto directamente del archivo
+      console.log(`[COMPARE] ⚠️ ${docLabel} no tiene análisis previo, extrayendo texto directamente...`);
+      const doc = await legalDb.getDocument(documentId);
+      if (!doc) {
+        throw new Error(`${docLabel} (${documentId}) no encontrado`);
+      }
 
-    const textA = resultA.analysis.original || "";
-    const textB = resultB.analysis.original || "";
+      const { getDocumentBuffer } = await import("./storage.js");
+      const fileBuffer = await getDocumentBuffer(documentId);
+      if (!fileBuffer) {
+        throw new Error(`No se pudo leer el archivo de ${docLabel} (${documentId})`);
+      }
 
-    if (!textA || textA.trim().length === 0) {
-      throw new Error("Documento A no tiene texto extraído");
-    }
-    if (!textB || textB.trim().length === 0) {
-      throw new Error("Documento B no tiene texto extraído");
-    }
+      const { ocrAgent } = await import("./agents/ocr.js");
+      const text = await ocrAgent({
+        buffer: fileBuffer,
+        mimeType: doc.mime_type,
+        filename: doc.filename,
+      });
+
+      if (!text || text.trim().length === 0) {
+        throw new Error(`${docLabel} no tiene texto extraíble`);
+      }
+
+      console.log(`[COMPARE] ✅ Texto extraído directamente para ${docLabel} (${text.length} caracteres)`);
+      return text.trim();
+    };
+
+    // Obtener textos de ambos documentos (con o sin análisis previo)
+    comparisonResults.set(comparisonId, { status: "processing", progress: 15, statusLabel: "Extrayendo texto del Documento A..." });
+    const textA = await getDocumentText(documentIdA, "Documento A");
+
+    comparisonResults.set(comparisonId, { status: "processing", progress: 25, statusLabel: "Extrayendo texto del Documento B..." });
+    const textB = await getDocumentText(documentIdB, "Documento B");
 
     comparisonResults.set(comparisonId, { status: "processing", progress: 30, statusLabel: "Analizando documentos..." });
 
