@@ -1,7 +1,7 @@
 "use client";
 import React, { useMemo, useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { Search, FileText, Gavel, BookOpen, CheckCircle2, Clock3, Users, Settings, Upload, Send, Download, ExternalLink, Trash2, Filter, Plus, History, Sparkles, Loader2, Eye, X } from "lucide-react";
+import { Search, FileText, Gavel, BookOpen, CheckCircle2, Clock3, Users, Settings, Upload, Send, Download, ExternalLink, Trash2, Filter, Plus, History, Sparkles, Loader2, Eye, X, GitCompare } from "lucide-react";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 
@@ -125,7 +125,7 @@ export default function CentroGestionLegalPage() {
   const [items, setItems] = useState<Array<any>>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeView, setActiveView] = useState<"bandeja" | "analizar" | "generar" | "historial">("bandeja");
+  const [activeView, setActiveView] = useState<"bandeja" | "analizar" | "comparar" | "generar" | "historial">("bandeja");
   const [lastGeneratedMemo, setLastGeneratedMemo] = useState<{
     content: string;
     resumen: string;
@@ -227,13 +227,15 @@ export default function CentroGestionLegalPage() {
             <div>
               <div className="mb-8">
                 <h2 className="text-3xl font-bold text-gray-900">
-                  {activeView === "bandeja" ? "Centro de Gestión" : activeView === "analizar" ? "Analizar Documentos Legales" : activeView === "generar" ? "Generar Documentos" : "Historial"}
+                  {activeView === "bandeja" ? "Centro de Gestión" : activeView === "analizar" ? "Analizar Documentos Legales" : activeView === "comparar" ? "Análisis Comparativo" : activeView === "generar" ? "Generar Documentos" : "Historial"}
                 </h2>
                 <p className="text-gray-500 mt-1">
                   {activeView === "bandeja" 
                     ? "Operación de agentes jurídicos · WNS & Asociados"
                     : activeView === "analizar"
                     ? "Análisis automatizado de contratos y documentos legales"
+                    : activeView === "comparar"
+                    ? "Comparación jurídica de documentos legales"
                     : activeView === "generar"
                     ? "Generación de memos, dictámenes, contratos y documentos legales"
                     : "Todos tus documentos organizados por tipo"}
@@ -281,6 +283,8 @@ export default function CentroGestionLegalPage() {
                 </>
               ) : activeView === "analizar" ? (
                 <AnalizarDocumentosPanel />
+              ) : activeView === "comparar" ? (
+                <AnalizarComparativoPanel />
               ) : activeView === "generar" ? (
                 /* Vista Generar - pantalla completa mejorada */
                 <div className="w-full">
@@ -349,12 +353,13 @@ export default function CentroGestionLegalPage() {
   );
 }
 
-function Sidebar({ activeView, setActiveView }: { activeView: string; setActiveView: (view: "bandeja" | "analizar" | "generar" | "historial") => void }) {
+function Sidebar({ activeView, setActiveView }: { activeView: string; setActiveView: (view: "bandeja" | "analizar" | "comparar" | "generar" | "historial") => void }) {
   return (
     <aside className="hidden lg:flex w-64 flex-shrink-0 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 border-r border-slate-700/50 flex flex-col shadow-2xl">
       <nav className="flex-grow flex flex-col p-4 space-y-2">
         <SideLink icon={Sparkles} label="Bandeja" active={activeView === "bandeja"} onClick={() => setActiveView("bandeja")} color="purple" />
         <SideLink icon={FileText} label="Analizar Documentos" active={activeView === "analizar"} onClick={() => setActiveView("analizar")} color="blue" />
+        <SideLink icon={GitCompare} label="Análisis Comparativo" active={activeView === "comparar"} onClick={() => setActiveView("comparar")} color="cyan" />
         <SideLink icon={Plus} label="Generar" active={activeView === "generar"} onClick={() => setActiveView("generar")} color="pink" />
         <SideLink icon={History} label="Historial" active={activeView === "historial"} onClick={() => setActiveView("historial")} color="indigo" />
         <div className="pt-4 pb-2">
@@ -414,6 +419,11 @@ function SideLink({ icon: Icon, label, active, className = "", onClick, color = 
       active: "bg-gradient-to-r from-slate-600 to-slate-500 text-white shadow-lg shadow-slate-500/30",
       hover: "hover:bg-slate-500/10 hover:text-slate-300 hover:border-slate-500/30",
       icon: active ? "text-white" : "text-slate-400 group-hover:text-slate-300"
+    },
+    cyan: {
+      active: "bg-gradient-to-r from-cyan-600 to-cyan-500 text-white shadow-lg shadow-cyan-500/30",
+      hover: "hover:bg-cyan-500/10 hover:text-cyan-300 hover:border-cyan-500/30",
+      icon: active ? "text-white" : "text-cyan-400 group-hover:text-cyan-300"
     }
   };
 
@@ -2406,6 +2416,484 @@ function AnalizarDocumentosPanel() {
         setStatusLabel={setStatusLabel}
         pollForResults={pollForResults}
       />
+    </div>
+  );
+}
+
+// Componente para análisis comparativo de documentos
+function AnalizarComparativoPanel() {
+  const [fileA, setFileA] = useState<File | null>(null);
+  const [fileB, setFileB] = useState<File | null>(null);
+  const [documentIdA, setDocumentIdA] = useState<string | null>(null);
+  const [documentIdB, setDocumentIdB] = useState<string | null>(null);
+  const [comparing, setComparing] = useState(false);
+  const [comparisonResult, setComparisonResult] = useState<any | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [polling, setPolling] = useState(false);
+  const [progress, setProgress] = useState<number>(0);
+  const [statusLabel, setStatusLabel] = useState<string>("");
+  const [instructions, setInstructions] = useState<string>("");
+  const [additionalInstructions, setAdditionalInstructions] = useState<string>("");
+  const [areaLegal, setAreaLegal] = useState<"civil_comercial"|"laboral"|"corporativo"|"compliance"|"marcas"|"consumidor"|"traducir">("civil_comercial");
+  const instructionsLimit = 500;
+  const API = useMemo(() => getApiUrl(), []);
+  const LEGAL_DOCS_URL = useMemo(() => getLegalDocsUrl(), []);
+
+  async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit = {}, timeoutMs = 30000) {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      return await fetch(input, { ...init, signal: controller.signal });
+    } finally {
+      clearTimeout(id);
+    }
+  }
+
+  function toUserFriendlyError(err: unknown, fallback: string) {
+    if (err && typeof err === "object") {
+      const anyErr = err as any;
+      const name = anyErr?.name as string | undefined;
+      const message = anyErr?.message as string | undefined;
+      if (name === "AbortError" || (message && /aborted/i.test(message))) {
+        return "Tiempo de espera agotado. Por favor, reintentá en unos segundos.";
+      }
+      if (message) return message;
+    }
+    return fallback;
+  }
+
+  const handleFileUpload = async (file: File, isA: boolean) => {
+    const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+    if (file.size > MAX_FILE_SIZE) {
+      setError(`El archivo ${file.name} es demasiado grande (máximo 50MB).`);
+      return null;
+    }
+
+    setError(null);
+    setStatusLabel(`Subiendo ${isA ? "Documento A" : "Documento B"}...`);
+
+    try {
+      const formData = new FormData();
+      formData.append("files", file);
+
+      const uploadUrl = LEGAL_DOCS_URL !== API 
+        ? `${LEGAL_DOCS_URL}/upload-many`
+        : `${API}/legal/upload-many`;
+      
+      const response = await fetchWithTimeout(uploadUrl, {
+        method: "POST",
+        body: formData,
+      }, 180000);
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => "");
+        throw new Error(`Error al subir archivo (${response.status}): ${errorText || response.statusText || "Sin detalles"}`);
+      }
+
+      const data = await response.json();
+      const documentId = data.documents[0]?.documentId;
+      return documentId;
+    } catch (err: any) {
+      setError(toUserFriendlyError(err, `Error al subir ${isA ? "Documento A" : "Documento B"}`));
+      return null;
+    }
+  };
+
+  const handleCompare = async () => {
+    if (!fileA || !fileB) {
+      setError("Por favor sube ambos documentos (Documento A y Documento B)");
+      return;
+    }
+
+    setError(null);
+    setComparing(true);
+    setProgress(0);
+    setStatusLabel("Subiendo documentos...");
+    setComparisonResult(null);
+
+    try {
+      // Subir Documento A si no está subido
+      let docIdA = documentIdA;
+      if (!docIdA) {
+        docIdA = await handleFileUpload(fileA, true);
+        if (!docIdA) {
+          setComparing(false);
+          return;
+        }
+        setDocumentIdA(docIdA);
+      }
+
+      // Subir Documento B si no está subido
+      let docIdB = documentIdB;
+      if (!docIdB) {
+        docIdB = await handleFileUpload(fileB, false);
+        if (!docIdB) {
+          setComparing(false);
+          return;
+        }
+        setDocumentIdB(docIdB);
+      }
+
+      if (!docIdA || !docIdB) {
+        setError("Error al obtener IDs de documentos");
+        setComparing(false);
+        return;
+      }
+
+      // Iniciar comparación
+      setStatusLabel("Iniciando análisis comparativo...");
+      const trimmedInstructions = instructions.trim();
+      const trimmedAdditional = additionalInstructions.trim().slice(0, instructionsLimit);
+
+      const compareResponse = await fetchWithTimeout(`${API}/api/compare-documents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          documentIdA: docIdA,
+          documentIdB: docIdB,
+          instructions: trimmedInstructions || undefined,
+          additionalInstructions: trimmedAdditional || undefined,
+          areaLegal: areaLegal,
+        }),
+      }, 30000);
+
+      if (!compareResponse.ok) {
+        const errorText = await compareResponse.text().catch(() => "");
+        throw new Error(`Error al iniciar comparación (${compareResponse.status}): ${errorText || "Sin detalles"}`);
+      }
+
+      const compareData = await compareResponse.json();
+      console.log(`[COMPARE] Comparación iniciada:`, compareData);
+      
+      setStatusLabel("Analizando documentos comparativamente...");
+      setPolling(true);
+      pollForComparisonResult(compareData.comparisonId || compareData.id);
+    } catch (err: any) {
+      setError(toUserFriendlyError(err, "Error al procesar comparación"));
+      setComparing(false);
+    }
+  };
+
+  const pollForComparisonResult = async (comparisonId: string) => {
+    const maxAttempts = 200; // ~10 minutos
+    let attempts = 0;
+
+    const poll = async () => {
+      try {
+        const statusRes = await fetchWithTimeout(`${API}/api/compare-documents/${comparisonId}`, {}, 20000);
+        if (statusRes.ok) {
+          const data = await statusRes.json();
+          if (data.status === "completed" && data.result) {
+            setComparisonResult(data.result);
+            setComparing(false);
+            setPolling(false);
+            setProgress(100);
+            setStatusLabel("Comparación completada");
+            return;
+          } else if (data.status === "error") {
+            setError(data.error || "Error durante la comparación");
+            setComparing(false);
+            setPolling(false);
+            return;
+          } else if (data.status === "processing") {
+            if (typeof data.progress === "number") setProgress(data.progress);
+            if (data.statusLabel) setStatusLabel(data.statusLabel);
+          }
+        }
+        
+        if (attempts < maxAttempts) {
+          attempts++;
+          setTimeout(poll, 3000);
+        } else {
+          setError("Tiempo de espera agotado. La comparación está tomando más tiempo del esperado.");
+          setComparing(false);
+          setPolling(false);
+        }
+      } catch (err: any) {
+        if (attempts < maxAttempts) {
+          attempts++;
+          setTimeout(poll, 5000);
+        } else {
+          setError(toUserFriendlyError(err, "Error al obtener resultado de comparación"));
+          setComparing(false);
+          setPolling(false);
+        }
+      }
+    };
+
+    poll();
+  };
+
+  const handleFileSelect = (file: File | null, isA: boolean) => {
+    if (isA) {
+      setFileA(file);
+      setDocumentIdA(null); // Reset ID cuando cambia el archivo
+    } else {
+      setFileB(file);
+      setDocumentIdB(null); // Reset ID cuando cambia el archivo
+    }
+    setError(null);
+  };
+
+  return (
+    <div className="space-y-8">
+      <div className="bg-white p-6 rounded-xl border border-gray-200">
+        <h3 className="font-bold text-lg text-gray-900 mb-2">Análisis Comparativo de Documentos</h3>
+        <p className="text-sm text-gray-500 mb-6">
+          Compara dos documentos legales para identificar diferencias, ventajas, riesgos y obtener recomendaciones jurídicas
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          {/* Documento A */}
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-gray-700">Documento A</label>
+            <div
+              className="flex justify-center px-6 pt-8 pb-8 border-2 border-gray-300 border-dashed rounded-lg bg-gray-50/50 hover:border-cyan-400 hover:bg-cyan-50/30 transition-all cursor-pointer"
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.currentTarget.classList.add("bg-cyan-50");
+              }}
+              onDragLeave={(e) => {
+                e.currentTarget.classList.remove("bg-cyan-50");
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.currentTarget.classList.remove("bg-cyan-50");
+                const droppedFile = e.dataTransfer.files[0];
+                if (droppedFile) {
+                  handleFileSelect(droppedFile, true);
+                }
+              }}
+              onClick={() => document.getElementById("doc-a-upload")?.click()}
+            >
+              <div className="space-y-2 text-center">
+                <Upload className="h-10 w-10 mx-auto text-gray-400" />
+                {fileA ? (
+                  <div className="text-sm text-gray-900">
+                    <span className="font-medium">{fileA.name}</span>
+                    <button 
+                      className="ml-2 text-rose-600 hover:text-rose-700"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleFileSelect(null, true);
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500">Arrastrá o hacé click para subir</p>
+                )}
+              </div>
+            </div>
+            <input
+              id="doc-a-upload"
+              type="file"
+              accept=".pdf,.docx,.doc,.txt,.jpg,.jpeg,.png"
+              className="hidden"
+              onChange={(e) => {
+                const selectedFile = e.target.files?.[0];
+                if (selectedFile) {
+                  handleFileSelect(selectedFile, true);
+                }
+              }}
+            />
+          </div>
+
+          {/* Documento B */}
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-gray-700">Documento B</label>
+            <div
+              className="flex justify-center px-6 pt-8 pb-8 border-2 border-gray-300 border-dashed rounded-lg bg-gray-50/50 hover:border-cyan-400 hover:bg-cyan-50/30 transition-all cursor-pointer"
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.currentTarget.classList.add("bg-cyan-50");
+              }}
+              onDragLeave={(e) => {
+                e.currentTarget.classList.remove("bg-cyan-50");
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.currentTarget.classList.remove("bg-cyan-50");
+                const droppedFile = e.dataTransfer.files[0];
+                if (droppedFile) {
+                  handleFileSelect(droppedFile, false);
+                }
+              }}
+              onClick={() => document.getElementById("doc-b-upload")?.click()}
+            >
+              <div className="space-y-2 text-center">
+                <Upload className="h-10 w-10 mx-auto text-gray-400" />
+                {fileB ? (
+                  <div className="text-sm text-gray-900">
+                    <span className="font-medium">{fileB.name}</span>
+                    <button 
+                      className="ml-2 text-rose-600 hover:text-rose-700"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleFileSelect(null, false);
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500">Arrastrá o hacé click para subir</p>
+                )}
+              </div>
+            </div>
+            <input
+              id="doc-b-upload"
+              type="file"
+              accept=".pdf,.docx,.doc,.txt,.jpg,.jpeg,.png"
+              className="hidden"
+              onChange={(e) => {
+                const selectedFile = e.target.files?.[0];
+                if (selectedFile) {
+                  handleFileSelect(selectedFile, false);
+                }
+              }}
+            />
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Área Legal</label>
+            <select 
+              className="w-full bg-white border-2 border-gray-300 rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-colors" 
+              value={areaLegal} 
+              onChange={e=>setAreaLegal(e.target.value as any)}
+            >
+              <option value="civil_comercial">Civil, Comercial y Societario</option>
+              <option value="laboral">Laboral</option>
+              <option value="corporativo">Corporativo</option>
+              <option value="compliance">Compliance</option>
+              <option value="marcas">Marcas y Propiedad Intelectual</option>
+              <option value="consumidor">Consumidor</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Instrucciones (opcional)
+            </label>
+            <textarea
+              className="w-full rounded-lg border-2 border-gray-300 bg-white px-4 py-3 text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-colors resize-y"
+              rows={4}
+              placeholder="Ej.: Comparar términos de pago, identificar cuál contrato es más favorable para el proveedor, analizar cláusulas de terminación..."
+              value={instructions}
+              onChange={(e) => setInstructions(e.target.value)}
+            />
+            <p className="text-xs text-gray-500 mt-1">Contexto y objetivo de la comparación</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Indicaciones Adicionales (opcional)
+            </label>
+            <textarea
+              className="w-full rounded-lg border-2 border-gray-300 bg-white px-4 py-3 text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-colors resize-y"
+              rows={3}
+              maxLength={instructionsLimit}
+              placeholder="Ej.: Enfocar en cláusulas de penalidades, revisar términos de confidencialidad, comparar jurisdicción..."
+              value={additionalInstructions}
+              onChange={(e) => setAdditionalInstructions(e.target.value)}
+            />
+            <div className="flex items-center justify-between text-xs text-gray-500 mt-1">
+              <span>Máx. {instructionsLimit} caracteres</span>
+              <span>{additionalInstructions.length}/{instructionsLimit}</span>
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              className="flex-1 bg-gradient-to-r from-cyan-600 to-cyan-500 text-white py-3 px-6 rounded-lg font-semibold hover:from-cyan-700 hover:to-cyan-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+              onClick={handleCompare}
+              disabled={!fileA || !fileB || comparing}
+            >
+              {comparing ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  Comparando documentos...
+                </>
+              ) : (
+                <>
+                  <GitCompare className="h-5 w-5" />
+                  Comparar Documentos
+                </>
+              )}
+            </button>
+            {(fileA || fileB) && !comparing && (
+              <button
+                className="px-4 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-all"
+                onClick={() => {
+                  setFileA(null);
+                  setFileB(null);
+                  setDocumentIdA(null);
+                  setDocumentIdB(null);
+                  setComparisonResult(null);
+                  setError(null);
+                  setInstructions("");
+                  setAdditionalInstructions("");
+                }}
+              >
+                Limpiar
+              </button>
+            )}
+          </div>
+
+          {error && (
+            <div className="rounded-lg border border-rose-200 bg-rose-50 text-rose-700 p-3 text-sm">
+              {error}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Panel de progreso */}
+      {comparing && (
+        <div className="bg-white p-6 rounded-xl border border-gray-200">
+          <h3 className="font-bold text-lg text-gray-900 mb-4">
+            {statusLabel || "Comparando documentos..."}
+          </h3>
+          <div className="space-y-2">
+            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-cyan-500 to-cyan-600 rounded-full transition-all duration-300" style={{ width: `${progress}%` }}></div>
+            </div>
+            <p className="text-xs text-gray-500 text-center">{progress}%</p>
+          </div>
+        </div>
+      )}
+
+      {/* Resultado de la comparación */}
+      {comparisonResult && (
+        <div className="bg-white p-6 rounded-xl border border-gray-200">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-bold text-xl text-gray-900">Resultado del Análisis Comparativo</h3>
+            <button
+              className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-cyan-500 text-white rounded-lg font-medium hover:from-cyan-700 hover:to-cyan-600 transition-all flex items-center gap-2"
+              onClick={async () => {
+                const content = typeof comparisonResult === 'string' ? comparisonResult : JSON.stringify(comparisonResult, null, 2);
+                const filename = `analisis-comparativo-${new Date().toISOString().split("T")[0]}`;
+                await downloadMD(filename, content);
+              }}
+            >
+              <Download className="h-4 w-4" />
+              Descargar Word
+            </button>
+          </div>
+          <div className="prose max-w-none">
+            {typeof comparisonResult === 'string' ? (
+              <div className="markdown-content">
+                <ReactMarkdown>{comparisonResult}</ReactMarkdown>
+              </div>
+            ) : (
+              <pre className="bg-gray-50 p-4 rounded-lg overflow-auto text-sm">{JSON.stringify(comparisonResult, null, 2)}</pre>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

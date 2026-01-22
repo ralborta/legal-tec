@@ -853,6 +853,88 @@ Generá el documento completo, profesional y listo para usar:`;
     }
   });
 
+  // Análisis comparativo de documentos
+  app.post("/api/compare-documents", async (req, rep) => {
+    try {
+      const body = z.object({
+        documentIdA: z.string().min(1),
+        documentIdB: z.string().min(1),
+        instructions: z.string().optional(),
+        additionalInstructions: z.string().optional(),
+        areaLegal: z.string().optional(),
+      }).parse(req.body);
+
+      const LEGAL_DOCS_URL = process.env.LEGAL_DOCS_URL;
+      if (!LEGAL_DOCS_URL) {
+        return rep.status(500).send({ error: "LEGAL_DOCS_URL no configurada" });
+      }
+
+      // Enviar al servicio legal-docs para procesar la comparación
+      const response = await fetch(`${LEGAL_DOCS_URL}/compare-documents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          documentIdA: body.documentIdA,
+          documentIdB: body.documentIdB,
+          instructions: body.instructions,
+          additionalInstructions: body.additionalInstructions,
+          areaLegal: body.areaLegal || "civil_comercial",
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => "");
+        app.log.error(`Error en legal-docs /compare-documents: ${response.status} - ${errorText}`);
+        return rep.status(response.status).send({
+          error: `Error al iniciar comparación: ${errorText || response.statusText}`,
+        });
+      }
+
+      const data = await response.json();
+      return rep.send(data);
+
+    } catch (error) {
+      app.log.error(error, "Error en /api/compare-documents");
+      return rep.status(500).send({
+        error: "Error interno en comparación de documentos",
+        message: error instanceof Error ? error.message : "Error desconocido",
+      });
+    }
+  });
+
+  // Obtener resultado de comparación
+  app.get("/api/compare-documents/:comparisonId", async (req, rep) => {
+    try {
+      const { comparisonId } = req.params as { comparisonId: string };
+      const LEGAL_DOCS_URL = process.env.LEGAL_DOCS_URL;
+      if (!LEGAL_DOCS_URL) {
+        return rep.status(500).send({ error: "LEGAL_DOCS_URL no configurada" });
+      }
+
+      const response = await fetch(`${LEGAL_DOCS_URL}/compare-documents/${comparisonId}`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => "");
+        return rep.status(response.status).send({
+          error: `Error al obtener resultado: ${errorText || response.statusText}`,
+        });
+      }
+
+      const data = await response.json();
+      return rep.send(data);
+
+    } catch (error) {
+      app.log.error(error, "Error en /api/compare-documents/:comparisonId");
+      return rep.status(500).send({
+        error: "Error al obtener resultado de comparación",
+        message: error instanceof Error ? error.message : "Error desconocido",
+      });
+    }
+  });
+
   // Generar documento sugerido basado en el análisis
   app.post("/api/generate-suggested-doc", async (req, rep) => {
     // Rate limiting: máximo 20 generaciones por hora por IP
