@@ -663,7 +663,7 @@ Formato de respuesta:
           ...conversationHistory
         ],
         temperature: 0.7,
-        max_tokens: 500
+        max_tokens: 800  // Aumentado para permitir preguntas más completas y detalladas
       });
 
       const assistantMessage = response.choices[0]?.message?.content || "No se pudo generar una respuesta.";
