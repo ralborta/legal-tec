@@ -3605,6 +3605,352 @@ const PLANTILLAS_DOCUMENTOS = [
       { id: "cuotas", label: "Forma de Pago", tipo: "text", placeholder: "12 cuotas mensuales de $X" },
       { id: "garantia", label: "Garantía", tipo: "textarea", placeholder: "Pagaré, hipoteca, prenda, fianza personal..." },
     ]
+  },
+  {
+    id: "comodato",
+    nombre: "Contrato de Comodato",
+    descripcion: "Préstamo de uso gratuito de bienes",
+    campos: [
+      { id: "comodante", label: "Comodante (quien presta)", tipo: "text", placeholder: "Juan Pérez" },
+      { id: "comodatario", label: "Comodatario (quien recibe)", tipo: "text", placeholder: "María García" },
+      { id: "bien", label: "Bien Prestado", tipo: "textarea", placeholder: "Vehículo, maquinaria, equipo..." },
+      { id: "uso", label: "Uso Autorizado", tipo: "textarea", placeholder: "Uso personal, comercial, específico..." },
+      { id: "plazo", label: "Plazo", tipo: "text", placeholder: "6 meses" },
+      { id: "condiciones", label: "Condiciones de Uso y Devolución", tipo: "textarea", placeholder: "Mantener en buen estado, devolver en fecha..." },
+    ]
+  },
+  {
+    id: "deposito",
+    nombre: "Contrato de Depósito",
+    descripcion: "Guardado y custodia de bienes",
+    campos: [
+      { id: "depositante", label: "Depositante", tipo: "text", placeholder: "Juan Pérez" },
+      { id: "depositario", label: "Depositario", tipo: "text", placeholder: "Empresa de Almacenamiento S.A." },
+      { id: "bienes", label: "Bienes Depositados", tipo: "textarea", placeholder: "Mercaderías, documentos, valores..." },
+      { id: "lugar", label: "Lugar de Depósito", tipo: "text", placeholder: "Almacén ubicado en..." },
+      { id: "plazo", label: "Plazo", tipo: "text", placeholder: "Indefinido / 12 meses" },
+      { id: "precio", label: "Precio del Depósito", tipo: "text", placeholder: "Gratuito / $X mensual" },
+    ]
+  },
+  {
+    id: "mandato",
+    nombre: "Contrato de Mandato",
+    descripcion: "Representación y gestión de negocios",
+    campos: [
+      { id: "mandante", label: "Mandante", tipo: "text", placeholder: "Juan Pérez" },
+      { id: "mandatario", label: "Mandatario", tipo: "text", placeholder: "Dr. Carlos Abogado" },
+      { id: "objeto", label: "Objeto del Mandato", tipo: "textarea", placeholder: "Gestionar trámites, representar en juicio..." },
+      { id: "facultades", label: "Facultades", tipo: "textarea", placeholder: "Facultades específicas otorgadas..." },
+      { id: "remuneracion", label: "Remuneración", tipo: "text", placeholder: "Gratuito / $X / % de comisión" },
+      { id: "plazo", label: "Plazo", tipo: "text", placeholder: "Indefinido / Hasta finalización del asunto" },
+    ]
+  },
+  {
+    id: "fianza",
+    nombre: "Contrato de Fianza",
+    descripcion: "Garantía personal de cumplimiento de obligaciones",
+    campos: [
+      { id: "fiador", label: "Fiador (quien garantiza)", tipo: "text", placeholder: "Juan Pérez" },
+      { id: "deudor", label: "Deudor Principal", tipo: "text", placeholder: "María García" },
+      { id: "acreedor", label: "Acreedor", tipo: "text", placeholder: "Banco X" },
+      { id: "obligacion", label: "Obligación Garantizada", tipo: "textarea", placeholder: "Pago de préstamo, cumplimiento de contrato..." },
+      { id: "monto", label: "Monto Garantizado", tipo: "text", placeholder: "$500.000" },
+      { id: "tipo", label: "Tipo de Fianza", tipo: "select", opciones: ["Simple", "Solidaria", "Con beneficio de excusión"] },
+    ]
+  },
+  {
+    id: "leasing",
+    nombre: "Contrato de Leasing",
+    descripcion: "Arrendamiento financiero con opción de compra",
+    campos: [
+      { id: "arrendador", label: "Arrendador (Empresa de Leasing)", tipo: "text", placeholder: "Leasing S.A." },
+      { id: "arrendatario", label: "Arrendatario", tipo: "text", placeholder: "Empresa Usuaria S.R.L." },
+      { id: "bien", label: "Bien Arrendado", tipo: "textarea", placeholder: "Vehículo, maquinaria, equipos..." },
+      { id: "valor", label: "Valor del Bien", tipo: "text", placeholder: "$2.000.000" },
+      { id: "cuotas", label: "Cantidad de Cuotas", tipo: "number", placeholder: "36" },
+      { id: "valor_cuota", label: "Valor de Cuota", tipo: "text", placeholder: "$80.000" },
+      { id: "opcion_compra", label: "Precio de Opción de Compra", tipo: "text", placeholder: "$200.000" },
+    ]
+  },
+  {
+    id: "franchising",
+    nombre: "Contrato de Franquicia",
+    descripcion: "Licencia de marca y know-how comercial",
+    campos: [
+      { id: "franquiciante", label: "Franquiciante", tipo: "text", placeholder: "Marca X S.A." },
+      { id: "franquiciado", label: "Franquiciado", tipo: "text", placeholder: "Local Y S.R.L." },
+      { id: "marca", label: "Marca Franquiciada", tipo: "text", placeholder: "Nombre de la marca" },
+      { id: "territorio", label: "Territorio Exclusivo", tipo: "text", placeholder: "Ciudad de Buenos Aires" },
+      { id: "canon", label: "Canon Inicial", tipo: "text", placeholder: "$500.000" },
+      { id: "royalty", label: "Royalty Mensual", tipo: "text", placeholder: "5% de ventas brutas" },
+      { id: "plazo", label: "Plazo del Contrato", tipo: "text", placeholder: "5 años" },
+    ]
+  },
+  {
+    id: "distribucion",
+    nombre: "Contrato de Distribución",
+    descripcion: "Distribución exclusiva o no exclusiva de productos",
+    campos: [
+      { id: "proveedor", label: "Proveedor/Fabricante", tipo: "text", placeholder: "Fabricante S.A." },
+      { id: "distribuidor", label: "Distribuidor", tipo: "text", placeholder: "Distribuidora X S.R.L." },
+      { id: "productos", label: "Productos", tipo: "textarea", placeholder: "Línea completa de productos X..." },
+      { id: "territorio", label: "Territorio", tipo: "text", placeholder: "Argentina / Región específica" },
+      { id: "exclusividad", label: "Exclusividad", tipo: "select", opciones: ["Exclusiva", "No exclusiva", "Semi-exclusiva"] },
+      { id: "comision", label: "Comisión/Margen", tipo: "text", placeholder: "20% sobre precio de venta" },
+    ]
+  },
+  {
+    id: "licencia_uso",
+    nombre: "Contrato de Licencia de Uso",
+    descripcion: "Licencia de software, marca o propiedad intelectual",
+    campos: [
+      { id: "licenciante", label: "Licenciante", tipo: "text", placeholder: "Empresa de Software S.A." },
+      { id: "licenciatario", label: "Licenciatario", tipo: "text", placeholder: "Cliente S.R.L." },
+      { id: "objeto", label: "Objeto de la Licencia", tipo: "textarea", placeholder: "Software X, marca Y, patente Z..." },
+      { id: "alcance", label: "Alcance de la Licencia", tipo: "select", opciones: ["Uso exclusivo", "Uso no exclusivo", "Uso limitado"] },
+      { id: "plazo", label: "Plazo", tipo: "text", placeholder: "12 meses / Indefinido" },
+      { id: "precio", label: "Precio de la Licencia", tipo: "text", placeholder: "$X mensual / Canon único" },
+    ]
+  },
+  {
+    id: "prestacion_servicios_tecnologicos",
+    nombre: "Contrato de Prestación de Servicios Tecnológicos",
+    descripcion: "Desarrollo de software, hosting, cloud, etc.",
+    campos: [
+      { id: "cliente", label: "Cliente", tipo: "text", placeholder: "Empresa Cliente S.A." },
+      { id: "proveedor", label: "Proveedor de Servicios", tipo: "text", placeholder: "Tech Solutions S.R.L." },
+      { id: "servicios", label: "Servicios a Prestar", tipo: "textarea", placeholder: "Desarrollo de aplicación web, hosting, mantenimiento..." },
+      { id: "plazo", label: "Plazo", tipo: "text", placeholder: "12 meses" },
+      { id: "precio", label: "Precio", tipo: "text", placeholder: "$X mensual + IVA" },
+      { id: "sla", label: "SLA (Service Level Agreement)", tipo: "textarea", placeholder: "99.9% uptime, respuesta en 24hs..." },
+    ]
+  },
+  {
+    id: "consultoria",
+    nombre: "Contrato de Consultoría",
+    descripcion: "Servicios de consultoría profesional",
+    campos: [
+      { id: "cliente", label: "Cliente", tipo: "text", placeholder: "Empresa Contratante S.A." },
+      { id: "consultor", label: "Consultor", tipo: "text", placeholder: "Consultor Independiente" },
+      { id: "objeto", label: "Objeto de la Consultoría", tipo: "textarea", placeholder: "Consultoría en estrategia, finanzas, legal..." },
+      { id: "entregables", label: "Entregables", tipo: "textarea", placeholder: "Informe final, presentación, recomendaciones..." },
+      { id: "honorarios", label: "Honorarios", tipo: "text", placeholder: "$X por hora / $X fijo" },
+      { id: "plazo", label: "Plazo de Ejecución", tipo: "text", placeholder: "3 meses" },
+    ]
+  },
+  {
+    id: "obra",
+    nombre: "Contrato de Obra",
+    descripcion: "Construcción, refacción o ejecución de obra",
+    campos: [
+      { id: "comitente", label: "Comitente (Dueño)", tipo: "text", placeholder: "Juan Pérez" },
+      { id: "contratista", label: "Contratista", tipo: "text", placeholder: "Constructora X S.A." },
+      { id: "obra", label: "Descripción de la Obra", tipo: "textarea", placeholder: "Construcción de casa, refacción de departamento..." },
+      { id: "lugar", label: "Lugar de la Obra", tipo: "text", placeholder: "Dirección completa" },
+      { id: "precio", label: "Precio Total", tipo: "text", placeholder: "$5.000.000" },
+      { id: "plazo", label: "Plazo de Ejecución", tipo: "text", placeholder: "6 meses" },
+      { id: "garantia", label: "Garantía de la Obra", tipo: "text", placeholder: "12 meses" },
+    ]
+  },
+  {
+    id: "suministro",
+    nombre: "Contrato de Suministro",
+    descripcion: "Suministro continuado de bienes o servicios",
+    campos: [
+      { id: "proveedor", label: "Proveedor", tipo: "text", placeholder: "Proveedor S.A." },
+      { id: "cliente", label: "Cliente", tipo: "text", placeholder: "Cliente S.R.L." },
+      { id: "productos", label: "Productos/Servicios", tipo: "textarea", placeholder: "Materias primas, insumos, servicios..." },
+      { id: "cantidad", label: "Cantidad/Volumen Estimado", tipo: "text", placeholder: "X unidades mensuales" },
+      { id: "precio", label: "Precio Unitario", tipo: "text", placeholder: "$X por unidad" },
+      { id: "plazo", label: "Plazo del Contrato", tipo: "text", placeholder: "12 meses" },
+    ]
+  },
+  {
+    id: "transporte",
+    nombre: "Contrato de Transporte",
+    descripcion: "Transporte de bienes o personas",
+    campos: [
+      { id: "transportista", label: "Transportista", tipo: "text", placeholder: "Transporte X S.A." },
+      { id: "cargador", label: "Cargador/Remitente", tipo: "text", placeholder: "Empresa Remitente S.R.L." },
+      { id: "destinatario", label: "Destinatario", tipo: "text", placeholder: "Empresa Destinataria S.A." },
+      { id: "mercaderia", label: "Mercadería a Transportar", tipo: "textarea", placeholder: "Descripción de la carga..." },
+      { id: "origen", label: "Origen", tipo: "text", placeholder: "Ciudad/Provincia" },
+      { id: "destino", label: "Destino", tipo: "text", placeholder: "Ciudad/Provincia" },
+      { id: "precio", label: "Precio del Transporte", tipo: "text", placeholder: "$X" },
+    ]
+  },
+  {
+    id: "seguro",
+    nombre: "Contrato de Seguro",
+    descripcion: "Póliza de seguro (vida, salud, automotor, etc.)",
+    campos: [
+      { id: "aseguradora", label: "Aseguradora", tipo: "text", placeholder: "Seguros X S.A." },
+      { id: "asegurado", label: "Asegurado", tipo: "text", placeholder: "Juan Pérez" },
+      { id: "tipo_seguro", label: "Tipo de Seguro", tipo: "select", opciones: ["Vida", "Salud", "Automotor", "Hogar", "Responsabilidad Civil", "Otro"] },
+      { id: "objeto", label: "Objeto Asegurado", tipo: "textarea", placeholder: "Vehículo, vivienda, vida..." },
+      { id: "suma_asegurada", label: "Suma Asegurada", tipo: "text", placeholder: "$X" },
+      { id: "prima", label: "Prima", tipo: "text", placeholder: "$X mensual/anual" },
+      { id: "vigencia", label: "Vigencia", tipo: "text", placeholder: "12 meses" },
+    ]
+  },
+  {
+    id: "donacion",
+    nombre: "Contrato de Donación",
+    descripcion: "Donación de bienes (con o sin cargo)",
+    campos: [
+      { id: "donante", label: "Donante", tipo: "text", placeholder: "Juan Pérez" },
+      { id: "donatario", label: "Donatario", tipo: "text", placeholder: "María García / Institución" },
+      { id: "bien", label: "Bien Donado", tipo: "textarea", placeholder: "Inmueble, dinero, bienes muebles..." },
+      { id: "valor", label: "Valor Estimado", tipo: "text", placeholder: "$X" },
+      { id: "cargo", label: "Cargo (si aplica)", tipo: "textarea", placeholder: "Obligación específica del donatario..." },
+      { id: "aceptacion", label: "Aceptación", tipo: "select", opciones: ["Acepta", "Acepta con cargo", "Pendiente"] },
+    ]
+  },
+  {
+    id: "permuta",
+    nombre: "Contrato de Permuta",
+    descripcion: "Intercambio de bienes o derechos",
+    campos: [
+      { id: "parte_a", label: "Primera Parte", tipo: "text", placeholder: "Juan Pérez" },
+      { id: "parte_b", label: "Segunda Parte", tipo: "text", placeholder: "María García" },
+      { id: "bien_a", label: "Bien que Entrega Parte A", tipo: "textarea", placeholder: "Inmueble, vehículo, derechos..." },
+      { id: "bien_b", label: "Bien que Entrega Parte B", tipo: "textarea", placeholder: "Inmueble, vehículo, derechos..." },
+      { id: "diferencia", label: "Diferencia de Valor (si aplica)", tipo: "text", placeholder: "$X a favor de..." },
+    ]
+  },
+  {
+    id: "usufructo",
+    nombre: "Contrato de Usufructo",
+    descripcion: "Derecho de uso y goce de bien ajeno",
+    campos: [
+      { id: "nudo_propietario", label: "Nudo Propietario", tipo: "text", placeholder: "Juan Pérez" },
+      { id: "usufructuario", label: "Usufructuario", tipo: "text", placeholder: "María García" },
+      { id: "bien", label: "Bien sobre el que recae el Usufructo", tipo: "textarea", placeholder: "Inmueble, acciones, derechos..." },
+      { id: "plazo", label: "Plazo del Usufructo", tipo: "text", placeholder: "Vitalicio / 20 años" },
+      { id: "obligaciones", label: "Obligaciones del Usufructuario", tipo: "textarea", placeholder: "Mantener, conservar, pagar cargas..." },
+    ]
+  },
+  {
+    id: "cesion_derechos",
+    nombre: "Cesión de Derechos",
+    descripcion: "Cesión de créditos, derechos o acciones",
+    campos: [
+      { id: "cedente", label: "Cedente (quien cede)", tipo: "text", placeholder: "Juan Pérez" },
+      { id: "cesionario", label: "Cesionario (quien recibe)", tipo: "text", placeholder: "María García" },
+      { id: "derecho", label: "Derecho Cedido", tipo: "textarea", placeholder: "Crédito, acción, derecho de propiedad intelectual..." },
+      { id: "monto", label: "Monto/Valor", tipo: "text", placeholder: "$X" },
+      { id: "precio_cesion", label: "Precio de la Cesión", tipo: "text", placeholder: "$X" },
+      { id: "deudor", label: "Deudor (si aplica)", tipo: "text", placeholder: "Empresa Deudora S.A." },
+    ]
+  },
+  {
+    id: "prenda",
+    nombre: "Contrato de Prenda",
+    descripcion: "Garantía prendaria sobre bienes muebles",
+    campos: [
+      { id: "deudor", label: "Deudor/Prendante", tipo: "text", placeholder: "Juan Pérez" },
+      { id: "acreedor", label: "Acreedor/Prendatario", tipo: "text", placeholder: "Banco X" },
+      { id: "bien", label: "Bien Dado en Prenda", tipo: "textarea", placeholder: "Vehículo, maquinaria, acciones..." },
+      { id: "obligacion", label: "Obligación Garantizada", tipo: "textarea", placeholder: "Préstamo, deuda comercial..." },
+      { id: "monto", label: "Monto Garantizado", tipo: "text", placeholder: "$X" },
+    ]
+  },
+  {
+    id: "hipoteca",
+    nombre: "Contrato de Hipoteca",
+    descripcion: "Garantía hipotecaria sobre inmuebles",
+    campos: [
+      { id: "deudor", label: "Deudor/Hipotecante", tipo: "text", placeholder: "Juan Pérez" },
+      { id: "acreedor", label: "Acreedor/Hipotecario", tipo: "text", placeholder: "Banco X" },
+      { id: "inmueble", label: "Inmueble Hipotecado", tipo: "textarea", placeholder: "Dirección completa, partida, matrícula..." },
+      { id: "obligacion", label: "Obligación Garantizada", tipo: "textarea", placeholder: "Préstamo hipotecario..." },
+      { id: "monto", label: "Monto Garantizado", tipo: "text", placeholder: "$X" },
+    ]
+  },
+  {
+    id: "sociedad_hecho",
+    nombre: "Sociedad de Hecho",
+    descripcion: "Acuerdo entre socios sin constitución formal",
+    campos: [
+      { id: "socios", label: "Socios", tipo: "textarea", placeholder: "Juan Pérez (50%), María García (50%)" },
+      { id: "objeto", label: "Objeto", tipo: "textarea", placeholder: "Actividad comercial a desarrollar..." },
+      { id: "aportes", label: "Aportes de Cada Socio", tipo: "textarea", placeholder: "Juan: $X, María: $Y" },
+      { id: "distribucion", label: "Distribución de Utilidades", tipo: "text", placeholder: "50% - 50%" },
+      { id: "administracion", label: "Administración", tipo: "textarea", placeholder: "Decisión conjunta, administrador único..." },
+    ]
+  },
+  {
+    id: "joint_venture",
+    nombre: "Joint Venture / Asociación Estratégica",
+    descripcion: "Asociación temporal para proyecto específico",
+    campos: [
+      { id: "parte_a", label: "Primera Parte", tipo: "text", placeholder: "Empresa A S.A." },
+      { id: "parte_b", label: "Segunda Parte", tipo: "text", placeholder: "Empresa B S.R.L." },
+      { id: "proyecto", label: "Proyecto/Objetivo", tipo: "textarea", placeholder: "Desarrollo conjunto de producto, entrada a mercado..." },
+      { id: "aportes", label: "Aportes de Cada Parte", tipo: "textarea", placeholder: "Parte A: $X y tecnología, Parte B: $Y y distribución" },
+      { id: "distribucion", label: "Distribución de Beneficios", tipo: "text", placeholder: "50% - 50%" },
+      { id: "plazo", label: "Plazo del Joint Venture", tipo: "text", placeholder: "24 meses" },
+    ]
+  },
+  {
+    id: "confidencialidad_empleado",
+    nombre: "Acuerdo de Confidencialidad con Empleado",
+    descripcion: "NDA específico para empleados",
+    campos: [
+      { id: "empleador", label: "Empleador", tipo: "text", placeholder: "Empresa S.A." },
+      { id: "empleado", label: "Empleado", tipo: "text", placeholder: "Juan Pérez" },
+      { id: "info_confidencial", label: "Información Confidencial", tipo: "textarea", placeholder: "Secretos comerciales, clientes, procesos..." },
+      { id: "vigencia", label: "Vigencia Post-Empleo", tipo: "text", placeholder: "2 años después del cese" },
+    ]
+  },
+  {
+    id: "no_competencia",
+    nombre: "Acuerdo de No Competencia",
+    descripcion: "Cláusula de no competencia post-empleo",
+    campos: [
+      { id: "empleador", label: "Empleador", tipo: "text", placeholder: "Empresa S.A." },
+      { id: "empleado", label: "Empleado", tipo: "text", placeholder: "Juan Pérez" },
+      { id: "actividad", label: "Actividad Prohibida", tipo: "textarea", placeholder: "No trabajar en empresas competidoras..." },
+      { id: "territorio", label: "Territorio", tipo: "text", placeholder: "Ciudad de Buenos Aires" },
+      { id: "plazo", label: "Plazo", tipo: "text", placeholder: "12 meses después del cese" },
+      { id: "compensacion", label: "Compensación (si aplica)", tipo: "text", placeholder: "$X mensual durante el plazo" },
+    ]
+  },
+  {
+    id: "mediacion",
+    nombre: "Acuerdo de Mediación",
+    descripcion: "Acuerdo para resolver conflictos mediante mediación",
+    campos: [
+      { id: "parte_a", label: "Primera Parte", tipo: "text", placeholder: "Juan Pérez" },
+      { id: "parte_b", label: "Segunda Parte", tipo: "text", placeholder: "María García" },
+      { id: "conflicto", label: "Naturaleza del Conflicto", tipo: "textarea", placeholder: "Describir el conflicto a mediar..." },
+      { id: "mediador", label: "Mediador", tipo: "text", placeholder: "Dr. Carlos Mediador" },
+      { id: "plazo", label: "Plazo para la Mediación", tipo: "text", placeholder: "60 días" },
+    ]
+  },
+  {
+    id: "arbitraje",
+    nombre: "Acuerdo de Arbitraje",
+    descripcion: "Sometimiento a arbitraje para resolver conflictos",
+    campos: [
+      { id: "parte_a", label: "Primera Parte", tipo: "text", placeholder: "Empresa A S.A." },
+      { id: "parte_b", label: "Segunda Parte", tipo: "text", placeholder: "Empresa B S.R.L." },
+      { id: "materia", label: "Materia Arbitrable", tipo: "textarea", placeholder: "Conflictos derivados del contrato..." },
+      { id: "arbitro", label: "Árbitro/Institución Arbitral", tipo: "text", placeholder: "Cámara de Arbitraje X" },
+      { id: "procedimiento", label: "Procedimiento", tipo: "select", opciones: ["Arbitraje de derecho", "Arbitraje de equidad"] },
+    ]
+  },
+  {
+    id: "escritura_publica",
+    nombre: "Minuta para Escritura Pública",
+    descripcion: "Minuta para elevación a escritura pública",
+    campos: [
+      { id: "tipo_operacion", label: "Tipo de Operación", tipo: "select", opciones: ["Compraventa", "Donación", "Permuta", "Constitución de sociedad", "Otro"] },
+      { id: "partes", label: "Partes", tipo: "textarea", placeholder: "Vendedor: X, Comprador: Y..." },
+      { id: "bien", label: "Bien/Objeto", tipo: "textarea", placeholder: "Inmueble, derechos, sociedad..." },
+      { id: "precio", label: "Precio (si aplica)", tipo: "text", placeholder: "$X" },
+      { id: "condiciones", label: "Condiciones Especiales", tipo: "textarea", placeholder: "Condiciones específicas de la operación..." },
+    ]
   }
 ];
 
@@ -4497,9 +4843,233 @@ function MemoResultPanel({
   );
 }
 
+// Componente de chat para documento personalizado
+function ChatDocumentoPersonalizado({ 
+  onGenerar, 
+  onVolver, 
+  onGuardarTemplate,
+  setError,
+  setLoading 
+}: { 
+  onGenerar: (docData: { descripcion: string; detalles: Record<string, any>; titulo: string }) => void;
+  onVolver: () => void;
+  onGuardarTemplate: (templateData: { nombre: string; descripcion: string; campos: any[] }) => void;
+  setError: (e: string | null) => void;
+  setLoading: (b: boolean) => void;
+}) {
+  const [messages, setMessages] = useState<Array<{role: "user" | "assistant"; content: string}>>([]);
+  const [currentMessage, setCurrentMessage] = useState("");
+  const [loading, setLoadingLocal] = useState(false);
+  const [generando, setGenerando] = useState(false);
+  const API = useMemo(() => getApiUrl(), []);
+
+  // Mensaje inicial del asistente
+  useEffect(() => {
+    if (messages.length === 0) {
+      const mensajeInicial = {
+        role: "assistant" as const,
+        content: "¡Hola! 👋 Soy tu asistente para crear documentos personalizados. Por favor, describime qué tipo de documento necesitás crear. Sé lo más específico posible: tipo de documento, partes involucradas, objeto, condiciones principales, etc."
+      };
+      setMessages([mensajeInicial]);
+    }
+  }, []);
+
+  const handleSendMessage = async () => {
+    if (!currentMessage.trim() || !API || loading) return;
+
+    const userMessage = currentMessage.trim();
+    setCurrentMessage("");
+    const newMessages = [...messages, { role: "user" as const, content: userMessage }];
+    setMessages(newMessages);
+    setLoadingLocal(true);
+
+    try {
+      const response = await fetch(`${API}/api/chat-custom-document`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: newMessages,
+          documentoListo: documentoListo
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || `Error ${response.status}`);
+      }
+
+      const data = await response.json();
+      const assistantMessage = { role: "assistant" as const, content: data.message || data.response };
+      setMessages([...newMessages, assistantMessage]);
+
+    } catch (e: any) {
+      setError(e.message || "Error en el chat");
+      const errorMessage = { role: "assistant" as const, content: `Error: ${e.message || "Error al procesar tu mensaje"}` };
+      setMessages([...newMessages, errorMessage]);
+    } finally {
+      setLoadingLocal(false);
+    }
+  };
+
+  const handleGenerar = async () => {
+    if (messages.length < 2) {
+      setError("Por favor, describe primero el documento que necesitas crear.");
+      return;
+    }
+
+    setGenerando(true);
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Extraer información del chat: combinar todos los mensajes del usuario
+      const userMessages = messages.filter(m => m.role === "user").map(m => m.content).join("\n");
+      
+      // Intentar extraer título del primer mensaje o usar uno genérico
+      const tituloMatch = userMessages.match(/(?:necesito|quiero|requiero).*?(?:contrato|acuerdo|documento|carta|escrito)/i);
+      const titulo = tituloMatch ? tituloMatch[0] : "Documento Personalizado";
+
+      // Extraer detalles básicos del chat
+      const detalles: Record<string, any> = {};
+      const partesMatch = userMessages.match(/(?:partes?|entre|con)\s+([^\.]+)/i);
+      if (partesMatch) detalles.partes = partesMatch[1];
+      
+      const objetoMatch = userMessages.match(/(?:objeto|para|sobre)\s+([^\.]+)/i);
+      if (objetoMatch) detalles.objeto = objetoMatch[1];
+
+      const response = await fetch(`${API}/api/generate-custom-document`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          descripcion: userMessages,
+          detalles: detalles,
+          titulo: titulo
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || `Error ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      onGenerar({
+        descripcion: userMessages,
+        detalles: detalles,
+        titulo: data.titulo || titulo
+      });
+
+    } catch (e: any) {
+      setError(e.message || "Error al generar documento");
+    } finally {
+      setGenerando(false);
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h4 className="font-medium text-gray-900">📝 Documento Personalizado</h4>
+          <p className="text-xs text-gray-500">Describe tu documento y el asistente te ayudará a crearlo</p>
+        </div>
+        <button
+          onClick={onVolver}
+          className="text-sm text-gray-500 hover:text-gray-700"
+        >
+          ← Volver a plantillas
+        </button>
+      </div>
+
+      {/* Chat */}
+      <div className="border border-gray-200 rounded-lg bg-white" style={{ maxHeight: "500px", display: "flex", flexDirection: "column" }}>
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {messages.map((msg, idx) => (
+            <div
+              key={idx}
+              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+            >
+              <div
+                className={`max-w-[80%] rounded-lg p-3 ${
+                  msg.role === "user"
+                    ? "bg-[#C026D3] text-white"
+                    : "bg-gray-100 text-gray-900"
+                }`}
+              >
+                <div className="text-sm whitespace-pre-wrap">{msg.content}</div>
+              </div>
+            </div>
+          ))}
+          {loading && (
+            <div className="flex justify-start">
+              <div className="bg-gray-100 rounded-lg p-3">
+                <Loader2 className="h-4 w-4 animate-spin text-gray-600" />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Input */}
+        <div className="border-t border-gray-200 p-4">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={currentMessage}
+              onChange={(e) => setCurrentMessage(e.target.value)}
+              onKeyPress={(e) => e.key === "Enter" && !e.shiftKey && handleSendMessage()}
+              placeholder="Escribe tu mensaje..."
+              className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-[#C026D3] focus:border-[#C026D3]"
+              disabled={loading || generando}
+            />
+            <button
+              onClick={handleSendMessage}
+              disabled={loading || !currentMessage.trim() || generando}
+              className="bg-[#C026D3] text-white px-4 py-2 rounded-lg hover:bg-[#A21CAF] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Send className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Botón de generar siempre visible (Fase 1 simplificada) */}
+      {messages.length >= 2 && (
+        <div className="border border-[#C026D3] bg-purple-50 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-900 mb-1">¿Listo para generar el documento?</p>
+              <p className="text-xs text-gray-600">Revisá la conversación y cuando tengas toda la información, generá el documento.</p>
+            </div>
+            <button
+              onClick={handleGenerar}
+              disabled={generando || loading}
+              className="bg-[#C026D3] text-white px-6 py-2 rounded-lg hover:bg-[#A21CAF] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {generando ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Generando...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4" />
+                  <span>Generar Documento</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Componente para generar documentos desde plantillas
 function GenerarDesdePlantilla({ onGenerated, setError, setLoading }: { onGenerated: (out: any)=>void; setError: (e:string|null)=>void; setLoading: (b:boolean)=>void; }) {
   const [plantillaSeleccionada, setPlantillaSeleccionada] = useState<typeof PLANTILLAS_DOCUMENTOS[0] | null>(null);
+  const [modoPersonalizado, setModoPersonalizado] = useState(false); // Nuevo: modo para documento personalizado
   const [camposValores, setCamposValores] = useState<Record<string, string>>({});
   const [loadingLocal, setLoadingLocal] = useState(false);
   const [resultado, setResultado] = useState<string | null>(null);
@@ -4564,12 +5134,47 @@ function GenerarDesdePlantilla({ onGenerated, setError, setLoading }: { onGenera
     }
   };
 
+  // handleGenerarPersonalizado ahora se maneja dentro de ChatDocumentoPersonalizado
+
+  const handleGuardarTemplate = async (templateData: { nombre: string; descripcion: string; campos: any[] }) => {
+    if (!API) return;
+    
+    try {
+      const response = await fetch(`${API}/api/save-template`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(templateData)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || `Error ${response.status}`);
+      }
+
+      alert("✅ Plantilla guardada exitosamente. Estará disponible en la lista de plantillas.");
+    } catch (e: any) {
+      setError(e.message || "Error al guardar plantilla");
+    }
+  };
+
   // Vista de selección de plantilla
-  if (!plantillaSeleccionada) {
+  if (!plantillaSeleccionada && !modoPersonalizado) {
     return (
       <div className="space-y-4">
         <p className="text-sm text-gray-600 mb-4">Seleccioná una plantilla para comenzar:</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {/* Opción especial: Documento Personalizado */}
+          <button
+            onClick={() => setModoPersonalizado(true)}
+            className="p-4 border-2 border-dashed border-[#C026D3] rounded-lg hover:border-solid hover:bg-[#C026D3]/10 transition-all text-left group bg-gradient-to-br from-purple-50 to-pink-50"
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <Sparkles className="h-5 w-5 text-[#C026D3]" />
+              <div className="font-medium text-gray-900 group-hover:text-[#C026D3]">📝 Documento Personalizado</div>
+            </div>
+            <div className="text-xs text-gray-600 mt-1">Describe un documento específico que no esté en las plantillas. El asistente te ayudará a crearlo paso a paso.</div>
+          </button>
+          
           {PLANTILLAS_DOCUMENTOS.map((plantilla) => (
             <button
               key={plantilla.id}
@@ -4585,7 +5190,73 @@ function GenerarDesdePlantilla({ onGenerated, setError, setLoading }: { onGenera
     );
   }
 
+  // Vista de chat para documento personalizado
+  if (modoPersonalizado && !plantillaSeleccionada) {
+    return <ChatDocumentoPersonalizado 
+      onGenerar={async (docData) => {
+        // Generar documento desde chat
+        if (!API) return;
+        
+        setLoadingLocal(true);
+        setLoading(true);
+        setError(null);
+
+        try {
+          const response = await fetch(`${API}/api/generate-custom-document`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              descripcion: docData.descripcion,
+              detalles: docData.detalles,
+              titulo: docData.titulo
+            })
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(errorText || `Error ${response.status}`);
+          }
+
+          const data = await response.json();
+          setResultado(data.documento);
+          
+          onGenerated({
+            id: crypto.randomUUID(),
+            type: "contrato",
+            title: docData.titulo || `Documento Personalizado - ${new Date().toLocaleDateString()}`,
+            markdown: data.documento,
+            createdAt: new Date().toISOString(),
+            esPersonalizado: true,
+            descripcion: docData.descripcion,
+            detalles: docData.detalles
+          });
+
+          // Volver a modo normal después de generar
+          setModoPersonalizado(false);
+
+        } catch (e: any) {
+          setError(e.message || "Error al generar documento personalizado");
+        } finally {
+          setLoadingLocal(false);
+          setLoading(false);
+        }
+      }}
+      onVolver={() => {
+        setModoPersonalizado(false);
+        setResultado(null);
+      }}
+      onGuardarTemplate={(templateData) => {
+        // Fase 2: Guardar como template (postergado)
+        console.log("Guardar template (Fase 2):", templateData);
+      }}
+      setError={setError}
+      setLoading={setLoading}
+    />;
+  }
+
   // Vista de formulario de plantilla
+  if (!plantillaSeleccionada) return null;
+  
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -4698,7 +5369,7 @@ function GenerarDesdePlantilla({ onGenerated, setError, setLoading }: { onGenera
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement("a");
                 a.href = url;
-                a.download = `${plantillaSeleccionada.nombre.replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}.txt`;
+                a.download = `${plantillaSeleccionada?.nombre?.replace(/\s+/g, "_") || "documento"}_${new Date().toISOString().split("T")[0]}.txt`;
                 a.click();
                 URL.revokeObjectURL(url);
               }}

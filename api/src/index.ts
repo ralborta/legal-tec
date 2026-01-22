@@ -509,6 +509,164 @@ async function start() {
     }
   });
 
+  // Chat para documentos personalizados (Fase 1: básico, recopila información)
+  app.post("/api/chat-custom-document", async (req, rep) => {
+    try {
+      const body = z.object({
+        messages: z.array(z.object({
+          role: z.enum(["user", "assistant"]),
+          content: z.string()
+        }))
+      }).parse(req.body);
+
+      const openaiKey = process.env.OPENAI_API_KEY;
+      if (!openaiKey) {
+        return rep.status(500).send({ error: "OPENAI_API_KEY no configurada" });
+      }
+
+      const openai = new OpenAI({ apiKey: openaiKey });
+
+      // Construir historial de conversación
+      const conversationHistory = body.messages.map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }));
+
+      // System prompt para chat de documentos personalizados
+      const systemPrompt = `Sos un asistente jurídico argentino de WNS & Asociados, especializado en ayudar a crear documentos legales personalizados.
+
+Tu rol:
+- Ayudar al usuario a DESCRIBIR el documento que necesita crear
+- Hacer PREGUNTAS CLARAS y ESPECÍFICAS para obtener toda la información necesaria
+- Sugerir aspectos importantes que el usuario podría estar olvidando
+- Ser CONVERSACIONAL y AMIGABLE, pero PROFESIONAL
+
+Información que debes recopilar:
+1. Tipo de documento (contrato, acuerdo, carta, etc.)
+2. Partes involucradas (nombres, DNI/CUIT, domicilios)
+3. Objeto del documento (qué se está acordando/estableciendo)
+4. Términos y condiciones principales
+5. Plazos, fechas, montos (si aplica)
+6. Jurisdicción y ley aplicable
+7. Cualquier detalle específico que el usuario mencione
+
+IMPORTANTE:
+- NO generes el documento todavía, solo recopila información
+- Haz UNA pregunta a la vez para no abrumar al usuario
+- Si el usuario da información incompleta, pregunta por los detalles faltantes
+- Sé proactivo: sugiere aspectos legales importantes que deberían incluirse
+
+Formato de respuesta:
+- Sé claro y directo
+- Haz una pregunta específica o confirma información recibida
+- Al final de cada respuesta, puedes sugerir: "¿Hay algo más que quieras agregar o modificar?"`;
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...conversationHistory
+        ],
+        temperature: 0.7,
+        max_tokens: 500
+      });
+
+      const assistantMessage = response.choices[0]?.message?.content || "No se pudo generar una respuesta.";
+
+      return rep.send({
+        message: assistantMessage
+      });
+
+    } catch (error) {
+      app.log.error(error, "Error en /api/chat-custom-document");
+      return rep.status(500).send({
+        error: "Error interno en el chat",
+        message: error instanceof Error ? error.message : "Error desconocido"
+      });
+    }
+  });
+
+  // Generar documento personalizado desde descripción del chat (Fase 1)
+  app.post("/api/generate-custom-document", async (req, rep) => {
+    try {
+      const body = z.object({
+        descripcion: z.string(),
+        detalles: z.record(z.any()).optional(),
+        titulo: z.string().optional()
+      }).parse(req.body);
+
+      const openaiKey = process.env.OPENAI_API_KEY;
+      if (!openaiKey) {
+        return rep.status(500).send({ error: "OPENAI_API_KEY no configurada" });
+      }
+
+      const openai = new OpenAI({ apiKey: openaiKey });
+
+      // Construir prompt para generar documento
+      const detallesText = body.detalles 
+        ? Object.entries(body.detalles)
+            .map(([key, value]) => `- ${key}: ${value}`)
+            .join("\n")
+        : "";
+
+      const systemPrompt = `Sos un abogado argentino senior de WNS & Asociados, especializado en redactar documentos legales profesionales.
+
+Tu tarea es generar documentos legales COMPLETOS, PROFESIONALES y LISTOS PARA USAR, basándote en la descripción y detalles proporcionados por el usuario.
+
+REGLAS FUNDAMENTALES:
+1. El documento debe estar COMPLETO y listo para firmar/usar
+2. Debe incluir TODAS las cláusulas legales necesarias según el tipo de documento
+3. Debe ser FORMAL y PROFESIONAL
+4. Debe incluir referencias a la normativa aplicable (Código Civil y Comercial, leyes especiales, etc.)
+5. Debe tener formato adecuado con numeración de cláusulas
+6. Debe incluir datos completos de las partes (donde aplique)
+7. Debe incluir cláusulas estándar importantes (confidencialidad, jurisdicción, etc.) si son relevantes
+
+Formato del documento:
+- Título claro
+- Identificación completa de partes
+- Objeto/considerandos
+- Cláusulas numeradas
+- Firma y fecha
+- Referencias legales cuando sea apropiado`;
+
+      const userPrompt = `Generá un documento legal completo basándote en la siguiente descripción:
+
+DESCRIPCIÓN:
+${body.descripcion}
+
+${detallesText ? `\nDETALLES ADICIONALES:\n${detallesText}` : ""}
+
+${body.titulo ? `\nTÍTULO SUGERIDO: ${body.titulo}` : ""}
+
+Generá el documento completo, profesional y listo para usar:`;
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        temperature: 0.3,
+        max_tokens: 4000
+      });
+
+      const documento = response.choices[0]?.message?.content || "No se pudo generar el documento.";
+
+      return rep.send({ 
+        documento,
+        titulo: body.titulo || "Documento Personalizado"
+      });
+
+    } catch (error) {
+      app.log.error(error, "Error en /api/generate-custom-document");
+      return rep.status(500).send({
+        error: "Error al generar documento personalizado",
+        message: error instanceof Error ? error.message : "Error desconocido"
+      });
+    }
+  });
+
   // Chat sobre análisis de documentos legales (contratos, acuerdos, etc.)
   app.post("/api/analysis/chat", async (req, rep) => {
     try {
