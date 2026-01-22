@@ -1739,8 +1739,9 @@ function AnalizarDocumentosPanel() {
   };
 
   const pollForResults = async (docId: string, isConjointAnalysis: boolean = false) => {
-    // Aumentar tiempo de espera para análisis conjunto (puede tardar hasta 10 minutos)
-    const maxAttempts = isConjointAnalysis ? 200 : 60; // ~10 min para conjunto, ~3 min para individual
+    // Aumentar tiempo de espera para análisis ultra profundo (puede tardar hasta 15 minutos)
+    // Análisis ultra profundo requiere más tiempo: 15 min para conjunto, 5 min para individual
+    const maxAttempts = isConjointAnalysis ? 300 : 100; // ~15 min para conjunto (ultra profundo), ~5 min para individual (ultra profundo)
     let attempts = 0;
     let consecutive502s = 0;
     const maxConsecutive502s = 10; // Aumentar a 10 para análisis conjunto (más tolerante)
