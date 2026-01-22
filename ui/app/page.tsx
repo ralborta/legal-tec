@@ -282,8 +282,8 @@ export default function CentroGestionLegalPage() {
               ) : activeView === "analizar" ? (
                 <AnalizarDocumentosPanel />
               ) : activeView === "generar" ? (
-                /* Vista Generar - pantalla completa */
-                <div className="max-w-4xl mx-auto">
+                /* Vista Generar - pantalla completa mejorada */
+                <div className="w-full">
                   <GenerarPanel
                     onGenerated={(out) => {
                       const newItem = {
@@ -4155,19 +4155,22 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
   }
 
   return (
-    <div className="bg-white p-6 rounded-xl border border-gray-200">
-      <h3 className="font-bold text-lg text-gray-900 mb-1">Generar Documento</h3>
-      <p className="text-sm text-gray-500 mb-6">Guide for Normative - Jurisprudential agents</p>
+    <div className="w-full">
+      {/* Header mejorado */}
+      <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-gray-200 p-6 mb-6">
+        <h3 className="font-bold text-2xl text-gray-900 mb-1">Generar Documento</h3>
+        <p className="text-sm text-gray-600">Generación de memos, dictámenes, contratos y documentos legales</p>
+      </div>
       
-      {/* Tabs para elegir modo */}
-      <div className="flex gap-1 mb-6 border-b border-gray-200">
+      {/* Tabs para elegir modo mejorados */}
+      <div className="flex gap-2 mb-6 border-b-2 border-gray-200">
         <button
           type="button"
           onClick={() => setModoGeneracion("memo")}
-          className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
+          className={`px-6 py-3 text-sm font-semibold transition-all border-b-2 ${
             modoGeneracion === "memo"
-              ? "border-[#C026D3] text-[#C026D3]"
-              : "border-transparent text-gray-600 hover:text-gray-900"
+              ? "border-[#C026D3] text-[#C026D3] bg-purple-50/50"
+              : "border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50"
           }`}
         >
           Reuniones / Dictámenes
@@ -4175,10 +4178,10 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
         <button
           type="button"
           onClick={() => setModoGeneracion("plantilla")}
-          className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
+          className={`px-6 py-3 text-sm font-semibold transition-all border-b-2 ${
             modoGeneracion === "plantilla"
-              ? "border-[#C026D3] text-[#C026D3]"
-              : "border-transparent text-gray-600 hover:text-gray-900"
+              ? "border-[#C026D3] text-[#C026D3] bg-purple-50/50"
+              : "border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50"
           }`}
         >
           Contratos / Plantillas
@@ -4188,22 +4191,24 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
       {modoGeneracion === "plantilla" ? (
         <GenerarDesdePlantilla onGenerated={onGenerated} setError={setError} setLoading={setLoading} />
       ) : (
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Columna izquierda: Formulario */}
-        <div className="space-y-4">
-      <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
-        <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de documento</label>
-              <select className="w-full bg-white border border-gray-300 rounded-md py-2 px-3 text-sm focus:ring-[#C026D3] focus:border-[#C026D3]" value={type} onChange={e=>setType(e.target.value as any)}>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Columna izquierda: Formulario - Ocupa 2 columnas */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Tipo de documento</label>
+            <select className="w-full bg-white border-2 border-gray-300 rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors" value={type} onChange={e=>setType(e.target.value as any)}>
               <option value="memo">Transcripción de reunión</option>
               <option value="dictamen">Dictamen</option>
               <option value="contrato">Contrato</option>
               <option value="escrito">Escrito</option>
             </select>
-        </div>
-        <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Área legal</label>
-              <select className="w-full bg-white border border-gray-300 rounded-md py-2 px-3 text-sm focus:ring-[#C026D3] focus:border-[#C026D3]" value={areaLegal} onChange={e=>setAreaLegal(e.target.value as any)}>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Área legal</label>
+            <select className="w-full bg-white border-2 border-gray-300 rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors" value={areaLegal} onChange={e=>setAreaLegal(e.target.value as any)}>
               <option value="civil_comercial">Civil, Comercial y Societario</option>
               <option value="laboral">Laboral</option>
               <option value="corporativo">Corporativo</option>
@@ -4212,6 +4217,7 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
               <option value="consumidor">Consumidor</option>
               <option value="traducir">Traducir</option>
             </select>
+          </div>
         </div>
         
         {/* Selector de bases de conocimiento (solo para RAG, no para memos) */}
@@ -4255,17 +4261,17 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
         )}
         
         <div>
-          <label className="text-sm font-medium text-gray-600">Título</label>
-          <input className="mt-1 w-full bg-gray-50 border-gray-300 rounded-md text-sm placeholder-gray-400 focus:ring-[#C026D3] focus:border-[#C026D3]" placeholder="Ej.: Aplicación del art. 765 CCyC en mutuo USD" value={title} onChange={e=>setTitle(e.target.value)} type="text"/>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">Título</label>
+          <input className="w-full bg-white border-2 border-gray-300 rounded-lg py-2.5 px-4 text-sm placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors" placeholder="Ej.: Aplicación del art. 765 CCyC en mutuo USD" value={title} onChange={e=>setTitle(e.target.value)} type="text"/>
         </div>
         <div>
-          <label className="text-sm font-medium text-gray-600">Instrucciones</label>
-          <textarea className="mt-1 w-full bg-gray-50 border-gray-300 rounded-md text-sm placeholder-gray-400 focus:ring-[#C026D3] focus:border-[#C026D3]" placeholder="Hechos, contexto, puntos a resolver, tono, jurisdicción..." rows={3} value={instructions} onChange={e=>setInstructions(e.target.value)} />
+          <label className="block text-sm font-semibold text-gray-700 mb-2">Instrucciones</label>
+          <textarea className="w-full bg-white border-2 border-gray-300 rounded-lg py-2.5 px-4 text-sm placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors resize-y" placeholder="Hechos, contexto, puntos a resolver, tono, jurisdicción..." rows={5} value={instructions} onChange={e=>setInstructions(e.target.value)} />
         </div>
         <div>
-          <label className="text-sm font-medium text-gray-600">Transcripción (PDF opcional)</label>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">Transcripción (PDF opcional)</label>
           <div 
-            className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md bg-gray-50/50 hover:border-[#C026D3]/40 transition cursor-pointer"
+            className="flex justify-center px-6 pt-8 pb-8 border-2 border-gray-300 border-dashed rounded-lg bg-gray-50/50 hover:border-purple-400 hover:bg-purple-50/30 transition-all cursor-pointer"
             onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add("bg-slate-50"); }}
             onDragLeave={(e) => { e.currentTarget.classList.remove("bg-slate-50"); }}
             onDrop={(e) => {
@@ -4354,9 +4360,9 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
             <div className="text-blue-700 text-xs">Con el archivo subido, también podés usar el modo chat para consultar paso a paso cómo proceder.</div>
           </div>
         )}
-        <div className="flex items-center justify-end space-x-4 pt-4">
+        <div className="flex items-center justify-end gap-4 pt-6 border-t border-gray-200">
           <button 
-                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 font-medium" 
+            className="px-6 py-2.5 text-sm text-gray-600 hover:text-gray-800 font-medium rounded-lg hover:bg-gray-100 transition-colors" 
             type="button"
             onClick={()=>{ 
               setTitle(""); 
@@ -4369,31 +4375,33 @@ function GenerarPanel({ onGenerated, setError, setLoading }: { onGenerated: (out
             }}
             disabled={loadingLocal}
           >
-                Salir
+            Limpiar
           </button>
           <button 
-            className="flex items-center space-x-2 bg-[#C026D3] text-white font-semibold py-2.5 px-5 rounded-lg hover:bg-[#A21CAF] transition-colors shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed" 
+            className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold py-2.5 px-6 rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed" 
             type="submit"
             disabled={loadingLocal}
           >
             {loadingLocal ? (
               <>
-                <Loader2 className="text-base animate-spin" />
+                <Loader2 className="h-5 w-5 animate-spin" />
                 <span>Generando...</span>
               </>
             ) : (
               <>
-                    <CheckCircle2 className="text-base" />
-                <span>Generar</span>
+                <CheckCircle2 className="h-5 w-5" />
+                <span>Generar Documento</span>
               </>
             )}
           </button>
         </div>
       </form>
+          </div>
         </div>
 
-        {/* Columna derecha: Preview del Dictamen o Resultado */}
-        <div className="bg-gray-50 rounded-xl border border-gray-200 p-6">
+        {/* Columna derecha: Preview del Dictamen o Resultado - Ocupa 1 columna */}
+        <div className="lg:col-span-1">
+          <div className="bg-white rounded-xl border-2 border-gray-200 shadow-sm p-6 sticky top-6">
           {memoResult ? (
             <MemoResultPanel 
               memoResult={memoResult}
