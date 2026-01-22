@@ -876,23 +876,43 @@ app.get("/history", async (_req, res) => {
         }
         
         // 2. Filtrar documentos que están en la lista de documentos de un análisis conjunto
-        if (documentsInConjoint.has(doc.id) && !doc.report) {
-          console.log(`[HISTORY] Filtrando documento ${doc.id} (está en lista de documentos de análisis conjunto)`);
-          return false;
+        // IMPORTANTE: Filtrar incluso si el análisis conjunto aún no está completo (no tiene report todavía)
+        if (documentsInConjoint.has(doc.id)) {
+          // Solo mostrar si ES el documento principal Y tiene report (es el análisis conjunto completo)
+          const isPrimaryWithReport = conjointAnalyses.some((conjointDoc: any) => {
+            if (conjointDoc.id === doc.id && conjointDoc.report) return true;
+            return false;
+          });
+          
+          if (!isPrimaryWithReport) {
+            console.log(`[HISTORY] Filtrando documento ${doc.id} (está en lista de documentos de análisis conjunto)`);
+            return false;
+          }
         }
         
         // 3. Filtrar documentos con estado "uploaded" sin análisis si hay un análisis conjunto reciente
+        // O si hay documentos con la misma fecha que forman parte de un análisis conjunto
         if (doc.status === 'uploaded' && !doc.analysis_type && !doc.report) {
-          // Si hay algún análisis conjunto creado en la misma fecha o después, filtrar este documento
+          // Verificar si hay un análisis conjunto que incluya este documento
+          const isInConjointList = documentsInConjoint.has(doc.id);
+          
+          // También verificar por fecha: si hay análisis conjunto creado en la misma fecha/hora
           const hasRecentConjoint = conjointAnalyses.some((conjointDoc: any) => {
             const docDate = new Date(doc.created_at).getTime();
             const conjointDate = new Date(conjointDoc.created_at || conjointDoc.analyzed_at).getTime();
-            // Si el análisis conjunto fue creado en la misma fecha o después (dentro de 1 hora), probablemente es del mismo batch
-            return Math.abs(conjointDate - docDate) < 3600000; // 1 hora de diferencia
+            // Si el análisis conjunto fue creado en la misma fecha o después (dentro de 2 horas), probablemente es del mismo batch
+            return Math.abs(conjointDate - docDate) < 7200000; // 2 horas de diferencia
           });
           
-          if (hasRecentConjoint) {
-            console.log(`[HISTORY] Filtrando documento ${doc.id} (uploaded sin análisis, hay análisis conjunto reciente)`);
+          // También verificar si hay otros documentos uploaded de la misma fecha que tienen análisis conjunto
+          const hasOtherUploadedWithConjoint = documents.some((otherDoc: any) => {
+            if (otherDoc.id === doc.id) return false;
+            const sameDate = Math.abs(new Date(otherDoc.created_at).getTime() - new Date(doc.created_at).getTime()) < 3600000; // 1 hora
+            return sameDate && otherDoc.report && documentsInConjoint.has(otherDoc.id);
+          });
+          
+          if (isInConjointList || hasRecentConjoint || hasOtherUploadedWithConjoint) {
+            console.log(`[HISTORY] Filtrando documento ${doc.id} (uploaded sin análisis, parte de análisis conjunto)`);
             return false;
           }
         }
