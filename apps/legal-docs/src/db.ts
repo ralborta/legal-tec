@@ -302,6 +302,7 @@ export const legalDb = {
          d.updated_at,
          a.type as analysis_type,
          a.report,
+         a.original,
          a.created_at as analyzed_at
        FROM legal_documents d
        LEFT JOIN legal_analysis a ON d.id = a.document_id

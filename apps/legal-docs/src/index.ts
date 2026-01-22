@@ -759,59 +759,115 @@ app.get("/history", async (_req, res) => {
     const documents = await legalDb.getAllDocumentsWithAnalysis(100);
     
     // Transformar al formato esperado por el frontend
-    const items = documents.map((doc: any) => {
-      let report = null;
-      if (doc.report) {
-        try {
-          // PostgreSQL puede devolver JSONB como objeto o como string
-          if (typeof doc.report === 'string') {
-            // Si es string, intentar parsear si parece JSON
-            if (doc.report.trim().startsWith('{') || doc.report.trim().startsWith('[')) {
-              report = JSON.parse(doc.report);
-            } else {
-              // Si no es JSON, mantener como string (texto plano)
-              report = { texto_formateado: doc.report };
+    const items = documents
+      .filter((doc: any) => {
+        // Filtrar documentos que son parte de un análisis conjunto
+        // Estos documentos tienen isPartOfConjointAnalysis: true en su análisis
+        if (doc.original) {
+          let original = doc.original;
+          if (typeof original === 'string') {
+            try {
+              original = JSON.parse(original);
+            } catch {
+              // Si no es JSON válido, mantener como está
             }
-          } else {
-            // Ya es objeto (JSONB devuelto como objeto)
-            report = doc.report;
           }
-        } catch (e) {
-          const msg = e instanceof Error ? e.message : String(e);
-          console.warn(`[HISTORY] Error parseando report para ${doc.id}:`, msg);
-          // Si falla el parseo, intentar usar como texto plano
-          report = { texto_formateado: typeof doc.report === 'string' ? doc.report : JSON.stringify(doc.report) };
+          
+          // Si es parte de un análisis conjunto y no tiene report, no mostrarlo
+          if (original && original.isPartOfConjointAnalysis === true && !doc.report) {
+            console.log(`[HISTORY] Filtrando documento ${doc.id} (parte de análisis conjunto)`);
+            return false;
+          }
         }
-      }
+        
+        // Si tiene estado "uploaded" pero no tiene análisis y no tiene report, puede ser parte de un conjunto
+        // Verificar si hay otro documento con el mismo nombre y un análisis conjunto
+        if (doc.status === 'uploaded' && !doc.analysis_type && !doc.report) {
+          // Verificar si hay un análisis conjunto que incluya este documento
+          const hasConjointAnalysis = documents.some((otherDoc: any) => {
+            if (otherDoc.id === doc.id || !otherDoc.report) return false;
+            
+            let otherReport = otherDoc.report;
+            if (typeof otherReport === 'string') {
+              try {
+                otherReport = JSON.parse(otherReport);
+              } catch {
+                return false;
+              }
+            }
+            
+            // Verificar si el report menciona múltiples documentos o es un análisis conjunto
+            if (otherReport && typeof otherReport === 'object') {
+              const reportText = JSON.stringify(otherReport).toLowerCase();
+              return reportText.includes('conjunto') || 
+                     reportText.includes('múltiples documentos') ||
+                     reportText.includes('análisis legal conjunto');
+            }
+            
+            return false;
+          });
+          
+          if (hasConjointAnalysis) {
+            console.log(`[HISTORY] Filtrando documento ${doc.id} (uploaded sin análisis, probablemente parte de conjunto)`);
+            return false;
+          }
+        }
+        
+        return true;
+      })
+      .map((doc: any) => {
+        let report = null;
+        if (doc.report) {
+          try {
+            // PostgreSQL puede devolver JSONB como objeto o como string
+            if (typeof doc.report === 'string') {
+              // Si es string, intentar parsear si parece JSON
+              if (doc.report.trim().startsWith('{') || doc.report.trim().startsWith('[')) {
+                report = JSON.parse(doc.report);
+              } else {
+                // Si no es JSON, mantener como string (texto plano)
+                report = { texto_formateado: doc.report };
+              }
+            } else {
+              // Ya es objeto (JSONB devuelto como objeto)
+              report = doc.report;
+            }
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            console.warn(`[HISTORY] Error parseando report para ${doc.id}:`, msg);
+            // Si falla el parseo, intentar usar como texto plano
+            report = { texto_formateado: typeof doc.report === 'string' ? doc.report : JSON.stringify(doc.report) };
+          }
+        }
 
-      // Determinar tipo: si tiene analysis_type y report, es un análisis
-      const hasAnalysis = doc.analysis_type && doc.report;
-      const itemType = hasAnalysis ? 'analysis' : (doc.analysis_type || 'document');
-      const itemTipo = hasAnalysis ? 'ANÁLISIS' : 'DOCUMENTO';
+        // Determinar tipo: si tiene analysis_type y report, es un análisis
+        const hasAnalysis = doc.analysis_type && doc.report;
+        const itemType = hasAnalysis ? 'analysis' : (doc.analysis_type || 'document');
+        const itemTipo = hasAnalysis ? 'ANÁLISIS' : 'DOCUMENTO';
 
-      return {
-        id: doc.id,
-        type: itemType,
-        tipo: itemTipo,
-        title: report?.titulo || doc.filename || 'Sin título',
-        asunto: report?.titulo || doc.filename,
-        estado: doc.status === 'completed' ? 'Listo para revisión' : (doc.status || 'uploaded'),
-        prioridad: 'Media',
-        createdAt: doc.created_at,
-        creado: new Date(doc.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }),
-        agente: 'Orquestador',
-        markdown: report?.texto_formateado || report?.resumen_ejecutivo || '',
-        memoData: report ? {
-          resumen: report.resumen_ejecutivo || report.resumen || '',
-          puntos_tratados: report.clausulas_analizadas || [],
-          riesgos: report.riesgos || [],
-          proximos_pasos: report.proximos_pasos || report.recomendaciones || []
-        } : null,
-        citations: report?.citas || [],
-        areaLegal: report?.area_legal || 'civil_comercial',
-        filename: doc.filename
-      };
-    });
+        return {
+          id: doc.id,
+          type: itemType,
+          tipo: itemTipo,
+          title: report?.titulo || doc.filename || 'Sin título',
+          asunto: report?.titulo || doc.filename,
+          estado: doc.status === 'completed' ? 'Listo para revisión' : (doc.status || 'uploaded'),
+          prioridad: 'Media',
+          createdAt: doc.created_at,
+          creado: new Date(doc.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+          agente: 'Orquestador',
+          markdown: report?.texto_formateado || report?.resumen_ejecutivo || '',
+          memoData: report ? {
+            resumen: report.resumen_ejecutivo || report.resumen || '',
+            puntos_tratados: report.clausulas_analizadas || [],
+            riesgos: report.riesgos || [],
+            proximos_pasos: report.proximos_pasos || report.recomendaciones || []
+          } : null,
+          citations: report?.citas || [],
+          areaLegal: report?.area_legal || 'civil_comercial',
+          filename: doc.filename
+        };
+      });
 
     res.json({ items });
   } catch (error: any) {
