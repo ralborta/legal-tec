@@ -1044,7 +1044,7 @@ function MemoChatPanel({
   return (
     <div className="flex flex-col h-full min-h-0">
       {/* Header del chat con gradiente */}
-      <div className="p-4 sm:p-6 bg-gradient-to-r from-pink-50 to-fuchsia-50 flex items-center justify-between gap-3 sm:gap-4 flex-shrink-0">
+      <div className="p-4 sm:p-6 bg-gradient-to-r from-pink-50 to-fuchsia-50 flex items-center justify-between gap-3 sm:gap-4 flex-shrink-0 border-b border-pink-200">
         <div className="flex items-center gap-3 sm:gap-4">
           <div className="bg-pink-500 p-2 sm:p-3 rounded-lg text-white">
             <MessageSquare className="h-5 w-5 sm:h-6 sm:w-6" />
@@ -1053,29 +1053,28 @@ function MemoChatPanel({
             {isAnalysis ? "Chat sobre este análisis de documento" : "Chat sobre esta transcripción de reunión"}
           </h2>
         </div>
-        {/* Botón Descargar Word con recomendaciones del chat */}
-        {messages.length > 0 && (
-          <button
-            onClick={handleDownloadWithChat}
-            disabled={downloading}
-            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-sm font-medium rounded-lg hover:from-purple-700 hover:to-pink-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
-            title="Descargar documento actualizado con recomendaciones del chat en Word (.docx)"
-          >
-            {downloading ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span className="hidden sm:inline">Generando...</span>
-              </>
-            ) : (
-              <>
-                <Download className="h-4 w-4" />
-                <span className="hidden sm:inline">Descargar Word</span>
-                <span className="sm:hidden">Word</span>
-              </>
-            )}
-          </button>
-        )}
-        {messages.length > 0 && (
+        {/* Botón Descargar Word con recomendaciones del chat - Siempre visible */}
+        <button
+          onClick={handleDownloadWithChat}
+          disabled={downloading || messages.length === 0}
+          className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-sm font-medium rounded-lg hover:from-purple-700 hover:to-pink-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+          title={messages.length === 0 ? "Envía un mensaje en el chat para habilitar la descarga" : "Descargar documento actualizado con recomendaciones del chat en Word (.docx)"}
+        >
+          {downloading ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="hidden sm:inline">Generando...</span>
+            </>
+          ) : (
+            <>
+              <Download className="h-4 w-4" />
+              <span className="hidden sm:inline">Descargar Word</span>
+              <span className="sm:hidden">Word</span>
+            </>
+          )}
+        </button>
+      </div>
+      {messages.length > 0 && (
           <>
             {/* Resumen de puntos clave que se aplicarán */}
             <div className="px-4 sm:px-6 pb-3">
