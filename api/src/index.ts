@@ -869,8 +869,15 @@ Generá el documento completo, profesional y listo para usar:`;
         return rep.status(500).send({ error: "LEGAL_DOCS_URL no configurada" });
       }
 
+      // Normalizar URL (agregar protocolo si no tiene)
+      let baseUrl = LEGAL_DOCS_URL.trim();
+      if (!baseUrl.startsWith("http://") && !baseUrl.startsWith("https://")) {
+        baseUrl = `https://${baseUrl}`;
+      }
+      baseUrl = baseUrl.replace(/\/$/, "");
+
       // Enviar al servicio legal-docs para procesar la comparación
-      const response = await fetch(`${LEGAL_DOCS_URL}/compare-documents`, {
+      const response = await fetch(`${baseUrl}/compare-documents`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -911,7 +918,14 @@ Generá el documento completo, profesional y listo para usar:`;
         return rep.status(500).send({ error: "LEGAL_DOCS_URL no configurada" });
       }
 
-      const response = await fetch(`${LEGAL_DOCS_URL}/compare-documents/${comparisonId}`, {
+      // Normalizar URL (agregar protocolo si no tiene)
+      let baseUrl = LEGAL_DOCS_URL.trim();
+      if (!baseUrl.startsWith("http://") && !baseUrl.startsWith("https://")) {
+        baseUrl = `https://${baseUrl}`;
+      }
+      baseUrl = baseUrl.replace(/\/$/, "");
+
+      const response = await fetch(`${baseUrl}/compare-documents/${comparisonId}`, {
         method: "GET",
         headers: { "Content-Type": "application/json" },
       });
