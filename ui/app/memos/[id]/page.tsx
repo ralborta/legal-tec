@@ -1246,9 +1246,8 @@ function MemoChatPanel({
             })()}
           </>
         )}
-      </div>
 
-      {/* Messages con diseño moderno */}
+        {/* Messages con diseño moderno */}
       {messages.length === 0 ? (
         <div className="flex-1 flex flex-col justify-center items-center p-4 sm:p-6 text-center min-h-0 overflow-y-auto">
           <div className="bg-purple-100 p-4 sm:p-6 rounded-full mb-3 sm:mb-4">
