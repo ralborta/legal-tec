@@ -2199,6 +2199,21 @@ Responde SOLO con un JSON válido con esta estructura:
       await proxyToLegalDocs(req, rep, path, legalDocsTimeoutMs, LEGAL_DOCS_URL);
     });
     
+    app.all("/legal/assign-document", async (req, rep) => {
+      // Proxy a /assign-document (SIN /legal) - para asignar documentos a abogados
+      const path = `/assign-document`;
+      app.log.info(`[GW-ASSIGN] Incoming: ${req.method} ${req.url} → ${path}`);
+      await proxyToLegalDocs(req, rep, path, legalDocsTimeoutMs, LEGAL_DOCS_URL);
+    });
+    
+    app.all("/legal/assign-document/:documentoId", async (req, rep) => {
+      // Proxy a /assign-document/:documentoId (SIN /legal) - para obtener asignaciones
+      const documentoId = (req.params as any).documentoId;
+      const path = `/assign-document/${documentoId}`;
+      app.log.info(`[GW-ASSIGN] Incoming: ${req.method} ${req.url} → ${path}`);
+      await proxyToLegalDocs(req, rep, path, legalDocsTimeoutMs, LEGAL_DOCS_URL);
+    });
+    
     // Función helper para el proxy
     async function proxyToLegalDocs(req: any, rep: any, path: string, timeoutMs: number, baseUrl: string) {
       try {

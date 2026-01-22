@@ -1012,6 +1012,119 @@ app.delete("/abogados/:id", async (req, res, next) => {
   }
 });
 
+// Endpoint para asignar un documento a un abogado
+app.post("/assign-document", async (req, res, next) => {
+  try {
+    const { documentoId, documentoTipo, documentoTitulo, abogadoId, asignadoPor, notas } = req.body;
+    
+    if (!documentoId || !documentoTipo || !abogadoId) {
+      return res.status(400).json({ 
+        error: "Bad request",
+        message: "documentoId, documentoTipo y abogadoId son requeridos"
+      });
+    }
+    
+    // Verificar que el abogado existe y está activo
+    const abogadoCheck = await db.query(`
+      SELECT id, nombre, email, telefono
+      FROM abogados_senior
+      WHERE id = $1 AND activo = true
+    `, [abogadoId]);
+    
+    if (abogadoCheck.rows.length === 0) {
+      return res.status(404).json({ 
+        error: "Not found",
+        message: "Abogado no encontrado o inactivo"
+      });
+    }
+    
+    const abogado = abogadoCheck.rows[0];
+    
+    // Crear la asignación
+    const result = await db.query(`
+      INSERT INTO documento_asignaciones (
+        documento_id, 
+        documento_tipo, 
+        documento_titulo,
+        abogado_id, 
+        abogado_nombre, 
+        abogado_email, 
+        abogado_telefono,
+        asignado_por,
+        estado,
+        notas
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      RETURNING id, documento_id, documento_tipo, abogado_id, abogado_nombre, abogado_email, estado, created_at
+    `, [
+      documentoId,
+      documentoTipo,
+      documentoTitulo || null,
+      abogadoId,
+      abogado.nombre,
+      abogado.email,
+      abogado.telefono || null,
+      asignadoPor || null,
+      'asignado',
+      notas || null
+    ]);
+    
+    console.log(`[ASIGNACION] ✅ Documento ${documentoId} asignado a ${abogado.nombre} (${abogado.email})`);
+    res.json({ 
+      asignacion: result.rows[0],
+      abogado: {
+        id: abogado.id,
+        nombre: abogado.nombre,
+        email: abogado.email,
+        telefono: abogado.telefono
+      }
+    });
+  } catch (err: any) {
+    console.error(`[ASIGNACION] ❌ Error asignando documento:`, err);
+    next(err);
+  }
+});
+
+// Endpoint para obtener asignaciones de un documento
+app.get("/assign-document/:documentoId", async (req, res, next) => {
+  try {
+    const { documentoId } = req.params;
+    
+    const result = await db.query(`
+      SELECT 
+        id,
+        documento_id,
+        documento_tipo,
+        documento_titulo,
+        abogado_id,
+        abogado_nombre,
+        abogado_email,
+        abogado_telefono,
+        asignado_por,
+        estado,
+        notas,
+        created_at,
+        updated_at
+      FROM documento_asignaciones
+      WHERE documento_id = $1
+      ORDER BY created_at DESC
+      LIMIT 1
+    `, [documentoId]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ 
+        error: "Not found",
+        message: "No hay asignación para este documento"
+      });
+    }
+    
+    res.json({ asignacion: result.rows[0] });
+  } catch (err: any) {
+    console.error(`[ASIGNACION] ❌ Error obteniendo asignación:`, err);
+    next(err);
+  }
+});
+
 app.get("/history", async (_req, res) => {
   try {
     const documents = await legalDb.getAllDocumentsWithAnalysis(100);

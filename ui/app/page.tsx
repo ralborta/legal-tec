@@ -1085,8 +1085,37 @@ function BandejaLocal({ items, onDelete, onUpdateItem }: { items: any[]; onDelet
                     onClick={async () => {
                       setAssigning(true);
                       try {
-                        // Simular envío por correo (por ahora solo cambio de estado)
-                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        const API = getApiUrl();
+                        if (!API) {
+                          throw new Error("API URL no configurada");
+                        }
+
+                        // Obtener información del documento
+                        const memo = memos.find(m => m.id === assignModal.id);
+                        const documentoTipo = memo?.type || memo?.tipo || "memo";
+                        const documentoTitulo = memo?.title || memo?.asunto || assignModal.title;
+
+                        // Asignar documento a abogado en la DB
+                        const response = await fetch(`${API}/legal/assign-document`, {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            documentoId: assignModal.id,
+                            documentoTipo: documentoTipo,
+                            documentoTitulo: documentoTitulo,
+                            abogadoId: abogado.id,
+                            asignadoPor: "Usuario actual", // TODO: obtener usuario real
+                            notas: null
+                          })
+                        });
+
+                        if (!response.ok) {
+                          const errorData = await response.json().catch(() => ({ message: "Error desconocido" }));
+                          throw new Error(errorData.message || `Error ${response.status}`);
+                        }
+
+                        const data = await response.json();
+                        console.log("[ASIGNACION] ✅ Asignación guardada en DB:", data);
                         
                         // Actualizar el estado usando el callback PRIMERO para actualizar la UI inmediatamente
                         if (onUpdateItem) {

@@ -56,6 +56,35 @@ export const legalDb = {
       CREATE INDEX IF NOT EXISTS idx_abogados_senior_orden ON abogados_senior(orden)
     `);
     
+    // Crear tabla de asignaciones de documentos a abogados
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS documento_asignaciones (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        documento_id VARCHAR(255) NOT NULL,
+        documento_tipo VARCHAR(100) NOT NULL,
+        documento_titulo TEXT,
+        abogado_id UUID NOT NULL,
+        abogado_nombre VARCHAR(255) NOT NULL,
+        abogado_email VARCHAR(255) NOT NULL,
+        abogado_telefono VARCHAR(50),
+        asignado_por VARCHAR(255),
+        estado VARCHAR(50) DEFAULT 'asignado',
+        notas TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        FOREIGN KEY (abogado_id) REFERENCES abogados_senior(id) ON DELETE RESTRICT
+      )
+    `);
+    await db.query(`
+      CREATE INDEX IF NOT EXISTS idx_documento_asignaciones_documento_id ON documento_asignaciones(documento_id)
+    `);
+    await db.query(`
+      CREATE INDEX IF NOT EXISTS idx_documento_asignaciones_abogado_id ON documento_asignaciones(abogado_id)
+    `);
+    await db.query(`
+      CREATE INDEX IF NOT EXISTS idx_documento_asignaciones_created_at ON documento_asignaciones(created_at)
+    `);
+    
     await db.query(`
       CREATE TABLE IF NOT EXISTS legal_documents (
         id VARCHAR(255) PRIMARY KEY,
