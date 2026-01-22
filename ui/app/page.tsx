@@ -4888,8 +4888,7 @@ function ChatDocumentoPersonalizado({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: newMessages,
-          documentoListo: documentoListo
+          messages: newMessages
         })
       });
 

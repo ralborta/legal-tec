@@ -14,6 +14,7 @@ import { generarMemoJuridicoDirect } from "./memos/generate-memo-direct.js";
 import { queryMemo } from "./memos/query-memo.js";
 import { chatMemo } from "./memos/chat-memo.js";
 import { chatAnalysis } from "./memos/chat-analysis.js";
+import OpenAI from "openai";
 import * as knowledgeBases from "./knowledge-bases.js";
 import { scrapeAndIngestUrls, scrapeUrl } from "./url-scraper.js";
 import { createReadStream, existsSync, readFileSync } from "fs";
