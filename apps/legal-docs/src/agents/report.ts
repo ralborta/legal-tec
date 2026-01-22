@@ -212,13 +212,32 @@ Devuelve un JSON con esta estructura EXACTA:
     }
   ],
   "recomendaciones": [
-    "Recomendación específica y accionable 1",
-    "Recomendación específica y accionable 2"
+    {
+      "descripcion": "Descripción ESPECÍFICA y DETALLADA de la recomendación con pasos concretos y accionables. Incluir: qué hacer, cómo hacerlo, cuándo, quién, recursos necesarios, costos estimados, plazos, responsable sugerido, dependencias, justificación, y criterios de éxito",
+      "prioridad": "crítica",
+      "urgencia": "inmediata",
+      "categoria": "crítica",
+      "costo_estimado": "$50,000",
+      "tiempo_estimado": "2 semanas",
+      "responsable_sugerido": "Departamento Legal",
+      "dependencias": "Ninguna"
+    }
   ],
+  ⚠️ IMPORTANTE: Debes generar MÍNIMO 15 recomendaciones (preferiblemente 20). Categoriza por prioridad y tipo. Incluye costos, tiempos, y responsables cuando sea posible.
   "proximos_pasos": [
-    "Acción concreta 1 con responsable si corresponde",
-    "Acción concreta 2 con plazo si corresponde"
+    {
+      "accion": "Acción MUY CONCRETA a tomar con detalle específico paso a paso",
+      "fase": "inmediata",
+      "responsable": "Rol específico, persona o departamento responsable",
+      "fecha_limite": "15 de marzo de 2024",
+      "prioridad": "crítica",
+      "recursos": "Recursos necesarios detallados (humanos, económicos, técnicos)",
+      "dependencias": "Otras acciones que deben completarse antes (si aplica)",
+      "criterios_exito": "Criterios específicos para considerar la acción completada",
+      "impacto": "Impacto esperado de completar esta acción"
+    }
   ],
+  ⚠️ IMPORTANTE: Debes generar MÍNIMO 12 acciones (preferiblemente 18). Estructura por fases temporales: inmediata (0-7 días), corto plazo (1-4 semanas), mediano plazo (1-3 meses), largo plazo (3+ meses).
   "citas": [
     {
       "tipo": "normativa",
