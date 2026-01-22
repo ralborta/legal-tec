@@ -121,21 +121,20 @@ REQUISITOS DE EXTENSIÓN Y PROFUNDIDAD - ANÁLISIS ULTRA PROFUNDO Y COMPLETO:
   * Análisis de cumplimiento y posibles dificultades de ejecución
   * Comparación con normativa aplicable específica
 
-- "analisis_juridico": MÍNIMO 12-18 párrafos con análisis legal ULTRA PROFUNDO Y EXHAUSTIVO. Debe incluir:
-  * Marco normativo aplicable COMPLETO Y DETALLADO (leyes, decretos, resoluciones, artículos específicos)
-  * Interpretación jurídica MUY DETALLADA de TODAS las cláusulas clave
-  * Validez legal de CADA disposición importante con fundamentación
-  * Posibles conflictos con normativa vigente y cómo resolverlos
-  * Jurisprudencia relevante DETALLADA y cómo aplica específicamente al caso
-  * Análisis EXHAUSTIVO de derechos y obligaciones de cada parte
-  * Consideraciones sobre cumplimiento y ejecución con escenarios detallados
-  * Comparación con estándares legales del sector y mejores prácticas
-  * Análisis DETALLADO de posibles vacíos legales o ambigüedades
-  * Análisis de la estructura contractual y su coherencia jurídica
-  * Consideraciones sobre posibles litigios y defensas disponibles
-  * Análisis de aspectos procesales y jurisdiccionales
-  * Evaluación de la eficacia y ejecutabilidad de las disposiciones
-  * Análisis comparativo con normativa internacional si aplica
+- "analisis_juridico": ⚠️ MÍNIMO ABSOLUTO 15 párrafos (preferiblemente 20 o más) con análisis legal ULTRA PROFUNDO Y EXHAUSTIVO. DEBE estar estructurado en subsecciones claras:
+  * MARCO NORMATIVO (2-3 párrafos): Marco normativo aplicable COMPLETO Y DETALLADO (leyes, decretos, resoluciones, artículos específicos con números, incisos, párrafos). Incluir jerarquía normativa y relaciones entre normas.
+  * INTERPRETACIÓN JURÍDICA (3-4 párrafos): Interpretación jurídica MUY DETALLADA de TODAS las cláusulas clave. Análisis de cada cláusula desde perspectiva legal, posibles interpretaciones alternativas, y su validez.
+  * VALIDEZ LEGAL Y FUNDAMENTACIÓN (2-3 párrafos): Validez legal de CADA disposición importante con fundamentación exhaustiva. Posibles conflictos con normativa vigente y cómo resolverlos. Análisis de posibles nulidades o invalideces.
+  * JURISPRUDENCIA APLICABLE (2-3 párrafos): Jurisprudencia relevante DETALLADA y cómo aplica específicamente al caso. Incluir fallos relevantes con referencias completas (tribunal, fecha, número de causa).
+  * DERECHOS Y OBLIGACIONES (2-3 párrafos): Análisis EXHAUSTIVO de derechos y obligaciones de cada parte. Desglose detallado de cada obligación, plazo, modalidad, y consecuencias de incumplimiento.
+  * CUMPLIMIENTO Y EJECUCIÓN (2-3 párrafos): Consideraciones sobre cumplimiento y ejecución con escenarios detallados. Dificultades potenciales, requisitos administrativos, y procedimientos necesarios.
+  * ESTÁNDARES Y MEJORES PRÁCTICAS (1-2 párrafos): Comparación con estándares legales del sector y mejores prácticas. Análisis de cómo el documento se compara con contratos similares del mercado.
+  * VACÍOS LEGALES Y AMBIGÜEDADES (1-2 párrafos): Análisis DETALLADO de posibles vacíos legales o ambigüedades. Identificación de áreas donde el documento no es claro o completo.
+  * ESTRUCTURA Y COHERENCIA (1-2 párrafos): Análisis de la estructura contractual y su coherencia jurídica. Evaluación de la lógica interna del documento y posibles inconsistencias.
+  * LITIGIOS Y DEFENSAS (1-2 párrafos): Consideraciones sobre posibles litigios y defensas disponibles. Análisis de escenarios de conflicto y estrategias legales.
+  * ASPECTOS PROCESALES (1-2 párrafos): Análisis de aspectos procesales y jurisdiccionales. Competencia, foro, y procedimientos aplicables.
+  * EFICACIA Y EJECUTABILIDAD (1 párrafo): Evaluación de la eficacia y ejecutabilidad de las disposiciones. Análisis de si las cláusulas son realmente ejecutables en la práctica.
+  * NORMATIVA INTERNACIONAL (1 párrafo, si aplica): Análisis comparativo con normativa internacional si aplica.
 
 - "riesgos": ⚠️ MÍNIMO ABSOLUTO 10 riesgos identificados (preferiblemente 15 o más). Si no encuentras 10 riesgos obvios, profundiza MÁS y busca riesgos desde diferentes perspectivas (jurídica, comercial, operativa, financiera, reputacional, contractual, de cumplimiento, etc.). Cada riesgo debe incluir:
   * Descripción ULTRA ESPECÍFICA y MUY DETALLADA del riesgo con ejemplos concretos
@@ -149,22 +148,34 @@ REQUISITOS DE EXTENSIÓN Y PROFUNDIDAD - ANÁLISIS ULTRA PROFUNDO Y COMPLETO:
   * Factores que aumentan o disminuyen el riesgo
   * Medidas preventivas específicas y su efectividad
 
-- "recomendaciones": MÍNIMO 12-18 recomendaciones prácticas, MUY ESPECÍFICAS y DETALLADAS. Cada recomendación debe ser:
+- "recomendaciones": ⚠️ MÍNIMO ABSOLUTO 15 recomendaciones (preferiblemente 20 o más). Cada recomendación debe ser:
   * Accionable y MUY concreta (no genérica, con pasos específicos)
   * Específica sobre QUÉ hacer exactamente, CÓMO hacerlo, CUÁNDO y QUIÉN
   * Incluir consideraciones prácticas DETALLADAS de implementación
-  * Priorizada según importancia (alta/media/baja) y urgencia (inmediata/corto plazo/mediano plazo)
-  * Incluir recursos necesarios y costos estimados si aplica
-  * Incluir plazos específicos y responsables
-  * Justificación de por qué esta recomendación es importante
+  * Priorizada según importancia (crítica/alta/media/baja) y urgencia (inmediata/corto plazo/mediano plazo/largo plazo)
+  * Categorizada por tipo: crítica (debe hacerse sí o sí), importante (debe hacerse pronto), preventiva (conviene hacer)
+  * Incluir recursos necesarios DETALLADOS (humanos, económicos, técnicos)
+  * Incluir costos estimados CUANTIFICADOS cuando sea posible (en pesos, dólares, o porcentaje del presupuesto)
+  * Incluir plazos específicos con fechas límite sugeridas
+  * Incluir responsable sugerido (rol, departamento, persona)
+  * Incluir dependencias con otras recomendaciones
+  * Justificación DETALLADA de por qué esta recomendación es importante y qué problema resuelve
+  * Incluir criterios de éxito para considerar la recomendación implementada
 
-- "proximos_pasos": MÍNIMO 10-15 acciones MUY CONCRETAS a tomar. Cada acción debe incluir:
-  * Qué hacer ESPECÍFICAMENTE con detalle
-  * Quién debe hacerlo (rol, persona, departamento)
-  * Plazo o prioridad ESPECÍFICA (fecha límite si aplica)
-  * Recursos necesarios DETALLADOS (humanos, económicos, técnicos)
-  * Dependencias con otras acciones
-  * Criterios de éxito para considerar la acción completada
+- "proximos_pasos": ⚠️ MÍNIMO ABSOLUTO 12 acciones (preferiblemente 18 o más) MUY CONCRETAS a tomar. DEBE estar estructurado por fases temporales:
+  * FASE INMEDIATA (0-7 días): Mínimo 3-4 acciones críticas que deben hacerse de inmediato
+  * FASE CORTO PLAZO (1-4 semanas): Mínimo 4-5 acciones importantes para las próximas semanas
+  * FASE MEDIANO PLAZO (1-3 meses): Mínimo 4-5 acciones para los próximos meses
+  * FASE LARGO PLAZO (3+ meses): Mínimo 1-2 acciones estratégicas a largo plazo
+  Cada acción debe incluir:
+  * Qué hacer ESPECÍFICAMENTE con detalle paso a paso
+  * Quién debe hacerlo (rol específico, persona, departamento) con nombre si es posible
+  * Plazo ESPECÍFICO con fecha límite sugerida (ej: "antes del 15 de marzo")
+  * Prioridad (crítica/alta/media/baja) y urgencia (inmediata/corto plazo/mediano plazo/largo plazo)
+  * Recursos necesarios DETALLADOS (humanos: quién, cuántas horas; económicos: costo estimado; técnicos: herramientas/software)
+  * Dependencias con otras acciones (qué acciones deben completarse antes)
+  * Criterios de éxito ESPECÍFICOS para considerar la acción completada
+  * Impacto esperado de completar esta acción
 
 - "citas": MÍNIMO 10-15 citas de normativa/jurisprudencia relevante CON URLs. Debe incluir:
   * Normativa aplicable ESPECÍFICA con artículos, incisos, párrafos (leyes, decretos, resoluciones)
@@ -192,7 +203,7 @@ Devuelve un JSON con esta estructura EXACTA:
     }
   ],
   ⚠️ IMPORTANTE: Debes analizar MÍNIMO 15 cláusulas. Si el documento tiene menos, analiza TODAS con EXTRA profundidad. Si tiene más, analiza TODAS sin excepción.
-  "analisis_juridico": "Análisis jurídico ULTRA EXTENSO y ULTRA PROFUNDO de 12-18 párrafos. Debe incluir: marco normativo aplicable COMPLETO Y DETALLADO (leyes, decretos, resoluciones, artículos específicos), interpretación jurídica MUY DETALLADA de TODAS las cláusulas clave, validez legal de CADA disposición importante con fundamentación, posibles conflictos con normativa vigente y cómo resolverlos, jurisprudencia relevante DETALLADA y cómo aplica específicamente al caso, análisis EXHAUSTIVO de derechos y obligaciones de cada parte, consideraciones sobre cumplimiento y ejecución con escenarios detallados, comparación con estándares legales del sector y mejores prácticas, análisis DETALLADO de posibles vacíos legales o ambigüedades, análisis de la estructura contractual y su coherencia jurídica, consideraciones sobre posibles litigios y defensas disponibles, análisis de aspectos procesales y jurisdiccionales, evaluación de la eficacia y ejecutabilidad de las disposiciones.",
+  "analisis_juridico": "Análisis jurídico ULTRA EXTENSO y ULTRA PROFUNDO de MÍNIMO 15 párrafos (preferiblemente 20 o más), estructurado en subsecciones claras: MARCO NORMATIVO (2-3 párrafos con leyes, decretos, resoluciones, artículos específicos), INTERPRETACIÓN JURÍDICA (3-4 párrafos analizando TODAS las cláusulas clave), VALIDEZ LEGAL Y FUNDAMENTACIÓN (2-3 párrafos con fundamentación exhaustiva), JURISPRUDENCIA APLICABLE (2-3 párrafos con fallos relevantes y referencias), DERECHOS Y OBLIGACIONES (2-3 párrafos con desglose exhaustivo), CUMPLIMIENTO Y EJECUCIÓN (2-3 párrafos con escenarios detallados), ESTÁNDARES Y MEJORES PRÁCTICAS (1-2 párrafos comparando con el mercado), VACÍOS LEGALES Y AMBIGÜEDADES (1-2 párrafos identificando problemas), ESTRUCTURA Y COHERENCIA (1-2 párrafos evaluando lógica interna), LITIGIOS Y DEFENSAS (1-2 párrafos con estrategias legales), ASPECTOS PROCESALES (1-2 párrafos sobre competencia y procedimientos), EFICACIA Y EJECUTABILIDAD (1 párrafo evaluando ejecutabilidad práctica), y NORMATIVA INTERNACIONAL (1 párrafo si aplica).",
   "riesgos": [
     {
       "descripcion": "Descripción ESPECÍFICA del riesgo interpretando y aplicando el enfoque, punto de vista, criterios y preocupaciones mencionados en el chat. El riesgo DEBE ser coherente con el enfoque interpretado: si el chat menciona un punto de vista específico, el riesgo DEBE ser un riesgo PARA ESE PUNTO DE VISTA. Si menciona beneficios, preocupaciones o criterios específicos, el riesgo DEBE reflejarlos desde esa perspectiva. DEBE ser coherente con el enfoque del análisis completo en todas sus secciones.",
@@ -460,11 +471,15 @@ NO ignores estas instrucciones. Son OBLIGATORIAS y tienen PRIORIDAD ABSOLUTA sob
 🚨🚨🚨 VERIFICACIÓN FINAL OBLIGATORIA ANTES DE GENERAR EL JSON 🚨🚨🚨:
 1. ¿Tienes MÍNIMO 15 cláusulas en "clausulas_analizadas"? Si no, analiza MÁS o profundiza MÁS en las existentes.
 2. ¿Tienes MÍNIMO 10 riesgos en "riesgos"? Si no, identifica MÁS desde diferentes perspectivas.
-3. ¿Tienes MÍNIMO 12 recomendaciones en "recomendaciones"? Si no, genera MÁS recomendaciones específicas.
+3. ¿Tienes MÍNIMO 15 recomendaciones en "recomendaciones" (preferiblemente 20)? Si no, genera MÁS recomendaciones específicas. ¿Están categorizadas por prioridad y tipo? ¿Incluyen costos, tiempos y responsables?
 4. ¿Tienes MÍNIMO 5 documentos en "documentos_sugeridos"? Si no, identifica MÁS documentos complementarios.
 5. ¿Tienes MÍNIMO 10 citas en "citas"? Si no, busca MÁS normativa y jurisprudencia.
 6. ¿El "resumen_ejecutivo" tiene MÍNIMO 8 párrafos completos? Si no, expande MÁS.
-7. ¿El "analisis_juridico" tiene MÍNIMO 12 párrafos? Si no, profundiza MÁS.
+7. ¿El "analisis_juridico" tiene MÍNIMO 15 párrafos (preferiblemente 20) estructurados en subsecciones? Si no, profundiza MÁS y estructura mejor.
+8. ¿Tienes MÍNIMO 12 acciones en "proximos_pasos" (preferiblemente 18) estructuradas por fases temporales? Si no, genera MÁS acciones y estructura por fases.
+9. ¿Las recomendaciones corresponden a los riesgos identificados? Verifica coherencia.
+10. ¿Los próximos pasos corresponden a las recomendaciones? Verifica coherencia.
+11. ¿Las citas se usan en el análisis jurídico? Verifica que las citas mencionadas en "citas" aparezcan referenciadas en "analisis_juridico".
 
 ⚠️ NO generes el JSON hasta cumplir TODOS estos mínimos. Si el documento es pequeño, profundiza EXTRA en cada sección para cumplir los mínimos.
 
@@ -549,14 +564,20 @@ NO ignores estas instrucciones. Son OBLIGATORIAS.`,
         const clausulasCount = Array.isArray(parsed.clausulas_analizadas) ? parsed.clausulas_analizadas.length : 0;
         const riesgosCount = Array.isArray(parsed.riesgos) ? parsed.riesgos.length : 0;
         const recomendacionesCount = Array.isArray(parsed.recomendaciones) ? parsed.recomendaciones.length : 0;
+        const proximosPasosCount = Array.isArray(parsed.proximos_pasos) ? parsed.proximos_pasos.length : 0;
         const documentosSugeridosCount = Array.isArray(parsed.documentos_sugeridos) ? parsed.documentos_sugeridos.length : 0;
         const citasCount = Array.isArray(parsed.citas) ? parsed.citas.length : 0;
+        // Validar longitud del análisis jurídico (aproximado: contar párrafos por puntos o longitud)
+        const analisisJuridicoText = parsed.analisis_juridico || "";
+        const analisisJuridicoParrafos = analisisJuridicoText.split(/\n\n|\.\s+(?=[A-Z])/).filter(p => p.trim().length > 50).length;
         
         const minClausulas = 15;
         const minRiesgos = 10;
-        const minRecomendaciones = 12;
+        const minRecomendaciones = 15; // Aumentado de 12 a 15
+        const minProximosPasos = 12; // Nuevo mínimo
         const minDocumentosSugeridos = 5;
         const minCitas = 10;
+        const minAnalisisJuridicoParrafos = 15; // Nuevo mínimo (aproximado por longitud)
         
         const issues: string[] = [];
         if (clausulasCount < minClausulas) {
@@ -568,11 +589,37 @@ NO ignores estas instrucciones. Son OBLIGATORIAS.`,
         if (recomendacionesCount < minRecomendaciones) {
           issues.push(`Solo ${recomendacionesCount} recomendaciones (mínimo ${minRecomendaciones})`);
         }
+        if (proximosPasosCount < minProximosPasos) {
+          issues.push(`Solo ${proximosPasosCount} próximos pasos (mínimo ${minProximosPasos})`);
+        }
+        if (analisisJuridicoParrafos < minAnalisisJuridicoParrafos) {
+          issues.push(`Análisis jurídico tiene solo ~${analisisJuridicoParrafos} párrafos (mínimo ${minAnalisisJuridicoParrafos})`);
+        }
         if (documentosSugeridosCount < minDocumentosSugeridos) {
           issues.push(`Solo ${documentosSugeridosCount} documentos sugeridos (mínimo ${minDocumentosSugeridos})`);
         }
         if (citasCount < minCitas) {
           issues.push(`Solo ${citasCount} citas (mínimo ${minCitas})`);
+        }
+        
+        // Validar coherencia entre secciones (B7)
+        const coherenciaIssues: string[] = [];
+        if (recomendacionesCount > 0 && riesgosCount > 0) {
+          // Verificar que haya recomendaciones que correspondan a riesgos
+          // (esto es una validación básica, el modelo debe asegurar la coherencia)
+          if (recomendacionesCount < riesgosCount * 0.8) {
+            coherenciaIssues.push(`Pocas recomendaciones (${recomendacionesCount}) comparado con riesgos (${riesgosCount}). Debe haber al menos una recomendación por cada riesgo crítico/alto.`);
+          }
+        }
+        if (proximosPasosCount > 0 && recomendacionesCount > 0) {
+          // Verificar que haya próximos pasos que correspondan a recomendaciones
+          if (proximosPasosCount < recomendacionesCount * 0.5) {
+            coherenciaIssues.push(`Pocos próximos pasos (${proximosPasosCount}) comparado con recomendaciones (${recomendacionesCount}). Debe haber próximos pasos para las recomendaciones críticas/altas.`);
+          }
+        }
+        
+        if (coherenciaIssues.length > 0) {
+          issues.push(...coherenciaIssues.map(i => `Coherencia: ${i}`));
         }
         
         if (issues.length > 0) {
@@ -589,14 +636,20 @@ ${issues.map(i => `- ${i}`).join("\n")}
 DEBES regenerar el análisis cumpliendo TODOS los mínimos:
 - MÍNIMO ${minClausulas} cláusulas analizadas (tienes ${clausulasCount})
 - MÍNIMO ${minRiesgos} riesgos identificados (tienes ${riesgosCount})
-- MÍNIMO ${minRecomendaciones} recomendaciones (tienes ${recomendacionesCount})
+- MÍNIMO ${minRecomendaciones} recomendaciones (tienes ${recomendacionesCount}) - DEBEN estar categorizadas por prioridad y tipo, e incluir costos, tiempos y responsables
+- MÍNIMO ${minProximosPasos} próximos pasos (tienes ${proximosPasosCount}) - DEBEN estar estructurados por fases temporales (inmediata, corto plazo, mediano plazo, largo plazo)
+- MÍNIMO ${minAnalisisJuridicoParrafos} párrafos en análisis jurídico (tienes ~${analisisJuridicoParrafos}) - DEBE estar estructurado en subsecciones claras
 - MÍNIMO ${minDocumentosSugeridos} documentos sugeridos (tienes ${documentosSugeridosCount})
 - MÍNIMO ${minCitas} citas (tienes ${citasCount})
 
 ⚠️ NO puedes generar menos elementos. Si el documento es pequeño, profundiza EXTRA en cada sección.
 ⚠️ Si necesitas más riesgos, busca desde diferentes perspectivas: jurídica, comercial, operativa, financiera, reputacional, contractual, de cumplimiento, etc.
+⚠️ Si necesitas más recomendaciones, piensa en: recomendaciones críticas (deben hacerse sí o sí), importantes (deben hacerse pronto), preventivas (conviene hacer). Incluye costos, tiempos, responsables, y categoriza por prioridad.
+⚠️ Si necesitas más próximos pasos, estructura por fases: inmediata (0-7 días), corto plazo (1-4 semanas), mediano plazo (1-3 meses), largo plazo (3+ meses). Incluye responsables, fechas límite, recursos, dependencias.
+⚠️ Si necesitas más análisis jurídico, estructura en subsecciones: marco normativo, interpretación jurídica, validez legal, jurisprudencia, derechos/obligaciones, cumplimiento, estándares, vacíos legales, estructura, litigios, aspectos procesales, eficacia.
 ⚠️ Si necesitas más documentos sugeridos, piensa en: contratos relacionados, anexos, garantías, seguros, documentos de respaldo, acuerdos complementarios, etc.
 ⚠️ Si necesitas más citas, busca más normativa aplicable, jurisprudencia relevante, doctrina, etc.
+⚠️ COHERENCIA: Asegúrate de que las recomendaciones correspondan a los riesgos identificados, y que los próximos pasos correspondan a las recomendaciones. Las citas deben usarse en el análisis jurídico.
 
 NO respondas hasta cumplir TODOS los mínimos.`;
 
