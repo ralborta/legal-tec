@@ -6662,7 +6662,7 @@ function GenerarDesdePlantilla({ onGenerated, setError, setLoading }: { onGenera
   );
 }
 
-// Panel de Historial con filtros por tipo
+// Panel de Historial con filtros por tipo - DISEÑO MEJORADO
 function HistorialPanel({ items }: { items: Array<any> }) {
   const [filtro, setFiltro] = useState<"todos" | "memos" | "analisis" | "contratos">("todos");
   const [busqueda, setBusqueda] = useState("");
@@ -6713,169 +6713,303 @@ function HistorialPanel({ items }: { items: Array<any> }) {
   }), [items]);
 
   const getTipoIcon = (item: any) => {
-    if (item.type === "memo" || item.tipo?.toLowerCase().includes("memo")) return "📝";
-    if (item.type === "analysis" || item.tipo?.toLowerCase().includes("análisis")) return "🔍";
-    if (item.type === "contrato" || item.tipo?.toLowerCase().includes("contrato")) return "📄";
-    return "📋";
+    if (item.type === "memo" || item.tipo?.toLowerCase().includes("memo")) return FileText;
+    if (item.type === "analysis" || item.tipo?.toLowerCase().includes("análisis")) return Search;
+    if (item.type === "contrato" || item.tipo?.toLowerCase().includes("contrato")) return Gavel;
+    return FileText;
   };
 
   const getTipoColor = (item: any) => {
-    if (item.type === "memo" || item.tipo?.toLowerCase().includes("memo")) return "bg-purple-100 text-purple-700";
-    if (item.type === "analysis" || item.tipo?.toLowerCase().includes("análisis")) return "bg-blue-100 text-blue-700";
-    if (item.type === "contrato" || item.tipo?.toLowerCase().includes("contrato")) return "bg-green-100 text-green-700";
-    return "bg-gray-100 text-gray-700";
+    if (item.type === "memo" || item.tipo?.toLowerCase().includes("memo")) return {
+      bg: "bg-gradient-to-br from-purple-500 to-pink-500",
+      text: "text-purple-700",
+      badge: "bg-purple-50 text-purple-700 border-purple-200",
+      cardBorder: "border-purple-200",
+      cardHover: "hover:border-purple-400 hover:shadow-purple-100"
+    };
+    if (item.type === "analysis" || item.tipo?.toLowerCase().includes("análisis")) return {
+      bg: "bg-gradient-to-br from-blue-500 to-cyan-500",
+      text: "text-blue-700",
+      badge: "bg-blue-50 text-blue-700 border-blue-200",
+      cardBorder: "border-blue-200",
+      cardHover: "hover:border-blue-400 hover:shadow-blue-100"
+    };
+    if (item.type === "contrato" || item.tipo?.toLowerCase().includes("contrato")) return {
+      bg: "bg-gradient-to-br from-emerald-500 to-teal-500",
+      text: "text-emerald-700",
+      badge: "bg-emerald-50 text-emerald-700 border-emerald-200",
+      cardBorder: "border-emerald-200",
+      cardHover: "hover:border-emerald-400 hover:shadow-emerald-100"
+    };
+    return {
+      bg: "bg-gradient-to-br from-gray-500 to-slate-500",
+      text: "text-gray-700",
+      badge: "bg-gray-50 text-gray-700 border-gray-200",
+      cardBorder: "border-gray-200",
+      cardHover: "hover:border-gray-400 hover:shadow-gray-100"
+    };
   };
 
   return (
     <div className="space-y-6">
-      {/* Filtros */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4">
-        <div className="flex flex-wrap gap-3 mb-4">
+      {/* Header mejorado con gradiente */}
+      <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-2xl p-8 text-white shadow-xl">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-3xl font-bold mb-2">Historial</h2>
+            <p className="text-indigo-100 text-lg">Todos tus documentos organizados por tipo</p>
+          </div>
+          <div className="hidden md:flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-xl px-4 py-3">
+            <FileText className="h-6 w-6" />
+            <div>
+              <div className="text-2xl font-bold">{contadores.todos}</div>
+              <div className="text-xs text-indigo-100">Documentos totales</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Filtros mejorados */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+        <div className="flex flex-wrap gap-3 mb-6">
           <button
             onClick={() => setFiltro("todos")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              filtro === "todos" ? "bg-[#C026D3] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
+              filtro === "todos" 
+                ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-500/30 scale-105" 
+                : "bg-gray-50 text-gray-600 hover:bg-gray-100 hover:scale-102 border border-gray-200"
             }`}
           >
-            📋 Todos ({contadores.todos})
+            <span className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Todos ({contadores.todos})
+            </span>
           </button>
           <button
             onClick={() => setFiltro("memos")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              filtro === "memos" ? "bg-purple-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
+              filtro === "memos" 
+                ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/30 scale-105" 
+                : "bg-gray-50 text-gray-600 hover:bg-gray-100 hover:scale-102 border border-gray-200"
             }`}
           >
-            📝 Memos / Reuniones ({contadores.memos})
+            <span className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Memos / Reuniones ({contadores.memos})
+            </span>
           </button>
           <button
             onClick={() => setFiltro("analisis")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              filtro === "analisis" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
+              filtro === "analisis" 
+                ? "bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg shadow-blue-500/30 scale-105" 
+                : "bg-gray-50 text-gray-600 hover:bg-gray-100 hover:scale-102 border border-gray-200"
             }`}
           >
-            🔍 Documentos Analizados ({contadores.analisis})
+            <span className="flex items-center gap-2">
+              <Search className="h-4 w-4" />
+              Documentos Analizados ({contadores.analisis})
+            </span>
           </button>
           <button
             onClick={() => setFiltro("contratos")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              filtro === "contratos" ? "bg-green-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
+              filtro === "contratos" 
+                ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-500/30 scale-105" 
+                : "bg-gray-50 text-gray-600 hover:bg-gray-100 hover:scale-102 border border-gray-200"
             }`}
           >
-            📄 Contratos Creados ({contadores.contratos})
+            <span className="flex items-center gap-2">
+              <Gavel className="h-4 w-4" />
+              Contratos Creados ({contadores.contratos})
+            </span>
           </button>
         </div>
         
-        {/* Búsqueda */}
+        {/* Búsqueda mejorada */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
           <input
             type="text"
             placeholder="Buscar por título, asunto o contenido..."
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#C026D3] focus:border-transparent"
+            className="w-full pl-12 pr-4 py-3 bg-gradient-to-r from-gray-50 to-white border-2 border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all shadow-sm hover:shadow-md"
           />
         </div>
       </div>
 
-      {/* Lista de items */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* Lista de items mejorada */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {itemsFiltrados.length === 0 ? (
-          <div className="col-span-2 bg-white rounded-xl border border-gray-200 p-8 text-center">
-            <div className="text-4xl mb-3">📭</div>
-            <p className="text-gray-500">No hay documentos en esta categoría</p>
+          <div className="col-span-full bg-gradient-to-br from-gray-50 to-white rounded-2xl border-2 border-dashed border-gray-300 p-12 text-center">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-100 mb-4">
+              <FileText className="h-10 w-10 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-700 mb-2">No hay documentos</h3>
+            <p className="text-gray-500">No se encontraron documentos en esta categoría</p>
           </div>
         ) : (
-          itemsFiltrados.map((item) => (
-            <div
-              key={item.id}
-              onClick={() => setItemSeleccionado(item)}
-              className={`bg-white rounded-xl border border-gray-200 p-4 cursor-pointer hover:border-[#C026D3] hover:shadow-md transition-all ${
-                itemSeleccionado?.id === item.id ? "border-[#C026D3] ring-2 ring-[#C026D3]/20" : ""
-              }`}
-            >
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-xl">{getTipoIcon(item)}</span>
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getTipoColor(item)}`}>
-                    {item.tipo || item.type || "Documento"}
+          itemsFiltrados.map((item) => {
+            const Icon = getTipoIcon(item);
+            const colors = getTipoColor(item);
+            return (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                onClick={() => setItemSeleccionado(item)}
+                className={`group bg-white rounded-2xl border-2 ${colors.cardBorder} p-6 cursor-pointer transition-all duration-300 ${colors.cardHover} shadow-sm hover:shadow-xl ${
+                  itemSeleccionado?.id === item.id ? "ring-4 ring-purple-500/20 border-purple-400 shadow-xl" : ""
+                }`}
+              >
+                {/* Header del card */}
+                <div className="flex items-start justify-between mb-4">
+                  <div className={`inline-flex items-center justify-center w-12 h-12 rounded-xl ${colors.bg} text-white shadow-lg`}>
+                    <Icon className="h-6 w-6" />
+                  </div>
+                  <span className="text-xs font-medium text-gray-400 bg-gray-50 px-3 py-1 rounded-full">
+                    {item.creado || new Date(item.createdAt).toLocaleDateString("es-AR", { day: '2-digit', month: 'short' })}
                   </span>
                 </div>
-                <span className="text-xs text-gray-400">{item.creado || new Date(item.createdAt).toLocaleDateString("es-AR")}</span>
-              </div>
-              <h4 className="font-medium text-gray-900 mb-1 line-clamp-2">{item.title || item.asunto || "Sin título"}</h4>
-              {item.memoData?.resumen && (
-                <p className="text-sm text-gray-500 line-clamp-2">{item.memoData.resumen}</p>
-              )}
-              <div className="flex items-center gap-2 mt-3">
-                <span className={`px-2 py-0.5 rounded text-xs ${
-                  item.estado === "Listo para revisión" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
-                }`}>
-                  {item.estado || "Completado"}
-                </span>
-                {item.areaLegal && (
-                  <span className="px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-600">
-                    {item.areaLegal.replace(/_/g, " ")}
+
+                {/* Contenido */}
+                <div className="mb-4">
+                  <h4 className="font-bold text-gray-900 mb-2 line-clamp-2 text-lg group-hover:text-purple-600 transition-colors">
+                    {item.title || item.asunto || "Sin título"}
+                  </h4>
+                  {item.memoData?.resumen && (
+                    <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed">
+                      {item.memoData.resumen}
+                    </p>
+                  )}
+                </div>
+
+                {/* Badges y footer */}
+                <div className="flex items-center flex-wrap gap-2 pt-4 border-t border-gray-100">
+                  <span className={`px-3 py-1 rounded-lg text-xs font-medium border ${colors.badge}`}>
+                    {item.tipo || item.type || "Documento"}
                   </span>
-                )}
-              </div>
-            </div>
-          ))
+                  <span className={`px-3 py-1 rounded-lg text-xs font-medium ${
+                    item.estado === "Listo para revisión" 
+                      ? "bg-green-50 text-green-700 border border-green-200" 
+                      : "bg-amber-50 text-amber-700 border border-amber-200"
+                  }`}>
+                    {item.estado || "Completado"}
+                  </span>
+                  {item.areaLegal && (
+                    <span className="px-3 py-1 rounded-lg text-xs font-medium bg-slate-50 text-slate-700 border border-slate-200">
+                      {item.areaLegal.replace(/_/g, " ")}
+                    </span>
+                  )}
+                </div>
+
+                {/* Indicador de hover */}
+                <div className="mt-4 flex items-center text-xs text-gray-400 group-hover:text-purple-600 transition-colors">
+                  <span>Click para ver detalles</span>
+                  <ExternalLink className="h-3 w-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+              </motion.div>
+            );
+          })
         )}
       </div>
 
-      {/* Modal de detalle */}
+      {/* Modal de detalle mejorado */}
       {itemSeleccionado && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setItemSeleccionado(null)}>
-          <div 
-            className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setItemSeleccionado(null)}>
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-3xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xl">{getTipoIcon(itemSeleccionado)}</span>
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getTipoColor(itemSeleccionado)}`}>
-                    {itemSeleccionado.tipo || itemSeleccionado.type}
-                  </span>
+            {/* Header mejorado con gradiente */}
+            <div className={`bg-gradient-to-r ${getTipoColor(itemSeleccionado).bg} p-6 text-white`}>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="bg-white/20 backdrop-blur-sm rounded-xl p-3">
+                      {(() => {
+                        const Icon = getTipoIcon(itemSeleccionado);
+                        return <Icon className="h-6 w-6" />;
+                      })()}
+                    </div>
+                    <span className="px-3 py-1 rounded-lg text-xs font-semibold bg-white/20 backdrop-blur-sm border border-white/30">
+                      {itemSeleccionado.tipo || itemSeleccionado.type || "Documento"}
+                    </span>
+                  </div>
+                  <h3 className="text-2xl font-bold mb-2">{itemSeleccionado.title || itemSeleccionado.asunto}</h3>
+                  <div className="flex items-center gap-4 text-sm text-white/90">
+                    <span className="flex items-center gap-1">
+                      <Clock3 className="h-4 w-4" />
+                      {itemSeleccionado.creado || new Date(itemSeleccionado.createdAt).toLocaleDateString("es-AR", { 
+                        day: '2-digit', 
+                        month: 'long', 
+                        year: 'numeric' 
+                      })}
+                    </span>
+                    {itemSeleccionado.areaLegal && (
+                      <span className="px-2 py-1 rounded bg-white/20 backdrop-blur-sm">
+                        {itemSeleccionado.areaLegal.replace(/_/g, " ")}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <h3 className="text-xl font-bold text-gray-900">{itemSeleccionado.title || itemSeleccionado.asunto}</h3>
-                <p className="text-sm text-gray-500 mt-1">
-                  Creado: {itemSeleccionado.creado || new Date(itemSeleccionado.createdAt).toLocaleDateString("es-AR")}
-                  {itemSeleccionado.areaLegal && ` · ${itemSeleccionado.areaLegal.replace(/_/g, " ")}`}
-                </p>
+                <button
+                  onClick={() => setItemSeleccionado(null)}
+                  className="p-2 hover:bg-white/20 rounded-xl transition-colors backdrop-blur-sm"
+                >
+                  <X className="h-6 w-6" />
+                </button>
               </div>
-              <button
-                onClick={() => setItemSeleccionado(null)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <X className="h-5 w-5 text-gray-500" />
-              </button>
             </div>
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex-1 overflow-y-auto p-6 bg-gradient-to-b from-gray-50 to-white">
               {itemSeleccionado.memoData?.resumen && (
-                <div className="mb-4 p-4 bg-purple-50 rounded-lg">
-                  <h4 className="font-medium text-purple-900 mb-1">Resumen</h4>
-                  <p className="text-sm text-purple-800">{itemSeleccionado.memoData.resumen}</p>
+                <div className="mb-6 p-5 bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl border border-purple-200 shadow-sm">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Sparkles className="h-5 w-5 text-purple-600" />
+                    <h4 className="font-bold text-purple-900">Resumen Ejecutivo</h4>
+                  </div>
+                  <p className="text-sm text-purple-800 leading-relaxed">{itemSeleccionado.memoData.resumen}</p>
                 </div>
               )}
               {itemSeleccionado.markdown && (
-                <div className="prose prose-sm max-w-none">
-                  <pre className="whitespace-pre-wrap text-sm text-gray-700 bg-gray-50 p-4 rounded-lg overflow-auto">
-                    {itemSeleccionado.markdown}
-                  </pre>
+                <div className="mb-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <FileText className="h-5 w-5 text-gray-600" />
+                    <h4 className="font-bold text-gray-900">Contenido Completo</h4>
+                  </div>
+                  <div className="prose prose-sm max-w-none">
+                    <div className="whitespace-pre-wrap text-sm text-gray-700 bg-white border-2 border-gray-200 p-6 rounded-2xl overflow-auto shadow-inner font-mono leading-relaxed">
+                      {itemSeleccionado.markdown}
+                    </div>
+                  </div>
                 </div>
               )}
               {itemSeleccionado.citations && itemSeleccionado.citations.length > 0 && (
-                <div className="mt-4">
-                  <h4 className="font-medium text-gray-900 mb-2">Fuentes citadas</h4>
-                  <div className="space-y-2">
+                <div className="mt-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <BookOpen className="h-5 w-5 text-blue-600" />
+                    <h4 className="font-bold text-gray-900">Fuentes Citadas</h4>
+                    <span className="px-2 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-medium">
+                      {itemSeleccionado.citations.length}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {itemSeleccionado.citations.map((cita: any, i: number) => (
-                      <div key={i} className="p-3 bg-gray-50 rounded-lg text-sm">
-                        <span className="font-medium">{cita.title || cita.referencia}</span>
+                      <div key={i} className="p-4 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl border border-blue-200 hover:shadow-md transition-shadow">
+                        <span className="font-semibold text-gray-900 block mb-2">{cita.title || cita.referencia}</span>
                         {cita.url && (
-                          <a href={cita.url} target="_blank" rel="noopener noreferrer" className="ml-2 text-[#C026D3] hover:underline">
-                            Ver fuente →
+                          <a 
+                            href={cita.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 font-medium"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                            Ver fuente
                           </a>
                         )}
                       </div>
@@ -6884,26 +7018,27 @@ function HistorialPanel({ items }: { items: Array<any> }) {
                 </div>
               )}
             </div>
-            <div className="p-4 border-t border-gray-200 flex justify-end gap-3">
+            <div className="p-6 border-t border-gray-200 bg-white flex justify-between items-center">
               <button
                 onClick={() => {
                   navigator.clipboard.writeText(itemSeleccionado.markdown || "");
-                  alert("Contenido copiado al portapapeles");
+                  alert("✅ Contenido copiado al portapapeles");
                 }}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                className="px-5 py-2.5 text-sm font-semibold text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-all flex items-center gap-2 shadow-sm hover:shadow-md"
               >
-                📋 Copiar
+                <Download className="h-4 w-4" />
+                Copiar
               </button>
               <button
                 onClick={() => setItemSeleccionado(null)}
-                className="px-4 py-2 text-sm font-medium text-white bg-[#C026D3] rounded-lg hover:bg-[#A21CAF] transition-colors"
+                className="px-6 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all shadow-lg hover:shadow-xl"
               >
                 Cerrar
               </button>
             </div>
-            </div>
-          </div>
-        )}
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }
