@@ -56,6 +56,37 @@ export const legalDb = {
       CREATE INDEX IF NOT EXISTS idx_abogados_senior_orden ON abogados_senior(orden)
     `);
     
+    // Crear tabla de usuarios del sistema
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS usuarios (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        email VARCHAR(255) UNIQUE NOT NULL,
+        nombre VARCHAR(255) NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        rol VARCHAR(50) DEFAULT 'usuario' CHECK (rol IN ('admin', 'usuario')),
+        activo BOOLEAN DEFAULT true,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+    await db.query(`
+      CREATE INDEX IF NOT EXISTS idx_usuarios_email ON usuarios(email)
+    `);
+    await db.query(`
+      CREATE INDEX IF NOT EXISTS idx_usuarios_rol ON usuarios(rol)
+    `);
+    await db.query(`
+      CREATE INDEX IF NOT EXISTS idx_usuarios_activo ON usuarios(activo)
+    `);
+    
+    // Crear usuario admin inicial si no existe (email: adm@wns.com, password: adm123)
+    // Hash bcrypt de 'adm123': $2b$10$C0xyNMS3pZIaWvZIZ.l/aey./IL9mABMOoJVSjZHDyqT1yOgsddUe
+    await db.query(`
+      INSERT INTO usuarios (email, nombre, password_hash, rol, activo)
+      VALUES ('adm@wns.com', 'Administrador', '$2b$10$C0xyNMS3pZIaWvZIZ.l/aey./IL9mABMOoJVSjZHDyqT1yOgsddUe', 'admin', true)
+      ON CONFLICT (email) DO NOTHING
+    `);
+    
     // Crear tabla de asignaciones de documentos a abogados
     await db.query(`
       CREATE TABLE IF NOT EXISTS documento_asignaciones (

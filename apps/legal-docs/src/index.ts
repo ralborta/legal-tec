@@ -1125,6 +1125,235 @@ app.get("/assign-document/:documentoId", async (req, res, next) => {
   }
 });
 
+// ==================== GESTIÓN DE USUARIOS ====================
+
+// Endpoint para login (autenticación)
+app.post("/auth/login", async (req, res, next) => {
+  try {
+    const { email, password } = req.body;
+    
+    if (!email || !password) {
+      return res.status(400).json({ 
+        error: "Bad request",
+        message: "email y password son requeridos"
+      });
+    }
+    
+    // Buscar usuario por email
+    const result = await db.query(`
+      SELECT id, email, nombre, password_hash, rol, activo
+      FROM usuarios
+      WHERE email = $1
+    `, [email.toLowerCase().trim()]);
+    
+    if (result.rows.length === 0) {
+      return res.status(401).json({ 
+        error: "Unauthorized",
+        message: "Email o contraseña incorrectos"
+      });
+    }
+    
+    const usuario = result.rows[0];
+    
+    if (!usuario.activo) {
+      return res.status(403).json({ 
+        error: "Forbidden",
+        message: "Usuario inactivo"
+      });
+    }
+    
+    // Verificar contraseña
+    const bcrypt = await import("bcrypt");
+    const passwordMatch = await bcrypt.compare(password, usuario.password_hash);
+    
+    if (!passwordMatch) {
+      return res.status(401).json({ 
+        error: "Unauthorized",
+        message: "Email o contraseña incorrectos"
+      });
+    }
+    
+    // Retornar información del usuario (sin password_hash)
+    console.log(`[AUTH] ✅ Login exitoso: ${usuario.email} (${usuario.rol})`);
+    res.json({
+      usuario: {
+        id: usuario.id,
+        email: usuario.email,
+        nombre: usuario.nombre,
+        rol: usuario.rol
+      }
+    });
+  } catch (err: any) {
+    console.error(`[AUTH] ❌ Error en login:`, err);
+    next(err);
+  }
+});
+
+// Endpoint para obtener lista de usuarios (solo admin)
+app.get("/usuarios", async (req, res, next) => {
+  try {
+    const result = await db.query(`
+      SELECT id, email, nombre, rol, activo, created_at, updated_at
+      FROM usuarios
+      ORDER BY created_at DESC
+    `);
+    
+    const usuarios = result.rows.map((row: any) => ({
+      id: row.id,
+      email: row.email,
+      nombre: row.nombre,
+      rol: row.rol,
+      activo: row.activo,
+      created_at: row.created_at,
+      updated_at: row.updated_at
+    }));
+    
+    console.log(`[USUARIOS] ✅ ${usuarios.length} usuarios encontrados`);
+    res.json({ usuarios });
+  } catch (err: any) {
+    console.error(`[USUARIOS] ❌ Error obteniendo usuarios:`, err);
+    next(err);
+  }
+});
+
+// Endpoint para crear usuario (solo admin)
+app.post("/usuarios", async (req, res, next) => {
+  try {
+    const { email, nombre, password, rol } = req.body;
+    
+    if (!email || !nombre || !password) {
+      return res.status(400).json({ 
+        error: "Bad request",
+        message: "email, nombre y password son requeridos"
+      });
+    }
+    
+    const rolValido = rol === 'admin' ? 'admin' : 'usuario';
+    
+    // Hash de la contraseña
+    const bcrypt = await import("bcrypt");
+    const passwordHash = await bcrypt.hash(password, 10);
+    
+    const result = await db.query(`
+      INSERT INTO usuarios (email, nombre, password_hash, rol, activo)
+      VALUES ($1, $2, $3, $4, true)
+      RETURNING id, email, nombre, rol, activo, created_at
+    `, [email.toLowerCase().trim(), nombre, passwordHash, rolValido]);
+    
+    console.log(`[USUARIOS] ✅ Usuario creado: ${email}`);
+    res.json({ usuario: result.rows[0] });
+  } catch (err: any) {
+    if (err.code === '23505') { // Unique violation
+      return res.status(409).json({ 
+        error: "Conflict",
+        message: "Ya existe un usuario con ese email"
+      });
+    }
+    console.error(`[USUARIOS] ❌ Error creando usuario:`, err);
+    next(err);
+  }
+});
+
+// Endpoint para actualizar usuario (solo admin)
+app.put("/usuarios/:id", async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { email, nombre, password, rol, activo } = req.body;
+    
+    // Construir query dinámico
+    const updates: string[] = [];
+    const values: any[] = [];
+    let paramIndex = 1;
+    
+    if (email !== undefined) {
+      updates.push(`email = $${paramIndex++}`);
+      values.push(email.toLowerCase().trim());
+    }
+    if (nombre !== undefined) {
+      updates.push(`nombre = $${paramIndex++}`);
+      values.push(nombre);
+    }
+    if (password !== undefined) {
+      const bcrypt = await import("bcrypt");
+      const passwordHash = await bcrypt.hash(password, 10);
+      updates.push(`password_hash = $${paramIndex++}`);
+      values.push(passwordHash);
+    }
+    if (rol !== undefined) {
+      const rolValido = rol === 'admin' ? 'admin' : 'usuario';
+      updates.push(`rol = $${paramIndex++}`);
+      values.push(rolValido);
+    }
+    if (activo !== undefined) {
+      updates.push(`activo = $${paramIndex++}`);
+      values.push(activo);
+    }
+    
+    if (updates.length === 0) {
+      return res.status(400).json({ 
+        error: "Bad request",
+        message: "No hay campos para actualizar"
+      });
+    }
+    
+    updates.push(`updated_at = NOW()`);
+    values.push(id);
+    
+    const result = await db.query(`
+      UPDATE usuarios
+      SET ${updates.join(', ')}
+      WHERE id = $${paramIndex}
+      RETURNING id, email, nombre, rol, activo, updated_at
+    `, values);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ 
+        error: "Not found",
+        message: "Usuario no encontrado"
+      });
+    }
+    
+    console.log(`[USUARIOS] ✅ Usuario actualizado: ${id}`);
+    res.json({ usuario: result.rows[0] });
+  } catch (err: any) {
+    if (err.code === '23505') { // Unique violation
+      return res.status(409).json({ 
+        error: "Conflict",
+        message: "Ya existe un usuario con ese email"
+      });
+    }
+    console.error(`[USUARIOS] ❌ Error actualizando usuario:`, err);
+    next(err);
+  }
+});
+
+// Endpoint para eliminar usuario (soft delete - solo admin)
+app.delete("/usuarios/:id", async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    
+    const result = await db.query(`
+      UPDATE usuarios
+      SET activo = false, updated_at = NOW()
+      WHERE id = $1
+      RETURNING id, email, nombre
+    `, [id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ 
+        error: "Not found",
+        message: "Usuario no encontrado"
+      });
+    }
+    
+    console.log(`[USUARIOS] ✅ Usuario desactivado: ${id}`);
+    res.json({ message: "Usuario desactivado exitosamente", usuario: result.rows[0] });
+  } catch (err: any) {
+    console.error(`[USUARIOS] ❌ Error desactivando usuario:`, err);
+    next(err);
+  }
+});
+
 app.get("/history", async (_req, res) => {
   try {
     const documents = await legalDb.getAllDocumentsWithAnalysis(100);

@@ -125,13 +125,41 @@ export default function CentroGestionLegalPage() {
   const [items, setItems] = useState<Array<any>>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeView, setActiveView] = useState<"bandeja" | "analizar" | "comparar" | "generar" | "historial">("bandeja");
+  const [activeView, setActiveView] = useState<"bandeja" | "analizar" | "comparar" | "generar" | "historial" | "configuracion">("bandeja");
   const [lastGeneratedMemo, setLastGeneratedMemo] = useState<{
     content: string;
     resumen: string;
     titulo: string;
     areaLegal: string;
   } | null>(null);
+  
+  // Estado de autenticación
+  const [usuario, setUsuario] = useState<{id: string; email: string; nombre: string; rol: string} | null>(null);
+  const [showLogin, setShowLogin] = useState(false);
+  
+  // Cargar sesión desde localStorage al iniciar
+  useEffect(() => {
+    const savedUsuario = localStorage.getItem("legal-usuario");
+    if (savedUsuario) {
+      try {
+        setUsuario(JSON.parse(savedUsuario));
+      } catch (e) {
+        console.warn("Error al cargar sesión:", e);
+      }
+    } else {
+      // Si no hay sesión, mostrar login
+      setShowLogin(true);
+    }
+  }, []);
+  
+  // Guardar sesión cuando cambia
+  useEffect(() => {
+    if (usuario) {
+      localStorage.setItem("legal-usuario", JSON.stringify(usuario));
+    } else {
+      localStorage.removeItem("legal-usuario");
+    }
+  }, [usuario]);
 
   const pushItem = (entry: any) => {
     // Guardar en localStorage para persistencia entre sesiones
@@ -220,7 +248,7 @@ export default function CentroGestionLegalPage() {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 antialiased font-display flex flex-col">
       <div className="flex flex-1 min-h-0">
-        <Sidebar activeView={activeView} setActiveView={setActiveView} />
+        <Sidebar activeView={activeView} setActiveView={setActiveView} usuario={usuario} />
         <div className="flex-1 min-w-0 flex flex-col bg-gray-50">
           <Topbar activeView={activeView} setActiveView={setActiveView} />
           <main className="flex-1 p-8 overflow-y-auto">
@@ -285,6 +313,15 @@ export default function CentroGestionLegalPage() {
                 <AnalizarDocumentosPanel />
               ) : activeView === "comparar" ? (
                 <AnalizarComparativoPanel />
+              ) : activeView === "configuracion" ? (
+                /* Vista Configuración - solo admin */
+                usuario?.rol === 'admin' ? (
+                  <ConfiguracionPanel />
+                ) : (
+                  <div className="bg-white p-6 rounded-xl border border-gray-200">
+                    <p className="text-gray-500">No tenés acceso a esta sección.</p>
+                  </div>
+                )
               ) : activeView === "generar" ? (
                 /* Vista Generar - pantalla completa mejorada */
                 <div className="w-full">
@@ -338,6 +375,19 @@ export default function CentroGestionLegalPage() {
           <Footer />
         </div>
       </div>
+      
+      {/* Modal de Login */}
+      {showLogin && (
+        <LoginModal
+          onLogin={(usuarioData: {id: string; email: string; nombre: string; rol: string}) => {
+            setUsuario(usuarioData);
+            setShowLogin(false);
+          }}
+          onClose={() => {
+            // No permitir cerrar sin login (por ahora)
+          }}
+        />
+      )}
 
       {/* Estilos auxiliares */}
       <style jsx global>{`
@@ -353,7 +403,7 @@ export default function CentroGestionLegalPage() {
   );
 }
 
-function Sidebar({ activeView, setActiveView }: { activeView: string; setActiveView: (view: "bandeja" | "analizar" | "comparar" | "generar" | "historial") => void }) {
+function Sidebar({ activeView, setActiveView, usuario }: { activeView: string; setActiveView: (view: "bandeja" | "analizar" | "comparar" | "generar" | "historial" | "configuracion") => void; usuario: {rol: string} | null }) {
   return (
     <aside className="hidden lg:flex w-64 flex-shrink-0 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 border-r border-slate-700/50 flex flex-col shadow-2xl">
       <nav className="flex-grow flex flex-col p-4 space-y-2">
@@ -371,7 +421,9 @@ function Sidebar({ activeView, setActiveView }: { activeView: string; setActiveV
         <div className="mt-auto space-y-2 pt-4">
           <div className="h-px bg-gradient-to-r from-transparent via-slate-600/50 to-transparent mb-2"></div>
           <SideLink icon={CheckCircle2} label="Calidad" color="green" />
-          <SideLink icon={Settings} label="Configuración" color="slate" />
+          {usuario?.rol === 'admin' && (
+            <SideLink icon={Settings} label="Configuración" active={activeView === "configuracion"} onClick={() => setActiveView("configuracion")} color="slate" />
+          )}
         </div>
       </nav>
     </aside>
@@ -6852,6 +6904,497 @@ function HistorialPanel({ items }: { items: Array<any> }) {
             </div>
           </div>
         )}
+    </div>
+  );
+}
+
+// Componente de Login
+function LoginModal({ onLogin, onClose }: { onLogin: (usuario: {id: string; email: string; nombre: string; rol: string}) => void; onClose: () => void }) {
+  const [email, setEmail] = useState("adm@wns.com");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const API = useMemo(() => getApiUrl(), []);
+
+  const handleLogin = async () => {
+    if (!email.trim() || !password.trim()) {
+      setError("Email y contraseña son requeridos");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`${API}/legal/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), password })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: "Error al iniciar sesión" }));
+        throw new Error(errorData.message || `Error ${response.status}`);
+      }
+
+      const data = await response.json();
+      onLogin(data.usuario);
+    } catch (err: any) {
+      console.error("Error en login:", err);
+      setError(err.message || "Error al iniciar sesión");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4">
+        <h3 className="text-xl font-bold text-gray-900">Iniciar Sesión</h3>
+        <p className="text-sm text-gray-600">Ingresá tus credenciales para acceder al sistema</p>
+        
+        {error && (
+          <div className="rounded-lg border border-rose-200 bg-rose-50 text-rose-700 p-3 text-sm">
+            {error}
+          </div>
+        )}
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              placeholder="adm@wns.com"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              placeholder="adm123"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-3 pt-2">
+          <button
+            onClick={handleLogin}
+            disabled={loading || !email.trim() || !password.trim()}
+            className="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-500 text-white rounded-lg font-medium hover:from-purple-700 hover:to-purple-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Iniciando sesión...
+              </>
+            ) : (
+              "Iniciar Sesión"
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Componente de Configuración (solo admin)
+function ConfiguracionPanel() {
+  const [usuarios, setUsuarios] = useState<Array<{id: string; email: string; nombre: string; rol: string; activo: boolean; created_at: string}>>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingUsuario, setEditingUsuario] = useState<any | null>(null);
+  const API = useMemo(() => getApiUrl(), []);
+
+  useEffect(() => {
+    loadUsuarios();
+  }, []);
+
+  const loadUsuarios = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`${API}/legal/usuarios`);
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}`);
+      }
+      const data = await response.json();
+      setUsuarios(data.usuarios || []);
+    } catch (err: any) {
+      console.error("Error cargando usuarios:", err);
+      setError(err.message || "Error al cargar usuarios");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateUsuario = async (formData: {email: string; nombre: string; password: string; rol: string}) => {
+    try {
+      const response = await fetch(`${API}/legal/usuarios`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: "Error al crear usuario" }));
+        throw new Error(errorData.message || `Error ${response.status}`);
+      }
+
+      await loadUsuarios();
+      setShowCreateModal(false);
+    } catch (err: any) {
+      console.error("Error creando usuario:", err);
+      alert(`Error al crear usuario: ${err.message || "Intenta de nuevo"}`);
+    }
+  };
+
+  const handleUpdateUsuario = async (id: string, updates: {email?: string; nombre?: string; password?: string; rol?: string; activo?: boolean}) => {
+    try {
+      const response = await fetch(`${API}/legal/usuarios/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: "Error al actualizar usuario" }));
+        throw new Error(errorData.message || `Error ${response.status}`);
+      }
+
+      await loadUsuarios();
+      setEditingUsuario(null);
+    } catch (err: any) {
+      console.error("Error actualizando usuario:", err);
+      alert(`Error al actualizar usuario: ${err.message || "Intenta de nuevo"}`);
+    }
+  };
+
+  const handleDeleteUsuario = async (id: string) => {
+    if (!confirm("¿Estás seguro de que querés desactivar este usuario?")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API}/legal/usuarios/${id}`, {
+        method: "DELETE"
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: "Error al desactivar usuario" }));
+        throw new Error(errorData.message || `Error ${response.status}`);
+      }
+
+      await loadUsuarios();
+    } catch (err: any) {
+      console.error("Error desactivando usuario:", err);
+      alert(`Error al desactivar usuario: ${err.message || "Intenta de nuevo"}`);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h3 className="font-bold text-xl text-gray-900">Configuración</h3>
+          <p className="text-sm text-gray-500 mt-1">Gestión de usuarios del sistema</p>
+        </div>
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-500 text-white rounded-lg font-medium hover:from-purple-700 hover:to-purple-600 transition-all flex items-center gap-2"
+        >
+          <Plus className="h-4 w-4" />
+          Crear Usuario
+        </button>
+      </div>
+
+      {error && (
+        <div className="rounded-lg border border-rose-200 bg-rose-50 text-rose-700 p-3 text-sm mb-4">
+          {error}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
+        </div>
+      ) : usuarios.length === 0 ? (
+        <div className="text-center py-12">
+          <Users className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+          <p className="text-gray-500">No hay usuarios registrados</p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-700 uppercase">Email</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-700 uppercase">Nombre</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-700 uppercase">Rol</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-700 uppercase">Estado</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-700 uppercase">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {usuarios.map((usuario) => (
+                <tr key={usuario.id}>
+                  <td className="py-3 px-4 text-sm text-gray-900">{usuario.email}</td>
+                  <td className="py-3 px-4 text-sm text-gray-900">{usuario.nombre}</td>
+                  <td className="py-3 px-4">
+                    <span className={`text-xs px-2 py-1 rounded ${
+                      usuario.rol === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {usuario.rol === 'admin' ? 'Admin' : 'Usuario'}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4">
+                    <span className={`text-xs px-2 py-1 rounded ${
+                      usuario.activo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    }`}>
+                      {usuario.activo ? 'Activo' : 'Inactivo'}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setEditingUsuario(usuario)}
+                        className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                      >
+                        Editar
+                      </button>
+                      {!usuario.activo && (
+                        <button
+                          onClick={() => handleDeleteUsuario(usuario.id)}
+                          className="text-red-600 hover:text-red-800 text-sm font-medium"
+                        >
+                          Eliminar
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {showCreateModal && (
+        <CreateUsuarioModal
+          onSave={handleCreateUsuario}
+          onClose={() => setShowCreateModal(false)}
+        />
+      )}
+
+      {editingUsuario && (
+        <EditUsuarioModal
+          usuario={editingUsuario}
+          onSave={(updates) => handleUpdateUsuario(editingUsuario.id, updates)}
+          onClose={() => setEditingUsuario(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+// Modal para crear usuario
+function CreateUsuarioModal({ onSave, onClose }: { onSave: (data: {email: string; nombre: string; password: string; rol: string}) => void; onClose: () => void }) {
+  const [email, setEmail] = useState("");
+  const [nombre, setNombre] = useState("");
+  const [password, setPassword] = useState("");
+  const [rol, setRol] = useState<"admin" | "usuario">("usuario");
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!email.trim() || !nombre.trim() || !password.trim()) {
+      alert("Todos los campos son requeridos");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await onSave({ email: email.trim(), nombre: nombre.trim(), password, rol });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4">
+        <h3 className="text-xl font-bold text-gray-900">Crear Usuario</h3>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500"
+              placeholder="usuario@wns.com"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+            <input
+              type="text"
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500"
+              placeholder="Nombre completo"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500"
+              placeholder="Contraseña"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Rol</label>
+            <select
+              value={rol}
+              onChange={(e) => setRol(e.target.value as "admin" | "usuario")}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500"
+            >
+              <option value="usuario">Usuario</option>
+              <option value="admin">Administrador</option>
+            </select>
+          </div>
+        </div>
+        <div className="flex items-center justify-end gap-3 pt-2">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 font-medium"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={saving}
+            className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2"
+          >
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            Crear
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Modal para editar usuario
+function EditUsuarioModal({ usuario, onSave, onClose }: { usuario: any; onSave: (updates: any) => void; onClose: () => void }) {
+  const [email, setEmail] = useState(usuario.email);
+  const [nombre, setNombre] = useState(usuario.nombre);
+  const [password, setPassword] = useState("");
+  const [rol, setRol] = useState<"admin" | "usuario">(usuario.rol);
+  const [activo, setActivo] = useState(usuario.activo);
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!email.trim() || !nombre.trim()) {
+      alert("Email y nombre son requeridos");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const updates: any = { email: email.trim(), nombre: nombre.trim(), rol, activo };
+      if (password.trim()) {
+        updates.password = password;
+      }
+      await onSave(updates);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4">
+        <h3 className="text-xl font-bold text-gray-900">Editar Usuario</h3>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+            <input
+              type="text"
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Nueva Contraseña (dejar vacío para no cambiar)</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500"
+              placeholder="Dejar vacío para mantener la actual"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Rol</label>
+            <select
+              value={rol}
+              onChange={(e) => setRol(e.target.value as "admin" | "usuario")}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500"
+            >
+              <option value="usuario">Usuario</option>
+              <option value="admin">Administrador</option>
+            </select>
+          </div>
+          <div>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={activo}
+                onChange={(e) => setActivo(e.target.checked)}
+                className="rounded border-gray-300"
+              />
+              <span className="text-sm font-medium text-gray-700">Usuario activo</span>
+            </label>
+          </div>
+        </div>
+        <div className="flex items-center justify-end gap-3 pt-2">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 font-medium"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={saving}
+            className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2"
+          >
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            Guardar
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
