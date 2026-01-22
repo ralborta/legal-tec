@@ -310,6 +310,138 @@ export default function MemoDetailPage() {
     }
   };
 
+  // Función para generar documento actualizado con recomendaciones del chat
+  const generateUpdatedDocument = (originalText: string, chatMessages: Array<{role: "user" | "assistant"; content: string}>): string => {
+    if (chatMessages.length === 0) {
+      return originalText;
+    }
+
+    // Extraer recomendaciones y modificaciones del chat
+    const assistantMessages = chatMessages.filter(m => m.role === "assistant").map(m => m.content);
+    const userQuestions = chatMessages.filter(m => m.role === "user").map(m => m.content);
+    
+    // Buscar secciones de recomendaciones y acciones sugeridas
+    const recomendaciones: string[] = [];
+    const modificaciones: string[] = [];
+    const resumenCambios: string[] = [];
+
+    assistantMessages.forEach(msg => {
+      // Buscar "Acciones Sugeridas" o "Recomendaciones"
+      const accionesMatch = msg.match(/(?:Acciones sugeridas|Recomendaciones|Sugerencias):?\s*\n([\s\S]*?)(?=\n\n|$)/i);
+      if (accionesMatch) {
+        recomendaciones.push(accionesMatch[1].trim());
+      }
+
+      // Buscar modificaciones o cambios sugeridos
+      const modificacionesMatch = msg.match(/(?:modificar|cambiar|actualizar|revisar|ajustar).*?[:\n]([\s\S]*?)(?=\n\n|$)/i);
+      if (modificacionesMatch) {
+        modificaciones.push(modificacionesMatch[1].trim());
+      }
+
+      // Si el mensaje contiene recomendaciones pero no está en formato estructurado, agregarlo
+      if (msg.includes("recomend") || msg.includes("suger") || msg.includes("debería")) {
+        if (!recomendaciones.some(r => r.includes(msg.substring(0, 100)))) {
+          recomendaciones.push(msg);
+        }
+      }
+    });
+
+    // Generar resumen de cambios basado en las preguntas del usuario y respuestas
+    if (userQuestions.length > 0) {
+      resumenCambios.push(`Se discutieron ${userQuestions.length} temas en el chat:`);
+      userQuestions.forEach((q, i) => {
+        resumenCambios.push(`${i + 1}. ${q.substring(0, 100)}${q.length > 100 ? "..." : ""}`);
+      });
+    }
+
+    // Construir documento actualizado
+    let documentoActualizado = originalText;
+
+    // Agregar secciones nuevas si hay contenido del chat
+    if (recomendaciones.length > 0 || modificaciones.length > 0 || resumenCambios.length > 0) {
+      documentoActualizado += "\n\n\n";
+      documentoActualizado += "═══════════════════════════════════════════════════════════════════════════════\n";
+      documentoActualizado += "RECOMENDACIONES Y MODIFICACIONES DEL CHAT\n";
+      documentoActualizado += "═══════════════════════════════════════════════════════════════════════════════\n\n";
+
+      if (recomendaciones.length > 0) {
+        documentoActualizado += "=== RECOMENDACIONES DEL CHAT ===\n\n";
+        recomendaciones.forEach((rec, i) => {
+          documentoActualizado += `${i + 1}. ${rec}\n\n`;
+        });
+        documentoActualizado += "\n";
+      }
+
+      if (modificaciones.length > 0) {
+        documentoActualizado += "=== MODIFICACIONES SUGERIDAS ===\n\n";
+        modificaciones.forEach((mod, i) => {
+          documentoActualizado += `${i + 1}. ${mod}\n\n`;
+        });
+        documentoActualizado += "\n";
+      }
+
+      if (resumenCambios.length > 0) {
+        documentoActualizado += "=== RESUMEN DE CAMBIOS DISCUTIDOS ===\n\n";
+        resumenCambios.forEach(cambio => {
+          documentoActualizado += `${cambio}\n`;
+        });
+        documentoActualizado += "\n";
+      }
+
+      // Si no se encontraron recomendaciones estructuradas, agregar todas las respuestas del asistente
+      if (recomendaciones.length === 0 && modificaciones.length === 0 && assistantMessages.length > 0) {
+        documentoActualizado += "=== RECOMENDACIONES Y SUGERENCIAS DEL CHAT ===\n\n";
+        assistantMessages.forEach((msg, i) => {
+          documentoActualizado += `Recomendación ${i + 1}:\n${msg}\n\n`;
+        });
+      }
+    }
+
+    return documentoActualizado;
+  };
+
+  // Función para descargar documento actualizado con recomendaciones del chat
+  const handleDownloadWithChat = async () => {
+    if (!API || downloading) return;
+    
+    setDownloading(true);
+    try {
+      // Generar documento actualizado
+      const documentoActualizado = generateUpdatedDocument(memoText, messages);
+      
+      // Descargar en Word
+      const sanitize = (s: string) => s.replace(/[^a-z0-9\-\_\ ]/gi, "_");
+      const filename = `${memoTitle}_actualizado_${new Date().toISOString().split("T")[0]}`;
+      
+      const response = await fetch(`${API}/api/convert-to-word`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: documentoActualizado,
+          title: filename
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${await response.text()}`);
+      }
+
+      // Descargar el archivo Word
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${sanitize(filename)}.docx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error al descargar documento actualizado:", error);
+      alert("Error al generar Word. Intenta de nuevo.");
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   if (!memo) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -920,6 +1052,28 @@ function MemoChatPanel({
             {isAnalysis ? "Chat sobre este análisis de documento" : "Chat sobre esta transcripción de reunión"}
           </h2>
         </div>
+        {/* Botón Descargar Word con recomendaciones del chat */}
+        {messages.length > 0 && (
+          <button
+            onClick={handleDownloadWithChat}
+            disabled={downloading}
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-sm font-medium rounded-lg hover:from-purple-700 hover:to-pink-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+            title="Descargar documento actualizado con recomendaciones del chat en Word (.docx)"
+          >
+            {downloading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="hidden sm:inline">Generando...</span>
+              </>
+            ) : (
+              <>
+                <Download className="h-4 w-4" />
+                <span className="hidden sm:inline">Descargar Word</span>
+                <span className="sm:hidden">Word</span>
+              </>
+            )}
+          </button>
+        )}
         {messages.length > 0 && (
           <>
             {/* Resumen de puntos clave que se aplicarán */}
