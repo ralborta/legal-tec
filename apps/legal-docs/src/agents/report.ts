@@ -588,7 +588,7 @@ NO ignores estas instrucciones. Son OBLIGATORIAS.`,
         const citasCount = Array.isArray(parsed.citas) ? parsed.citas.length : 0;
         // Validar longitud del análisis jurídico (aproximado: contar párrafos por puntos o longitud)
         const analisisJuridicoText = parsed.analisis_juridico || "";
-        const analisisJuridicoParrafos = analisisJuridicoText.split(/\n\n|\.\s+(?=[A-Z])/).filter(p => p.trim().length > 50).length;
+        const analisisJuridicoParrafos = analisisJuridicoText.split(/\n\n|\.\s+(?=[A-Z])/).filter((p: string) => p.trim().length > 50).length;
         
         const minClausulas = 15;
         const minRiesgos = 10;
