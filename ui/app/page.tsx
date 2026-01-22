@@ -243,86 +243,41 @@ export default function CentroGestionLegalPage() {
               {activeView === "bandeja" ? (
                 <>
               <KPIGrid />
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2 flex flex-col gap-8">
-                  <BandejaLocal 
-                    items={items} 
-                    onDelete={(id) => {
-                      // Actualizar items removiendo el eliminado
-                      const updated = items.filter(item => item.id !== id);
-                      setItems(updated);
-                      // Actualizar localStorage
-                      try {
-                        localStorage.setItem("legal-memos", JSON.stringify(updated.filter(item => item.type === "memo" || item.memoData)));
-                      } catch (e) {
-                        console.warn("No se pudo actualizar localStorage:", e);
-                      }
-                    }}
-                    onUpdateItem={(id, updates) => {
-                      // Actualizar el item con los nuevos datos
-                      const updated = items.map(item => 
-                        item.id === id ? { ...item, ...updates } : item
+              <div className="mt-8">
+                <BandejaLocal 
+                  items={items} 
+                  onDelete={(id) => {
+                    // Actualizar items removiendo el eliminado
+                    const updated = items.filter(item => item.id !== id);
+                    setItems(updated);
+                    // Actualizar localStorage
+                    try {
+                      localStorage.setItem("legal-memos", JSON.stringify(updated.filter(item => item.type === "memo" || item.memoData)));
+                    } catch (e) {
+                      console.warn("No se pudo actualizar localStorage:", e);
+                    }
+                  }}
+                  onUpdateItem={(id, updates) => {
+                    // Actualizar el item con los nuevos datos
+                    const updated = items.map(item => 
+                      item.id === id ? { ...item, ...updates } : item
+                    );
+                    setItems(updated);
+                    // Actualizar localStorage (guardar todos los items, no solo memos)
+                    try {
+                      // Guardar todos los items que están en localStorage (memos y análisis locales)
+                      const allLocalItems = updated.filter(item => 
+                        item.type === "memo" || 
+                        item.memoData || 
+                        (item.type === "analysis" && !item.fromDb) // Solo análisis que no vienen de DB
                       );
-                      setItems(updated);
-                      // Actualizar localStorage (guardar todos los items, no solo memos)
-                      try {
-                        // Guardar todos los items que están en localStorage (memos y análisis locales)
-                        const allLocalItems = updated.filter(item => 
-                          item.type === "memo" || 
-                          item.memoData || 
-                          (item.type === "analysis" && !item.fromDb) // Solo análisis que no vienen de DB
-                        );
-                        localStorage.setItem("legal-memos", JSON.stringify(allLocalItems));
-                      } catch (e) {
-                        console.warn("No se pudo actualizar localStorage:", e);
-                      }
-                    }}
-                  />
-                </div>
-                <div className="lg:col-span-1">
-                  <GenerarPanel
-                    onGenerated={(out) => {
-                      const newItem = {
-                        id: out.id || out.documentId || crypto.randomUUID(),
-                        type: out.type || "memo",
-                        tipo: (out.type || "memo").toUpperCase(),
-                        title: out.title,
-                        asunto: out.title,
-                        estado: "Listo para revisión",
-                        prioridad: "Media",
-                        createdAt: out.createdAt || new Date().toISOString(),
-                        creado: out.createdAt ? new Date(out.createdAt).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' ' + 
-                                 new Date(out.createdAt).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) :
-                                 new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' ' + 
-                                 new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
-                        agente: "Orquestador",
-                        markdown: out.markdown,
-                        citations: out.citations as any[],
-                        memoData: out.memoData,
-                        transcriptText: out.transcriptText,
-                        tipoDocumento: out.tipoDocumento || "Transcripción de reunión",
-                        areaLegal: out.areaLegal || out.memoData?.areaLegal || "civil_comercial"
-                      };
-                      pushItem(newItem);
-                      // Pasar el memo al chat
-                      setLastGeneratedMemo({
-                        content: out.markdown,
-                        resumen: out.memoData?.resumen || "",
-                        titulo: out.title,
-                        areaLegal: out.memoData?.areaLegal || "civil_comercial"
-                      });
-                    }}
-                    setError={setError}
-                    setLoading={setLoading}
-                  />
-                    </div>
-                  </div>
-                  {/* Chat debajo del contenido cuando hay una transcripción generada */}
-                  {lastGeneratedMemo && (
-                    <div className="mt-8">
-                  <ChatPanel memoContent={lastGeneratedMemo} />
-                </div>
-                  )}
+                      localStorage.setItem("legal-memos", JSON.stringify(allLocalItems));
+                    } catch (e) {
+                      console.warn("No se pudo actualizar localStorage:", e);
+                    }
+                  }}
+                />
+              </div>
                 </>
               ) : activeView === "analizar" ? (
                 <AnalizarDocumentosPanel />
@@ -693,6 +648,9 @@ function KPIGrid() {
 }
 
 function BandejaLocal({ items, onDelete, onUpdateItem }: { items: any[]; onDelete?: (id: string) => void; onUpdateItem?: (id: string, updates: any) => void }) {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterTipo, setFilterTipo] = useState<string>("all");
+  const [filterArea, setFilterArea] = useState<string>("all");
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; title: string } | null>(null);
   const [assignModal, setAssignModal] = useState<{ id: string; title: string } | null>(null);
   const [assigning, setAssigning] = useState(false);
@@ -791,47 +749,150 @@ function BandejaLocal({ items, onDelete, onUpdateItem }: { items: any[]; onDelet
     loadAbogados();
   }, []);
   
+  // Filtrar documentos
+  const filteredMemos = memos.filter(memo => {
+    const searchLower = searchTerm.toLowerCase();
+    const matchesSearch = !searchTerm || 
+      (memo.title || memo.asunto || "").toLowerCase().includes(searchLower) ||
+      (memo.areaLegal || "").toLowerCase().includes(searchLower);
+    
+    const matchesTipo = filterTipo === "all" || 
+      (filterTipo === "analisis" && (memo.type === "analysis" || memo.tipo === "ANÁLISIS")) ||
+      (filterTipo === "memo" && (memo.type === "memo" || memo.memoData));
+    
+    const matchesArea = filterArea === "all" || memo.areaLegal === filterArea;
+    
+    return matchesSearch && matchesTipo && matchesArea;
+  });
+
   return (
-    <div className="bg-white p-6 rounded-xl border border-gray-200 flex flex-col">
-      <div className="flex justify-between items-center mb-4">
-        <div>
-          <h3 className="font-bold text-lg text-gray-900">Bandeja de Solicitudes</h3>
-          <p className="text-sm text-gray-500">Documentos generados a sesión</p>
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col">
+      {/* Header mejorado */}
+      <div className="bg-gradient-to-r from-purple-50 to-pink-50 px-6 py-4 border-b border-gray-200 rounded-t-xl">
+        <div className="flex justify-between items-center">
+          <div>
+            <h3 className="font-bold text-xl text-gray-900">Bandeja de Solicitudes</h3>
+            <p className="text-sm text-gray-600 mt-1">Documentos generados a sesión · {filteredMemos.length} {filteredMemos.length === 1 ? 'documento' : 'documentos'}</p>
+          </div>
+          <div className="flex items-center gap-3">
+            {/* Buscador */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Buscar documentos..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 w-64"
+              />
+            </div>
+            {/* Filtros */}
+            <div className="flex items-center gap-2">
+              <select
+                value={filterTipo}
+                onChange={(e) => setFilterTipo(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white"
+              >
+                <option value="all">Todos los tipos</option>
+                <option value="analisis">Análisis</option>
+                <option value="memo">Memos/Reuniones</option>
+              </select>
+              <select
+                value={filterArea}
+                onChange={(e) => setFilterArea(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white"
+              >
+                <option value="all">Todas las áreas</option>
+                <option value="civil_comercial">Civil, Comercial y Societario</option>
+                <option value="laboral">Laboral</option>
+                <option value="corporativo">Corporativo</option>
+                <option value="compliance">Compliance</option>
+                <option value="marcas">Marcas y Propiedad Intelectual</option>
+                <option value="consumidor">Consumidor</option>
+              </select>
+            </div>
+          </div>
         </div>
-        <button className="text-gray-500 hover:text-gray-800 p-2 rounded-md hover:bg-gray-100">
-          <Filter className="h-5 w-5" />
-        </button>
       </div>
       
-      {/* Tabla de solicitudes */}
+      {/* Tabla de solicitudes mejorada */}
       <div className="overflow-x-auto">
         <table className="w-full">
-          <thead>
-            <tr className="border-b border-gray-200">
-              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Documento</th>
-              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Tipo</th>
-              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Área</th>
-              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Estado</th>
-              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Fecha</th>
-              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Acciones</th>
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="text-left py-4 px-6 text-xs font-semibold text-gray-700 uppercase tracking-wider">Documento</th>
+              <th className="text-left py-4 px-6 text-xs font-semibold text-gray-700 uppercase tracking-wider">Tipo</th>
+              <th className="text-left py-4 px-6 text-xs font-semibold text-gray-700 uppercase tracking-wider">Área</th>
+              <th className="text-left py-4 px-6 text-xs font-semibold text-gray-700 uppercase tracking-wider">Estado</th>
+              <th className="text-left py-4 px-6 text-xs font-semibold text-gray-700 uppercase tracking-wider">Fecha</th>
+              <th className="text-left py-4 px-6 text-xs font-semibold text-gray-700 uppercase tracking-wider">Acciones</th>
             </tr>
           </thead>
-          <tbody>
-        {memos.length === 0 ? (
+          <tbody className="divide-y divide-gray-200">
+        {filteredMemos.length === 0 ? (
               <tr>
-                <td colSpan={6} className="text-sm text-gray-500 py-8 text-center">
-            Aún no hay documentos generados. Creá una transcripción de reunión desde la derecha.
+                <td colSpan={6} className="text-sm text-gray-500 py-12 text-center">
+                  {memos.length === 0 ? (
+                    <div className="flex flex-col items-center gap-3">
+                      <FileText className="h-12 w-12 text-gray-300" />
+                      <p className="text-gray-600">Aún no hay documentos generados.</p>
+                      <p className="text-sm text-gray-500">Ve a "Generar" para crear tu primer documento.</p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-3">
+                      <Search className="h-12 w-12 text-gray-300" />
+                      <p className="text-gray-600">No se encontraron documentos con los filtros seleccionados.</p>
+                      <button
+                        onClick={() => {
+                          setSearchTerm("");
+                          setFilterTipo("all");
+                          setFilterArea("all");
+                        }}
+                        className="text-sm text-purple-600 hover:text-purple-700 font-medium"
+                      >
+                        Limpiar filtros
+                      </button>
+                    </div>
+                  )}
                 </td>
               </tr>
         ) : (
-          memos.map((row) => (
-                <tr key={row.id} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="py-3 px-4 text-sm text-gray-900 font-medium">{row.title || row.asunto}</td>
-                  <td className="py-3 px-4 text-sm text-gray-600">
-                    {row.type === "analysis" ? "Análisis" : (row.tipoDocumento || row.tipo || "Reunión")}
+          filteredMemos.map((row) => (
+                <tr key={row.id} className="hover:bg-purple-50/50 transition-colors">
+                  <td className="py-4 px-6">
+                    <div className="flex items-start gap-3">
+                      <div className={`p-2 rounded-lg ${
+                        row.type === "analysis" ? "bg-blue-100" : "bg-purple-100"
+                      }`}>
+                        {row.type === "analysis" ? (
+                          <FileText className="h-4 w-4 text-blue-600" />
+                        ) : (
+                          <Gavel className="h-4 w-4 text-purple-600" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-semibold text-gray-900 truncate">
+                          {row.title || row.asunto}
+                        </div>
+                        {row.memoData?.resumen && (
+                          <div className="text-xs text-gray-500 mt-1 line-clamp-1">
+                            {row.memoData.resumen.substring(0, 100)}...
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </td>
-                  <td className="py-3 px-4 text-sm text-gray-600">{getAreaLegalLabel(row.areaLegal || "civil_comercial")}</td>
-                  <td className="py-3 px-4">
+                  <td className="py-4 px-6">
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+                      row.type === "analysis" 
+                        ? "bg-blue-100 text-blue-800" 
+                        : "bg-purple-100 text-purple-800"
+                    }`}>
+                      {row.type === "analysis" ? "Análisis" : (row.tipoDocumento || row.tipo || "Reunión")}
+                    </span>
+                  </td>
+                  <td className="py-4 px-6 text-sm text-gray-600">{getAreaLegalLabel(row.areaLegal || "civil_comercial")}</td>
+                  <td className="py-4 px-6">
                     {row.estado === "Asignado" ? (
                       <button
                         onClick={() => setShowAssignedInfo({ 
@@ -839,7 +900,7 @@ function BandejaLocal({ items, onDelete, onUpdateItem }: { items: any[]; onDelet
                           abogado: row.abogadoAsignado || "Abogado no especificado",
                           title: row.title || row.asunto || "documento"
                         })}
-                        className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 cursor-pointer transition-colors"
+                        className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-800 cursor-pointer transition-colors"
                       >
                         <span className="w-2 h-2 mr-2 rounded-full bg-blue-500"></span>
                         Asignado
@@ -847,30 +908,34 @@ function BandejaLocal({ items, onDelete, onUpdateItem }: { items: any[]; onDelet
                     ) : (row.estado === "Listo para revisión" || row.status === "completed") ? (
                       <button
                         onClick={() => setAssignModal({ id: row.id, title: row.title || row.asunto || "documento" })}
-                        className="inline-flex items-center text-sm text-gray-600 hover:text-[#C026D3] cursor-pointer transition-colors"
+                        className="inline-flex items-center text-sm font-medium text-green-600 hover:text-green-800 cursor-pointer transition-colors"
                       >
                         <span className="w-2 h-2 mr-2 rounded-full bg-green-500"></span>
                         Listo para revisión
                       </button>
                     ) : (
-                      <span className="inline-flex items-center text-sm text-gray-600">
+                      <span className="inline-flex items-center text-sm font-medium text-gray-600">
                         <span className="w-2 h-2 mr-2 rounded-full bg-amber-500"></span>
                         {row.estado || row.status || "Pendiente"}
                       </span>
                     )}
                   </td>
-                  <td className="py-3 px-4 text-sm text-gray-600">{formatFecha(row.createdAt || row.creado || new Date().toISOString())}</td>
-                  <td className="py-3 px-4">
+                  <td className="py-4 px-6">
+                    <div className="text-sm text-gray-600">
+                      {formatFecha(row.createdAt || row.creado || new Date().toISOString())}
+                    </div>
+                  </td>
+                  <td className="py-4 px-6">
                     <div className="flex items-center gap-2">
                       <button 
-                        className="p-1.5 rounded-md hover:bg-gray-100 text-gray-600 hover:text-[#C026D3]"
+                        className="p-2 rounded-lg hover:bg-purple-100 text-gray-600 hover:text-purple-600 transition-colors"
                         onClick={() => window.location.href = `/memos/${row.id}`}
                         title="Ver documento"
                       >
                         <Eye className="h-4 w-4" />
                       </button>
                       <button 
-                        className="p-1.5 rounded-md hover:bg-gray-100 text-gray-600 hover:text-[#C026D3]"
+                        className="p-2 rounded-lg hover:bg-purple-100 text-gray-600 hover:text-purple-600 transition-colors"
                         onClick={async () => {
                           const API = getApiUrl();
                           let content = row.markdown || row.memoData?.texto_formateado || "";
