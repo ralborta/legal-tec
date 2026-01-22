@@ -4960,11 +4960,15 @@ function ChatDocumentoPersonalizado({
       setDocumentoGenerado(data.documento || "");
       setTituloDocumento(data.titulo || titulo);
       
-      onGenerar({
-        descripcion: userMessages,
-        detalles: detalles,
-        titulo: data.titulo || titulo
-      });
+      // Agregar mensaje del asistente con el documento generado
+      const documentoMessage = {
+        role: "assistant" as const,
+        content: `✅ **Documento generado exitosamente!**\n\n${data.documento || ""}\n\n¿Querés hacer algún cambio o ajuste al documento? Podés pedirme modificaciones, agregar cláusulas, o ajustar cualquier aspecto.`
+      };
+      setMessages([...messages, documentoMessage]);
+      
+      // NO llamar a onGenerar aquí para mantener el chat visible
+      // El documento ya está guardado en documentoGenerado y mostrado en el chat
 
     } catch (e: any) {
       setError(e.message || "Error al generar documento");
@@ -5140,7 +5144,54 @@ function ChatDocumentoPersonalizado({
                     : "bg-gray-100 text-gray-900"
                 }`}
               >
-                <div className="text-sm whitespace-pre-wrap">{msg.content}</div>
+                {msg.content.includes("**Documento generado exitosamente!**") ? (
+                  <div className="space-y-3">
+                    <div className="text-sm font-semibold text-green-700 mb-2">✅ Documento generado exitosamente!</div>
+                    <div className="bg-white rounded-lg p-4 border border-gray-300 max-h-96 overflow-y-auto">
+                      <ReactMarkdown className="text-sm prose prose-sm max-w-none">
+                        {msg.content.replace(/✅ \*\*Documento generado exitosamente!\*\*\n\n/, "").split("\n\n¿Querés hacer")[0]}
+                      </ReactMarkdown>
+                    </div>
+                    <div className="flex items-center gap-2 mt-2">
+                      <button
+                        onClick={async () => {
+                          if (!documentoGenerado) return;
+                          setDownloading(true);
+                          try {
+                            const sanitize = (s: string) => s.replace(/[^a-z0-9\-\_\ ]/gi, "_");
+                            const filename = `${tituloDocumento}_${new Date().toISOString().split("T")[0]}`;
+                            await downloadMD(filename, documentoGenerado);
+                          } catch (error) {
+                            setError("Error al descargar documento");
+                          } finally {
+                            setDownloading(false);
+                          }
+                        }}
+                        disabled={downloading || !documentoGenerado}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs font-medium rounded-lg hover:from-purple-700 hover:to-pink-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {downloading ? (
+                          <>
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                            <span>Generando...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Download className="h-3 w-3" />
+                            <span>Descargar Word</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                    {msg.content.includes("¿Querés hacer") && (
+                      <div className="text-sm text-gray-700 mt-2">
+                        {msg.content.split("¿Querés hacer")[1]}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-sm whitespace-pre-wrap">{msg.content}</div>
+                )}
               </div>
             </div>
           ))}
@@ -5176,8 +5227,8 @@ function ChatDocumentoPersonalizado({
         </div>
       </div>
 
-      {/* Botón de generar siempre visible (Fase 1 simplificada) */}
-      {messages.length >= 2 && (
+      {/* Botón de generar - Solo mostrar si NO hay documento generado todavía */}
+      {messages.length >= 2 && !documentoGenerado && (
         <div className="border border-[#C026D3] bg-purple-50 rounded-lg p-4">
           <div className="flex items-center justify-between">
             <div>
@@ -5202,6 +5253,14 @@ function ChatDocumentoPersonalizado({
               )}
             </button>
           </div>
+        </div>
+      )}
+      
+      {/* Mensaje después de generar - Permitir seguir chateando */}
+      {documentoGenerado && (
+        <div className="border border-green-300 bg-green-50 rounded-lg p-4">
+          <p className="text-sm font-medium text-green-900 mb-2">✅ Documento generado</p>
+          <p className="text-xs text-green-700">Podés seguir chateando para pedir modificaciones, agregar cláusulas o hacer ajustes al documento.</p>
         </div>
       )}
     </div>
@@ -5362,19 +5421,21 @@ function GenerarDesdePlantilla({ onGenerated, setError, setLoading }: { onGenera
           const data = await response.json();
           setResultado(data.documento);
           
-          onGenerated({
-            id: crypto.randomUUID(),
-            type: "contrato",
-            title: docData.titulo || `Documento Personalizado - ${new Date().toLocaleDateString()}`,
-            markdown: data.documento,
-            createdAt: new Date().toISOString(),
-            esPersonalizado: true,
-            descripcion: docData.descripcion,
-            detalles: docData.detalles
-          });
-
-          // Volver a modo normal después de generar
-          setModoPersonalizado(false);
+          // NO volver a modo normal - mantener el chat visible
+          // El documento se muestra en el chat y el usuario puede seguir pidiendo cambios
+          // setModoPersonalizado(false); // COMENTADO: mantener el chat visible
+          
+          // Opcional: agregar a la bandeja local sin salir del chat
+          // onGenerated({
+          //   id: crypto.randomUUID(),
+          //   type: "contrato",
+          //   title: docData.titulo || `Documento Personalizado - ${new Date().toLocaleDateString()}`,
+          //   markdown: data.documento,
+          //   createdAt: new Date().toISOString(),
+          //   esPersonalizado: true,
+          //   descripcion: docData.descripcion,
+          //   detalles: docData.detalles
+          // });
 
         } catch (e: any) {
           setError(e.message || "Error al generar documento personalizado");
