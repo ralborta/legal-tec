@@ -351,40 +351,97 @@ export default function CentroGestionLegalPage() {
 
 function Sidebar({ activeView, setActiveView }: { activeView: string; setActiveView: (view: "bandeja" | "analizar" | "generar" | "historial") => void }) {
   return (
-    <aside className="hidden lg:flex w-64 flex-shrink-0 bg-gray-800 border-r border-gray-700 flex flex-col">
-      <nav className="flex-grow flex flex-col p-4 space-y-1">
-        <SideLink icon={Sparkles} label="Bandeja" active={activeView === "bandeja"} onClick={() => setActiveView("bandeja")} />
-        <SideLink icon={FileText} label="Analizar Documentos" active={activeView === "analizar"} onClick={() => setActiveView("analizar")} />
-        <SideLink icon={Plus} label="Generar" active={activeView === "generar"} onClick={() => setActiveView("generar")} />
-        <SideLink icon={History} label="Historial" active={activeView === "historial"} onClick={() => setActiveView("historial")} />
-        <h2 className="text-xs font-bold uppercase text-gray-400 pt-6 pb-2 px-4">FUENTES</h2>
-        <SideLink icon={BookOpen} label="Normativa" />
-        <SideLink icon={Gavel} label="Jurisprudencia" />
-        <div className="mt-auto space-y-1 pt-4 border-t border-gray-700">
-          <SideLink icon={CheckCircle2} label="Calidad" />
-          <SideLink icon={Settings} label="Configuración" />
+    <aside className="hidden lg:flex w-64 flex-shrink-0 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 border-r border-slate-700/50 flex flex-col shadow-2xl">
+      <nav className="flex-grow flex flex-col p-4 space-y-2">
+        <SideLink icon={Sparkles} label="Bandeja" active={activeView === "bandeja"} onClick={() => setActiveView("bandeja")} color="purple" />
+        <SideLink icon={FileText} label="Analizar Documentos" active={activeView === "analizar"} onClick={() => setActiveView("analizar")} color="blue" />
+        <SideLink icon={Plus} label="Generar" active={activeView === "generar"} onClick={() => setActiveView("generar")} color="pink" />
+        <SideLink icon={History} label="Historial" active={activeView === "historial"} onClick={() => setActiveView("historial")} color="indigo" />
+        <div className="pt-4 pb-2">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400/70 px-4 mb-2">FUENTES</h2>
+          <div className="h-px bg-gradient-to-r from-transparent via-slate-600/50 to-transparent"></div>
+        </div>
+        <SideLink icon={BookOpen} label="Normativa" color="emerald" />
+        <SideLink icon={Gavel} label="Jurisprudencia" color="amber" />
+        <div className="mt-auto space-y-2 pt-4">
+          <div className="h-px bg-gradient-to-r from-transparent via-slate-600/50 to-transparent mb-2"></div>
+          <SideLink icon={CheckCircle2} label="Calidad" color="green" />
+          <SideLink icon={Settings} label="Configuración" color="slate" />
         </div>
       </nav>
     </aside>
   );
 }
 
-function SideLink({ icon: Icon, label, active, className = "", onClick }: any) {
+function SideLink({ icon: Icon, label, active, className = "", onClick, color = "blue" }: any) {
+  const colorClasses = {
+    purple: {
+      active: "bg-gradient-to-r from-purple-600 to-purple-500 text-white shadow-lg shadow-purple-500/30",
+      hover: "hover:bg-purple-500/10 hover:text-purple-300 hover:border-purple-500/30",
+      icon: active ? "text-white" : "text-purple-400 group-hover:text-purple-300"
+    },
+    blue: {
+      active: "bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-500/30",
+      hover: "hover:bg-blue-500/10 hover:text-blue-300 hover:border-blue-500/30",
+      icon: active ? "text-white" : "text-blue-400 group-hover:text-blue-300"
+    },
+    pink: {
+      active: "bg-gradient-to-r from-pink-600 to-pink-500 text-white shadow-lg shadow-pink-500/30",
+      hover: "hover:bg-pink-500/10 hover:text-pink-300 hover:border-pink-500/30",
+      icon: active ? "text-white" : "text-pink-400 group-hover:text-pink-300"
+    },
+    indigo: {
+      active: "bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-lg shadow-indigo-500/30",
+      hover: "hover:bg-indigo-500/10 hover:text-indigo-300 hover:border-indigo-500/30",
+      icon: active ? "text-white" : "text-indigo-400 group-hover:text-indigo-300"
+    },
+    emerald: {
+      active: "bg-gradient-to-r from-emerald-600 to-emerald-500 text-white shadow-lg shadow-emerald-500/30",
+      hover: "hover:bg-emerald-500/10 hover:text-emerald-300 hover:border-emerald-500/30",
+      icon: active ? "text-white" : "text-emerald-400 group-hover:text-emerald-300"
+    },
+    amber: {
+      active: "bg-gradient-to-r from-amber-600 to-amber-500 text-white shadow-lg shadow-amber-500/30",
+      hover: "hover:bg-amber-500/10 hover:text-amber-300 hover:border-amber-500/30",
+      icon: active ? "text-white" : "text-amber-400 group-hover:text-amber-300"
+    },
+    green: {
+      active: "bg-gradient-to-r from-green-600 to-green-500 text-white shadow-lg shadow-green-500/30",
+      hover: "hover:bg-green-500/10 hover:text-green-300 hover:border-green-500/30",
+      icon: active ? "text-white" : "text-green-400 group-hover:text-green-300"
+    },
+    slate: {
+      active: "bg-gradient-to-r from-slate-600 to-slate-500 text-white shadow-lg shadow-slate-500/30",
+      hover: "hover:bg-slate-500/10 hover:text-slate-300 hover:border-slate-500/30",
+      icon: active ? "text-white" : "text-slate-400 group-hover:text-slate-300"
+    }
+  };
+
+  const colors = colorClasses[color as keyof typeof colorClasses] || colorClasses.blue;
+
   return (
     <a 
-      className={`flex items-center space-x-3 px-4 py-2.5 rounded-lg transition-colors cursor-pointer ${
+      className={`group flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300 cursor-pointer border border-transparent relative overflow-hidden ${
         active 
-          ? "bg-blue-600 text-white font-medium" 
-          : "text-gray-300 hover:bg-gray-700 hover:text-white"
-      } ${className}`} 
+          ? `${colors.active} font-semibold scale-[1.02]` 
+          : `text-slate-300 ${colors.hover} hover:scale-[1.01] hover:shadow-md`
+      } ${className}`}
       href="#"
       onClick={(e) => {
         e.preventDefault();
         if (onClick) onClick();
       }}
     >
-      <Icon className="h-5 w-5" />
-      <span className="text-sm">{label}</span>
+      {/* Efecto de brillo sutil en hover */}
+      {!active && (
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 -translate-x-full group-hover:translate-x-full"></div>
+      )}
+      <Icon className={`h-5 w-5 transition-all duration-300 ${colors.icon} ${active ? "scale-110" : "group-hover:scale-110"}`} />
+      <span className={`text-sm transition-all duration-300 ${active ? "font-semibold" : "font-medium group-hover:font-semibold"}`}>{label}</span>
+      {/* Indicador activo sutil */}
+      {active && (
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-white/40 rounded-r-full"></div>
+      )}
     </a>
   );
 }
