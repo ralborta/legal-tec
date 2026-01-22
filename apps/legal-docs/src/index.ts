@@ -213,11 +213,37 @@ async function handleUploadMany(req: express.Request, res: express.Response, nex
 
     console.log(`[UPLOAD-MANY] ${files.length} archivos recibidos`);
 
+    // Validar tamaño total
+    const MAX_TOTAL_SIZE = 200 * 1024 * 1024; // 200MB total
+    const totalSize = files.reduce((sum, f) => sum + (f.size || 0), 0);
+    if (totalSize > MAX_TOTAL_SIZE) {
+      const totalSizeMB = (totalSize / 1024 / 1024).toFixed(1);
+      return res.status(413).json({ 
+        error: "total size too large",
+        message: `El tamaño total de los archivos (${totalSizeMB}MB) excede el límite de 200MB. Por favor, reduce el tamaño de los archivos o sube menos archivos.`,
+        totalSize,
+        maxSize: MAX_TOTAL_SIZE
+      });
+    }
+
     const results = [];
     for (const f of files) {
       if (!f.buffer || f.buffer.length === 0) {
         console.log(`[UPLOAD-MANY] Saltando archivo vacío: ${f.originalname}`);
         continue;
+      }
+
+      // Validar tamaño individual
+      const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB por archivo
+      if (f.size > MAX_FILE_SIZE) {
+        const fileSizeMB = (f.size / 1024 / 1024).toFixed(1);
+        return res.status(413).json({ 
+          error: "file too large",
+          message: `El archivo "${f.originalname}" es demasiado grande (${fileSizeMB}MB). El máximo permitido es 50MB por archivo.`,
+          filename: f.originalname,
+          fileSize: f.size,
+          maxSize: MAX_FILE_SIZE
+        });
       }
 
       const documentId = await saveOriginalDocument({
@@ -227,13 +253,23 @@ async function handleUploadMany(req: express.Request, res: express.Response, nex
       });
 
       results.push({ documentId, filename: f.originalname, size: f.size });
-      console.log(`[UPLOAD-MANY] ✅ ${f.originalname} -> ${documentId}`);
+      console.log(`[UPLOAD-MANY] ✅ ${f.originalname} -> ${documentId} (${(f.size / 1024 / 1024).toFixed(2)}MB)`);
     }
 
+    console.log(`[UPLOAD-MANY] ✅ Total: ${results.length} archivos subidos (${(totalSize / 1024 / 1024).toFixed(2)}MB)`);
     return res.json({ count: results.length, documents: results });
   } catch (err: any) {
     console.error(`[UPLOAD-MANY] Error: ${err?.message || err}`);
-    return res.status(500).json({ error: "upload failed", message: err?.message });
+    
+    // Manejar errores específicos de tamaño
+    if (err?.message?.includes("too large") || err?.message?.includes("demasiado grande")) {
+      return res.status(413).json({ 
+        error: "file too large",
+        message: err.message || "Uno o más archivos exceden el tamaño máximo permitido (50MB por archivo, 200MB total)."
+      });
+    }
+    
+    return res.status(500).json({ error: "upload failed", message: err?.message || "Error desconocido al subir archivos" });
   }
 }
 

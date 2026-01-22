@@ -35,7 +35,8 @@ async function start() {
     logger: true,
     // ⚠️ CRÍTICO: Aumentar timeouts para uploads grandes
     requestTimeout: 180000, // 3 minutos para request completo
-    bodyLimit: 50 * 1024 * 1024, // 50MB límite de body
+    // Aumentar bodyLimit para permitir múltiples archivos (5 archivos x 50MB = 250MB máximo)
+    bodyLimit: 250 * 1024 * 1024, // 250MB límite total de body para múltiples archivos
   });
 
   // ✅ Crear tabla knowledge_bases automáticamente al iniciar (si no existe)
@@ -124,9 +125,11 @@ async function start() {
   });
 
   // Multipart para manejar archivos
+  // Aumentar límite para permitir múltiples archivos grandes
   await app.register(multipart, {
     limits: {
-      fileSize: 10 * 1024 * 1024, // 10MB máximo
+      fileSize: 50 * 1024 * 1024, // 50MB máximo por archivo (igual que legal-docs)
+      files: 5, // Máximo 5 archivos
     }
   });
 

@@ -1631,6 +1631,25 @@ function AnalizarDocumentosPanel() {
       return;
     }
 
+    // Validar tamaño total de archivos (máximo 200MB total para 4-5 archivos)
+    const MAX_TOTAL_SIZE = 200 * 1024 * 1024; // 200MB total
+    const totalSize = files.reduce((sum, file) => sum + file.size, 0);
+    if (totalSize > MAX_TOTAL_SIZE) {
+      const totalSizeMB = (totalSize / 1024 / 1024).toFixed(1);
+      setError(`El tamaño total de los archivos es demasiado grande (${totalSizeMB}MB). El máximo permitido es 200MB. Por favor, reduce el tamaño de los archivos o sube menos archivos.`);
+      return;
+    }
+
+    // Validar tamaño individual (máximo 50MB por archivo)
+    const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB por archivo
+    const oversizedFiles = files.filter(f => f.size > MAX_FILE_SIZE);
+    if (oversizedFiles.length > 0) {
+      const fileNames = oversizedFiles.map(f => f.name).join(", ");
+      const fileSizes = oversizedFiles.map(f => (f.size / 1024 / 1024).toFixed(1) + "MB").join(", ");
+      setError(`Los siguientes archivos son demasiado grandes (máximo 50MB por archivo): ${fileNames} (${fileSizes}). Por favor, reduce el tamaño de estos archivos.`);
+      return;
+    }
+
     setError(null);
     setAnalyzing(true);
     setProgress(0);
