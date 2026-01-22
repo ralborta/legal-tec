@@ -412,7 +412,7 @@ export default function CentroGestionLegalPage() {
   );
 }
 
-function Sidebar({ activeView, setActiveView, usuario }: { activeView: string; setActiveView: (view: "bandeja" | "analizar" | "comparar" | "generar" | "historial" | "configuracion") => void; usuario: {rol: string} | null }) {
+function Sidebar({ activeView, setActiveView, usuario }: { activeView: string; setActiveView: (view: "bandeja" | "analizar" | "comparar" | "generar" | "historial" | "configuracion") => void; usuario: {id: string; email: string; nombre: string; rol: string} | null }) {
   return (
     <aside className="hidden lg:flex w-64 flex-shrink-0 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 border-r border-slate-700/50 flex flex-col shadow-2xl">
       <nav className="flex-grow flex flex-col p-4 space-y-2">
