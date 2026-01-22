@@ -1,7 +1,7 @@
 "use client";
 import React, { useMemo, useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { Search, FileText, Gavel, BookOpen, CheckCircle2, Clock3, Users, Settings, Upload, Send, Download, ExternalLink, Trash2, Filter, Plus, History, Sparkles, Loader2, Eye, X, GitCompare } from "lucide-react";
+import { Search, FileText, Gavel, BookOpen, CheckCircle2, Clock3, Users, Settings, Upload, Send, Download, ExternalLink, Trash2, Filter, Plus, History, Sparkles, Loader2, Eye, X, GitCompare, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 
@@ -250,7 +250,16 @@ export default function CentroGestionLegalPage() {
       <div className="flex flex-1 min-h-0">
         <Sidebar activeView={activeView} setActiveView={setActiveView} usuario={usuario} />
         <div className="flex-1 min-w-0 flex flex-col bg-gray-50">
-          <Topbar activeView={activeView} setActiveView={setActiveView} />
+          <Topbar 
+            activeView={activeView} 
+            setActiveView={setActiveView} 
+            usuario={usuario}
+            onLogout={() => {
+              setUsuario(null);
+              setShowLogin(true);
+              localStorage.removeItem("legal-usuario");
+            }}
+          />
           <main className="flex-1 p-8 overflow-y-auto">
             <div>
               <div className="mb-8">
@@ -424,6 +433,35 @@ function Sidebar({ activeView, setActiveView, usuario }: { activeView: string; s
           {usuario?.rol === 'admin' && (
             <SideLink icon={Settings} label="Configuración" active={activeView === "configuracion"} onClick={() => setActiveView("configuracion")} color="slate" />
           )}
+          {usuario && (
+            <>
+              <div className="h-px bg-gradient-to-r from-transparent via-slate-600/50 to-transparent my-2"></div>
+              <div className="px-4 py-2">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs font-bold">
+                    {usuario.nombre.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-white truncate">{usuario.nombre}</p>
+                    <p className="text-xs text-slate-400 truncate">{usuario.email}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    // Logout se maneja desde el componente padre
+                    if (typeof window !== 'undefined') {
+                      localStorage.removeItem("legal-usuario");
+                      window.location.reload();
+                    }
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-red-500/20 rounded-lg transition-all border border-slate-700/50 hover:border-red-500/50"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Cerrar Sesión
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </nav>
     </aside>
@@ -562,7 +600,12 @@ function Footer() {
   );
 }
 
-function Topbar({ activeView, setActiveView }: { activeView: string; setActiveView: (view: "bandeja" | "analizar" | "generar" | "historial") => void }) {
+function Topbar({ activeView, setActiveView, usuario, onLogout }: { 
+  activeView: string; 
+  setActiveView: (view: "bandeja" | "analizar" | "generar" | "historial") => void;
+  usuario: {id: string; email: string; nombre: string; rol: string} | null;
+  onLogout: () => void;
+}) {
   // Evitar hydration mismatch: calcular fecha solo en cliente
   const [today, setToday] = React.useState("");
 
@@ -607,7 +650,7 @@ function Topbar({ activeView, setActiveView }: { activeView: string; setActiveVi
         </div>
       </div>
 
-      {/* Botones de acción y fecha */}
+      {/* Botones de acción, usuario y fecha */}
       <div className="flex items-center gap-3">
         <button
           onClick={() => setActiveView("analizar")}
@@ -639,7 +682,26 @@ function Topbar({ activeView, setActiveView }: { activeView: string; setActiveVi
         >
           Ver Historial
         </button>
-        <div className="text-right text-sm text-gray-500 font-medium ml-4">
+        
+        {/* Usuario y Logout */}
+        {usuario && (
+          <div className="flex items-center gap-3 ml-4 pl-4 border-l border-gray-200">
+            <div className="flex flex-col items-end">
+              <span className="text-xs text-gray-500">{usuario.nombre}</span>
+              <span className="text-xs text-gray-400">{usuario.rol === 'admin' ? 'Administrador' : 'Usuario'}</span>
+            </div>
+            <button
+              onClick={onLogout}
+              className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-red-50 hover:text-red-600 transition-all"
+              title="Cerrar sesión"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="hidden md:inline">Salir</span>
+            </button>
+          </div>
+        )}
+        
+        <div className="text-right text-sm text-gray-500 font-medium">
           {today || ""}
         </div>
       </div>
