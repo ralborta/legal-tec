@@ -154,31 +154,15 @@ export async function generateReport(input: ReportInput): Promise<AnalysisReport
 
 ${FUENTES_LEGALES}
 
-═══════════════════════════════════════════════════════════════════════════════
-🚨🚨🚨 INSTRUCCIONES Y CONTEXTO DEL USUARIO - PRIORIDAD ABSOLUTA 🚨🚨🚨
-═══════════════════════════════════════════════════════════════════════════════
-
+INSTRUCCIONES DEL USUARIO:
 ${instructionsText}
 
-${instructionsText.includes("ANÁLISIS CONJUNTO") || instructionsText.includes("múltiples documentos") ? `
-⚠️⚠️⚠️ RECORDATORIO CRÍTICO: ESTE ES UN ANÁLISIS CONJUNTO ⚠️⚠️⚠️
-- SIEMPRE usa PLURAL: "los documentos", "estos documentos", "los documentos analizados"
-- NUNCA uses "el documento" en singular
-- El resumen DEBE mencionar explícitamente que se analizaron múltiples documentos
-- Todas las secciones deben reflejar que es un análisis conjunto
-` : ""}
-
-REGLAS:
-- Aplica las instrucciones del usuario en TODAS las secciones (resumen, cláusulas, riesgos, recomendaciones, etc.)
-- Mínimos obligatorios: 15+ cláusulas, 10+ riesgos, 15+ recomendaciones, 12+ próximos pasos, 5+ documentos sugeridos, 10+ citas
-- Si el documento es pequeño, profundiza más en cada sección
-- Analiza desde múltiples perspectivas (jurídica, comercial, operativa, financiera)
-- Mantén coherencia: riesgos deben corresponder a recomendaciones, próximos pasos a recomendaciones
+${instructionsText.includes("ANÁLISIS CONJUNTO") || instructionsText.includes("múltiples documentos") ? `IMPORTANTE: Estás analizando múltiples documentos. Usa PLURAL ("los documentos", "estos documentos") en TODAS las secciones. El título debe ser "Análisis Legal Conjunto de [N] Documentos".` : ""}
 
 TIPO DE DOCUMENTO: ${input.type}
 
 TEXTO ORIGINAL:
-${isConjointAnalysis ? input.original.substring(0, 2000) : input.original.substring(0, 1500)}
+${isConjointAnalysis ? input.original.substring(0, 3000) : input.original.substring(0, 2500)}
 
 CLÁUSULAS DEL DOCUMENTO:
 ${translatedText}
