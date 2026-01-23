@@ -1401,53 +1401,95 @@ function BandejaLocal({ items, onDelete, onUpdateItem, usuario }: { items: any[]
                 Cancelar
               </button>
               <button
-                onClick={async () => {
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  
+                  // Cerrar modal inmediatamente (no bloqueante)
                   const idToDelete = deleteConfirm.id;
-                  const itemToDelete = memos.find(m => m.id === idToDelete);
-                  const isAnalysis = itemToDelete?.type === "analysis";
                   setDeleteConfirm(null);
                   
-                  try {
-                    // Si es un análisis, marcar como borrado en la base de datos (soft delete)
-                    if (isAnalysis) {
-                      const API = getApiUrl();
-                      if (API && usuario?.email) {
-                        const response = await fetch(`${API}/legal/document/${idToDelete}`, {
-                          method: "DELETE",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ borradoPor: usuario.email })
-                        });
-                        
-                        if (!response.ok) {
-                          const errorData = await response.json().catch(() => ({ message: "Error desconocido" }));
-                          throw new Error(errorData.message || `Error ${response.status}`);
+                  // Ejecutar eliminación de forma asíncrona y no bloqueante
+                  const deleteAsync = async () => {
+                    const itemToDelete = memos.find(m => m.id === idToDelete);
+                    const isAnalysis = itemToDelete?.type === "analysis";
+                    
+                    try {
+                      // Si es un análisis, marcar como borrado en la base de datos (soft delete)
+                      if (isAnalysis) {
+                        const API = getApiUrl();
+                        if (API && usuario?.email) {
+                          const response = await fetch(`${API}/legal/document/${idToDelete}`, {
+                            method: "DELETE",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ borradoPor: usuario.email })
+                          });
+                          
+                          if (!response.ok) {
+                            const errorData = await response.json().catch(() => ({ message: "Error desconocido" }));
+                            throw new Error(errorData.message || `Error ${response.status}`);
+                          }
+                          console.log(`[DELETE] ✅ Análisis ${idToDelete} marcado como borrado por ${usuario.email}`);
                         }
-                        console.log(`[DELETE] ✅ Análisis ${idToDelete} marcado como borrado por ${usuario.email}`);
                       }
-                    }
-                    
-                    // Eliminar del localStorage (si existe)
-                    const saved = localStorage.getItem("legal-memos");
-                    if (saved) {
-                      try {
-                        const memos = JSON.parse(saved);
-                        const filtered = memos.filter((m: any) => m.id !== idToDelete);
-                        localStorage.setItem("legal-memos", JSON.stringify(filtered));
-                      } catch (err) {
-                        console.warn("Error al eliminar del localStorage:", err);
+                      
+                      // Actualizar localStorage de forma no bloqueante
+                      if (typeof requestIdleCallback !== 'undefined') {
+                        requestIdleCallback(() => {
+                          const saved = localStorage.getItem("legal-memos");
+                          if (saved) {
+                            try {
+                              const memos = JSON.parse(saved);
+                              const filtered = memos.filter((m: any) => m.id !== idToDelete);
+                              localStorage.setItem("legal-memos", JSON.stringify(filtered));
+                            } catch (err) {
+                              console.warn("Error al eliminar del localStorage:", err);
+                            }
+                          }
+                        }, { timeout: 1000 });
+                      } else {
+                        setTimeout(() => {
+                          const saved = localStorage.getItem("legal-memos");
+                          if (saved) {
+                            try {
+                              const memos = JSON.parse(saved);
+                              const filtered = memos.filter((m: any) => m.id !== idToDelete);
+                              localStorage.setItem("legal-memos", JSON.stringify(filtered));
+                            } catch (err) {
+                              console.warn("Error al eliminar del localStorage:", err);
+                            }
+                          }
+                        }, 0);
                       }
+                      
+                      // Actualizar estado de forma no bloqueante
+                      if (typeof requestIdleCallback !== 'undefined') {
+                        requestIdleCallback(() => {
+                          if (onDelete) {
+                            onDelete(idToDelete);
+                          }
+                        }, { timeout: 100 });
+                      } else {
+                        setTimeout(() => {
+                          if (onDelete) {
+                            onDelete(idToDelete);
+                          }
+                        }, 0);
+                      }
+                    } catch (err: any) {
+                      console.error("Error al eliminar:", err);
+                      // Mostrar error de forma no bloqueante
+                      setTimeout(() => {
+                        alert(`Error al eliminar el documento: ${err.message || "Intenta de nuevo"}`);
+                      }, 0);
                     }
-                    
-                    // Llamar al callback si existe para actualizar el estado sin recargar
-                    if (onDelete) {
-                      onDelete(idToDelete);
-                    } else {
-                      // Fallback: recargar la página
-                      window.location.reload();
-                    }
-                  } catch (err: any) {
-                    console.error("Error al eliminar:", err);
-                    alert(`Error al eliminar el documento: ${err.message || "Intenta de nuevo"}`);
+                  };
+                  
+                  // Ejecutar de forma asíncrona sin bloquear
+                  if (typeof requestIdleCallback !== 'undefined') {
+                    requestIdleCallback(deleteAsync, { timeout: 50 });
+                  } else {
+                    setTimeout(deleteAsync, 0);
                   }
                 }}
                 className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
