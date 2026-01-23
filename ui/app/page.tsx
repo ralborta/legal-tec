@@ -126,6 +126,22 @@ export default function CentroGestionLegalPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<"bandeja" | "analizar" | "comparar" | "generar" | "historial" | "configuracion">("bandeja");
+  
+  // Optimizar setActiveView para evitar bloqueos
+  const setActiveViewOptimized = React.useCallback((view: "bandeja" | "analizar" | "comparar" | "generar" | "historial" | "configuracion") => {
+    if (typeof (window as any).React?.startTransition === 'function') {
+      (window as any).React.startTransition(() => {
+        setActiveView(view);
+      });
+    } else {
+      // Fallback: usar requestIdleCallback o setTimeout
+      if (typeof requestIdleCallback !== 'undefined') {
+        requestIdleCallback(() => setActiveView(view), { timeout: 16 });
+      } else {
+        setTimeout(() => setActiveView(view), 0);
+      }
+    }
+  }, []);
   const [lastGeneratedMemo, setLastGeneratedMemo] = useState<{
     content: string;
     resumen: string;
@@ -250,11 +266,11 @@ export default function CentroGestionLegalPage() {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 antialiased font-display flex flex-col">
       <div className="flex flex-1 min-h-0">
-        <Sidebar activeView={activeView} setActiveView={setActiveView} usuario={usuario} />
+        <Sidebar activeView={activeView} setActiveView={setActiveViewOptimized} usuario={usuario} />
         <div className="flex-1 min-w-0 flex flex-col bg-gray-50">
           <Topbar 
             activeView={activeView} 
-            setActiveView={setActiveView} 
+            setActiveView={setActiveViewOptimized} 
             usuario={usuario}
             onLogout={() => {
               setUsuario(null);
@@ -471,7 +487,8 @@ function Sidebar({ activeView, setActiveView, usuario }: { activeView: string; s
   );
 }
 
-function SideLink({ icon: Icon, label, active, className = "", onClick, color = "blue" }: any) {
+// Memoizar SideLink para evitar re-renders innecesarios
+const SideLink = React.memo(function SideLink({ icon: Icon, label, active, className = "", onClick, color = "blue" }: any) {
   const colorClasses = {
     purple: {
       active: "bg-gradient-to-r from-purple-600 to-purple-500 text-white shadow-lg shadow-purple-500/30",
@@ -522,39 +539,47 @@ function SideLink({ icon: Icon, label, active, className = "", onClick, color = 
 
   const colors = colorClasses[color as keyof typeof colorClasses] || colorClasses.blue;
 
+  // Handler optimizado: prevenir default inmediatamente, ejecutar onClick de forma no bloqueante
+  const handleClick = React.useCallback((e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (onClick) {
+      // Usar startTransition para marcar como no urgente
+      if (typeof (window as any).React?.startTransition === 'function') {
+        (window as any).React.startTransition(() => {
+          onClick();
+        });
+      } else if (typeof requestIdleCallback !== 'undefined') {
+        requestIdleCallback(() => onClick(), { timeout: 16 });
+      } else {
+        setTimeout(() => onClick(), 0);
+      }
+    }
+  }, [onClick]);
+
   return (
     <a 
-      className={`group flex items-center space-x-3 px-4 py-3 rounded-xl transition-colors duration-200 cursor-pointer border border-transparent relative overflow-hidden ${
+      className={`group flex items-center space-x-3 px-4 py-3 rounded-xl transition-colors duration-150 cursor-pointer border border-transparent relative overflow-hidden will-change-[background-color,border-color,color] ${
         active 
-          ? `${colors.active} font-semibold scale-[1.02]` 
-          : `text-slate-300 ${colors.hover} hover:scale-[1.01] hover:shadow-md`
+          ? `${colors.active} font-semibold` 
+          : `text-slate-300 ${colors.hover}`
       } ${className}`}
       href="#"
-      onClick={(e) => {
-        e.preventDefault();
-        // Ejecutar onClick de forma no bloqueante
-        if (onClick) {
-          if (typeof requestIdleCallback !== 'undefined') {
-            requestIdleCallback(() => onClick(), { timeout: 50 });
-          } else {
-            setTimeout(() => onClick(), 0);
-          }
-        }
-      }}
+      onClick={handleClick}
     >
-      {/* Efecto de brillo sutil en hover */}
+      {/* Efecto de brillo simplificado - solo opacity, sin translate para mejor performance */}
       {!active && (
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 -translate-x-full group-hover:translate-x-full"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-150 will-change-opacity"></div>
       )}
-      <Icon className={`h-5 w-5 transition-transform duration-200 ${colors.icon} ${active ? "scale-110" : "group-hover:scale-110"}`} />
-      <span className={`text-sm transition-[font-weight] duration-200 will-change-[font-weight] ${active ? "font-semibold" : "font-medium group-hover:font-semibold"}`}>{label}</span>
+      <Icon className={`h-5 w-5 transition-colors duration-150 will-change-[color] ${colors.icon}`} />
+      <span className={`text-sm transition-[font-weight] duration-150 will-change-[font-weight] ${active ? "font-semibold" : "font-medium group-hover:font-semibold"}`}>{label}</span>
       {/* Indicador activo sutil */}
       {active && (
         <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-white/40 rounded-r-full"></div>
       )}
     </a>
   );
-}
+});
 
 function WNSLogo() {
   const [logoExists, setLogoExists] = React.useState<boolean | null>(null);
