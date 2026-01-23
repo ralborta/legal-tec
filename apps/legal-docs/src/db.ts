@@ -350,8 +350,14 @@ export const legalDb = {
             console.error(`[DB] ❌ ERROR: No se pudo parsear report como JSON para ${row.id}:`, msg);
             console.error(`[DB] Report length: ${report.length}, primeros 200 chars: ${report.substring(0, 200)}...`);
             console.error(`[DB] Últimos 200 chars: ...${report.substring(Math.max(0, report.length - 200))}`);
-            // Si no es JSON válido, mantener como string pero lanzar error para que se detecte
-            throw new Error(`Report JSON inválido o truncado para ${row.id}: ${msg}`);
+            // Si no es JSON válido, devolver un objeto de error en lugar de lanzar excepción
+            // Esto permite que el frontend muestre un mensaje útil en lugar de fallar completamente
+            report = {
+              error: true,
+              errorMessage: `El reporte está corrupto o truncado: ${msg}`,
+              errorType: "JSON_PARSE_ERROR",
+              partialContent: report.substring(0, 1000) // Guardar primeros 1000 chars para diagnóstico
+            };
           }
         }
         // Si ya es objeto (JSONB devuelto como objeto), usarlo directamente

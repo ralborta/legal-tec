@@ -3895,22 +3895,37 @@ function AnalysisResultPanel({
       return null;
     }
     const r = analysisResult.analysis.report;
+    
+    // Si el reporte tiene un error (JSON truncado o corrupto)
+    if (typeof r === 'object' && r !== null && r.error === true) {
+      console.error("[AnalysisResultPanel] Report tiene error:", r.errorMessage);
+      return {
+        error: true,
+        errorMessage: r.errorMessage || "El reporte está corrupto o truncado",
+        errorType: r.errorType || "UNKNOWN_ERROR"
+      };
+    }
+    
     if (typeof r === 'string') {
       try {
         const parsed = JSON.parse(r);
-        console.log("[AnalysisResultPanel] Report parseado:", parsed);
+        // Verificar si el parseo resultó en un objeto de error
+        if (parsed && typeof parsed === 'object' && parsed.error === true) {
+          console.error("[AnalysisResultPanel] Report parseado tiene error:", parsed.errorMessage);
+          return parsed;
+        }
+        console.log("[AnalysisResultPanel] Report parseado correctamente");
         console.log("[AnalysisResultPanel] clausulas_analizadas:", parsed?.clausulas_analizadas);
         console.log("[AnalysisResultPanel] riesgos:", parsed?.riesgos);
         console.log("[AnalysisResultPanel] proximos_pasos:", parsed?.proximos_pasos);
         return parsed;
-      } catch {
+      } catch (e) {
         // Si no es JSON, devolver estructura con texto_formateado
-        console.log("[AnalysisResultPanel] Report no es JSON válido, usando como texto");
+        console.warn("[AnalysisResultPanel] Report no es JSON válido, usando como texto:", e);
         return { texto_formateado: r };
       }
     }
-    console.log("[AnalysisResultPanel] Report es objeto:", r);
-    console.log("[AnalysisResultPanel] clausulas_analizadas:", r?.clausulas_analizadas);
+    console.log("[AnalysisResultPanel] Report es objeto");
     return r;
   }, [analysisResult]);
 
@@ -3997,6 +4012,31 @@ function AnalysisResultPanel({
           <div className="text-sm text-gray-500 py-12 text-center">
             Sube un documento para comenzar el análisis
           </div>
+        )}
+      </div>
+    );
+  }
+
+  // Si el reporte tiene un error (JSON truncado o corrupto)
+  if (report && typeof report === 'object' && report.error === true) {
+    return (
+      <div className="bg-white p-6 rounded-xl border border-red-200">
+        <h3 className="font-bold text-lg text-red-900 mb-2">Error en el Análisis</h3>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+          <p className="text-sm text-red-800 font-semibold mb-2">El reporte del análisis está corrupto o truncado</p>
+          <p className="text-xs text-red-700 mb-3">{report.errorMessage || "Error desconocido al procesar el reporte"}</p>
+          <p className="text-xs text-red-600">
+            Esto puede ocurrir si el análisis fue interrumpido o si el reporte es demasiado grande. 
+            Por favor, intenta regenerar el análisis.
+          </p>
+        </div>
+        {documentId && onRegenerate && (
+          <button
+            onClick={() => onRegenerate(documentId)}
+            className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
+          >
+            Regenerar Análisis
+          </button>
         )}
       </div>
     );
