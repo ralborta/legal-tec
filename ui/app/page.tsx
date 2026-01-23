@@ -234,6 +234,8 @@ export default function CentroGestionLegalPage() {
             const fechaB = new Date(b.createdAt || 0).getTime();
             return fechaB - fechaA;
           });
+          // Guardar todos los items (incluyendo borrados) para el historial
+          // La bandeja filtrará los borrados
           setItems(combinedItems);
         })
         .catch(err => {
@@ -841,12 +843,15 @@ function BandejaLocal({ items, onDelete, onUpdateItem, usuario }: { items: any[]
   const [abogados, setAbogados] = useState<Array<{id: string; nombre: string; telefono?: string; email: string}>>([]);
   const [loadingAbogados, setLoadingAbogados] = useState(false);
   
-  // Mostrar tanto memos como análisis
+  // Mostrar tanto memos como análisis, pero EXCLUIR documentos borrados
   const memos = items.filter(item => 
-    item.type === "memo" || 
+    // Excluir documentos borrados de la bandeja
+    item.activo !== false && 
+    item.borrado !== true &&
+    (item.type === "memo" || 
     item.type === "analysis" || 
     item.memoData || 
-    item.markdown // Si tiene markdown, es un documento válido
+    item.markdown) // Si tiene markdown, es un documento válido
   );
   
   const getAreaLegalLabel = (area: string) => {
