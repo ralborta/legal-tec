@@ -1149,8 +1149,18 @@ function BandejaLocal({ items, onDelete, onUpdateItem, usuario }: { items: any[]
                         <button 
                           className="p-1.5 rounded-md hover:bg-red-50 text-gray-600 hover:text-red-600 transition-colors"
                           onClick={(e) => {
+                            e.preventDefault();
                             e.stopPropagation();
-                            setDeleteConfirm({ id: row.id, title: row.title || row.asunto || "documento" });
+                            // Actualizar estado de forma no bloqueante
+                            if (typeof requestIdleCallback !== 'undefined') {
+                              requestIdleCallback(() => {
+                                setDeleteConfirm({ id: row.id, title: row.title || row.asunto || "documento" });
+                              }, { timeout: 50 });
+                            } else {
+                              setTimeout(() => {
+                                setDeleteConfirm({ id: row.id, title: row.title || row.asunto || "documento" });
+                              }, 0);
+                            }
                           }}
                           title="Eliminar documento (solo admin)"
                         >
