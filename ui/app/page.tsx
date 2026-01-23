@@ -6929,7 +6929,7 @@ function HistorialPanel({ items }: { items: Array<any> }) {
                 onClick={() => setItemSeleccionado(item)}
                 className={`group bg-white rounded-2xl border-2 ${colors.cardBorder} p-6 cursor-pointer transition-all duration-300 ${colors.cardHover} shadow-sm hover:shadow-xl ${
                   itemSeleccionado?.id === item.id ? "ring-4 ring-purple-500/20 border-purple-400 shadow-xl" : ""
-                }`}
+                } ${item.borrado ? "opacity-60 border-red-300" : ""}`}
               >
                 {/* Header del card */}
                 <div className="flex items-start justify-between mb-4">
@@ -6959,12 +6959,19 @@ function HistorialPanel({ items }: { items: Array<any> }) {
                     {item.tipo || item.type || "Documento"}
                   </span>
                   <span className={`px-3 py-1 rounded-lg text-xs font-medium ${
-                    item.estado === "Listo para revisión" 
+                    item.borrado
+                      ? "bg-red-50 text-red-700 border border-red-200"
+                      : item.estado === "Listo para revisión" 
                       ? "bg-green-50 text-green-700 border border-green-200" 
                       : "bg-amber-50 text-amber-700 border border-amber-200"
                   }`}>
-                    {item.estado || "Completado"}
+                    {item.borrado ? "Borrado" : (item.estado || "Completado")}
                   </span>
+                  {item.borrado && item.borradoPor && (
+                    <span className="px-3 py-1 rounded-lg text-xs font-medium bg-gray-50 text-gray-600 border border-gray-200" title={`Borrado por ${item.borradoPor} el ${item.borradoAt ? new Date(item.borradoAt).toLocaleDateString("es-AR") : ""}`}>
+                      🗑️ {item.borradoPor}
+                    </span>
+                  )}
                   {item.areaLegal && (
                     <span className="px-3 py-1 rounded-lg text-xs font-medium bg-slate-50 text-slate-700 border border-slate-200">
                       {item.areaLegal.replace(/_/g, " ")}
@@ -7022,7 +7029,28 @@ function HistorialPanel({ items }: { items: Array<any> }) {
                         {itemSeleccionado.areaLegal.replace(/_/g, " ")}
                       </span>
                     )}
+                    {itemSeleccionado.borrado && (
+                      <span className="px-2 py-1 rounded bg-red-500/30 backdrop-blur-sm border border-red-300/50">
+                        🗑️ Borrado
+                      </span>
+                    )}
                   </div>
+                  {itemSeleccionado.borrado && itemSeleccionado.borradoPor && (
+                    <div className="mt-3 text-sm text-white/80">
+                      <span className="font-medium">Borrado por:</span> {itemSeleccionado.borradoPor}
+                      {itemSeleccionado.borradoAt && (
+                        <span className="ml-4">
+                          <span className="font-medium">Fecha:</span> {new Date(itemSeleccionado.borradoAt).toLocaleDateString("es-AR", { 
+                            day: '2-digit', 
+                            month: 'long', 
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <button
                   onClick={() => setItemSeleccionado(null)}
