@@ -88,7 +88,7 @@ export async function ocrAgent(file: {
 
       // Usar OpenAI Vision API para extraer texto
       const response = await openai.chat.completions.create({
-        model: "gpt-4o", // gpt-4o tiene mejor soporte para visión
+        model: "gpt-4o-mini", // Cambiado a mini para reducir costos // gpt-4o tiene mejor soporte para visión
         messages: [
           {
             role: "user",

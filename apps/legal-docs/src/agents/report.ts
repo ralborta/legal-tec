@@ -75,22 +75,18 @@ export async function generateReport(input: ReportInput): Promise<AnalysisReport
   const timeout = isConjointAnalysis ? 600000 : 300000; // 10 min para conjunto (ultra profundo), 5 min para individual (ultra profundo)
   
   try {
-    // Consultar jurisprudencia relevante usando RAG
-    console.log(`[REPORT] Consultando jurisprudencia para tipo: ${input.type}`);
+    // DESACTIVADO: queryJurisprudence puede hacer llamadas adicionales a OpenAI
+    // Usar jurisprudencia vacía para evitar gasto innecesario
+    const jurisprudence: any[] = [];
+    console.log(`[REPORT] Jurisprudencia desactivada para reducir costos`);
+    
     const instructions = (input.userInstructions || "").trim();
-    // Reducir límite de instrucciones para dejar más espacio para tokens de output
     const instructionsText = instructions
-      ? instructions.slice(0, 500) // Reducido de 2000 a 500 para evitar truncado
+      ? instructions.slice(0, 300) // Reducido aún más: 500 → 300
       : "Sin indicaciones adicionales del usuario.";
     if (instructions) {
       console.log(`[REPORT] Aplicando instrucciones del usuario (${instructions.length} chars)`);
     }
-    const jurisprudence = await queryJurisprudence(
-      input.original,
-      input.type,
-      6 // Máximo 6 resultados
-    );
-    console.log(`[REPORT] Encontradas ${jurisprudence.length} fuentes de jurisprudencia`);
 
     const checklistText = input.checklist?.items
       ? input.checklist.items
