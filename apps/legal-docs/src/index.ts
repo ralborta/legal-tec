@@ -1171,6 +1171,93 @@ app.get("/assign-document/:documentoId", async (req, res, next) => {
   }
 });
 
+// Obtener todas las asignaciones (para admin - historial)
+app.get("/assignments", async (req, res, next) => {
+  try {
+    const { abogadoId, estado, desde, hasta, limit = 100 } = req.query;
+    
+    let query = `
+      SELECT id, documento_id, documento_tipo, documento_titulo, abogado_id, abogado_nombre, abogado_email, abogado_telefono, asignado_por, estado, notas, created_at, updated_at
+      FROM documento_asignaciones
+      WHERE 1=1
+    `;
+    const params: any[] = [];
+    let paramIndex = 1;
+    
+    if (abogadoId) {
+      query += ` AND abogado_id = $${paramIndex}`;
+      params.push(abogadoId);
+      paramIndex++;
+    }
+    
+    if (estado) {
+      query += ` AND estado = $${paramIndex}`;
+      params.push(estado);
+      paramIndex++;
+    }
+    
+    if (desde) {
+      query += ` AND created_at >= $${paramIndex}`;
+      params.push(desde);
+      paramIndex++;
+    }
+    
+    if (hasta) {
+      query += ` AND created_at <= $${paramIndex}`;
+      params.push(hasta);
+      paramIndex++;
+    }
+    
+    query += ` ORDER BY created_at DESC LIMIT $${paramIndex}`;
+    params.push(parseInt(limit as string));
+    
+    const result = await db.query(query, params);
+    
+    console.log(`[ASSIGNMENTS] ✅ ${result.rows.length} asignaciones encontradas`);
+    res.json({ asignaciones: result.rows });
+  } catch (err: any) {
+    console.error(`[ASSIGNMENTS] ❌ Error obteniendo asignaciones:`, err);
+    next(err);
+  }
+});
+
+// Actualizar estado de una asignación
+app.put("/assignments/:id", async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { estado, notas } = req.body;
+    
+    if (!estado) {
+      return res.status(400).json({ 
+        error: "Bad request",
+        message: "estado es requerido"
+      });
+    }
+    
+    const result = await db.query(`
+      UPDATE documento_asignaciones
+      SET estado = $1,
+          notas = COALESCE($2, notas),
+          updated_at = NOW()
+      WHERE id = $3
+      RETURNING id, documento_id, documento_tipo, abogado_nombre, estado, notas, updated_at
+    `, [estado, notas || null, id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ 
+        error: "Not found",
+        message: "Asignación no encontrada"
+      });
+    }
+    
+    console.log(`[ASSIGNMENTS] ✅ Asignación ${id} actualizada a estado: ${estado}`);
+    res.json({ asignacion: result.rows[0] });
+  } catch (err: any) {
+    console.error(`[ASSIGNMENTS] ❌ Error actualizando asignación:`, err);
+    next(err);
+  }
+});
+
 // ==================== GESTIÓN DE USUARIOS ====================
 
 // Endpoint para login (autenticación)
