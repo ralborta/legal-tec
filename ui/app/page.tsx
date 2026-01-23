@@ -4380,16 +4380,7 @@ function AnalysisResultPanel({
                   </div>
                   <p className="text-sm font-medium text-gray-900">{cita.referencia}</p>
                   {cita.descripcion && <p className="text-xs text-gray-600 mt-1">{cita.descripcion}</p>}
-                  {cita.url && (
-                    <a 
-                      href={cita.url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-xs text-[#C026D3] hover:underline mt-1 inline-block"
-                    >
-                      🔗 Ver fuente
-                    </a>
-                  )}
+                  {/* Links deshabilitados para evitar URLs incorrectas */}
                 </div>
               ))
             ) : (
@@ -5898,16 +5889,7 @@ function MemoResultPanel({
                   </div>
                   <p className="text-sm font-medium text-gray-900">{cita.referencia || cita.title || cita.descripcion || "Sin referencia"}</p>
                   {cita.descripcion && (cita.referencia || cita.title) && <p className="text-xs text-gray-600 mt-1">{cita.descripcion}</p>}
-                  {cita.url && (
-                    <a 
-                      href={cita.url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-xs text-[#C026D3] hover:underline mt-1 inline-block"
-                    >
-                      🔗 Ver fuente
-                    </a>
-                  )}
+                  {/* Links deshabilitados para evitar URLs incorrectas */}
                 </div>
               ))
             ) : (
@@ -7160,17 +7142,7 @@ function HistorialPanel({ items }: { items: Array<any> }) {
                     {itemSeleccionado.citations.map((cita: any, i: number) => (
                       <div key={i} className="p-4 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl border border-blue-200 hover:shadow-md transition-shadow">
                         <span className="font-semibold text-gray-900 block mb-2">{cita.title || cita.referencia}</span>
-                        {cita.url && (
-                          <a 
-                            href={cita.url} 
-                            target="_blank" 
-                            rel="noopener noreferrer" 
-                            className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 font-medium"
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                            Ver fuente
-                          </a>
-                        )}
+                        {/* Links deshabilitados para evitar URLs incorrectas */}
                       </div>
                     ))}
                   </div>
