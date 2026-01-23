@@ -4447,46 +4447,91 @@ function AnalysisResultPanel({
 
         {activeTab === "recomendaciones" && (
           <div className="space-y-4">
-            {report?.recomendaciones?.length > 0 && (
+            {report?.recomendaciones && Array.isArray(report.recomendaciones) && report.recomendaciones.length > 0 && (
               <div>
                 <h4 className="font-semibold text-gray-900 mb-3">Recomendaciones</h4>
                 <ul className="space-y-2">
-                  {report.recomendaciones.map((rec: string, i: number) => (
-                    <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
-                      <span className="text-[#C026D3]">✓</span>
-                      {rec}
-                    </li>
-                  ))}
+                  {report.recomendaciones.map((rec: any, i: number) => {
+                    // Manejar tanto strings como objetos
+                    const recText = typeof rec === 'string' 
+                      ? rec 
+                      : (rec.descripcion || rec.recomendacion || JSON.stringify(rec));
+                    const recPriority = typeof rec === 'object' && rec.prioridad ? rec.prioridad : null;
+                    const recUrgency = typeof rec === 'object' && rec.urgencia ? rec.urgencia : null;
+                    
+                    return (
+                      <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                        <span className="text-[#C026D3]">✓</span>
+                        <div className="flex-1">
+                          <span>{recText}</span>
+                          {(recPriority || recUrgency) && (
+                            <div className="mt-1 flex gap-2">
+                              {recPriority && (
+                                <span className={`text-xs px-2 py-0.5 rounded ${
+                                  recPriority === 'crítica' ? 'bg-red-100 text-red-700' :
+                                  recPriority === 'alta' ? 'bg-orange-100 text-orange-700' :
+                                  'bg-blue-100 text-blue-700'
+                                }`}>
+                                  {recPriority}
+                                </span>
+                              )}
+                              {recUrgency && (
+                                <span className="text-xs text-gray-500">{recUrgency}</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ul>
                 </div>
             )}
-            {report?.proximos_pasos?.length > 0 && (
+            {report?.proximos_pasos && Array.isArray(report.proximos_pasos) && report.proximos_pasos.length > 0 && (
               <div>
                 <h4 className="font-semibold text-gray-900 mb-3">Próximos Pasos</h4>
                 <ul className="space-y-2">
-                  {report.proximos_pasos.map((paso: string, i: number) => (
-                    <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
-                      <span className="text-blue-600">{i + 1}.</span>
-                      {paso}
-                    </li>
-                  ))}
+                  {report.proximos_pasos.map((paso: any, i: number) => {
+                    // Manejar tanto strings como objetos
+                    const pasoText = typeof paso === 'string' 
+                      ? paso 
+                      : (paso.accion || paso.descripcion || JSON.stringify(paso));
+                    const pasoFase = typeof paso === 'object' && paso.fase ? paso.fase : null;
+                    const pasoResponsable = typeof paso === 'object' && paso.responsable ? paso.responsable : null;
+                    
+                    return (
+                      <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                        <span className="text-blue-600">{i + 1}.</span>
+                        <div className="flex-1">
+                          <span>{pasoText}</span>
+                          {(pasoFase || pasoResponsable) && (
+                            <div className="mt-1 flex gap-2 text-xs text-gray-500">
+                              {pasoFase && <span>Fase: {pasoFase}</span>}
+                              {pasoResponsable && <span>• Responsable: {pasoResponsable}</span>}
+                            </div>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             )}
-            {report?.documentos_sugeridos?.length > 0 && (
+            {report?.documentos_sugeridos && Array.isArray(report.documentos_sugeridos) && report.documentos_sugeridos.length > 0 && (
               <div>
                 <h4 className="font-semibold text-gray-900 mb-3">Documentos Sugeridos</h4>
                 <div className="space-y-2">
                   {report.documentos_sugeridos.map((doc: any, i: number) => (
                     <div key={i} className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                      <p className="text-sm font-medium text-blue-900">{doc.tipo}</p>
-                      <p className="text-xs text-blue-700">{doc.descripcion}</p>
-          </div>
+                      <p className="text-sm font-medium text-blue-900">{doc.tipo || doc.nombre || "Documento"}</p>
+                      <p className="text-xs text-blue-700">{doc.descripcion || doc.descripcion_detallada || ""}</p>
+                    </div>
                   ))}
-          </div>
+                </div>
               </div>
             )}
-            {!report?.recomendaciones?.length && !report?.proximos_pasos?.length && (
+            {(!report?.recomendaciones || !Array.isArray(report.recomendaciones) || report.recomendaciones.length === 0) && 
+             (!report?.proximos_pasos || !Array.isArray(report.proximos_pasos) || report.proximos_pasos.length === 0) && (
               <p className="text-sm text-gray-500 text-center py-8">No hay recomendaciones disponibles</p>
             )}
           </div>
