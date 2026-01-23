@@ -47,277 +47,22 @@ export interface AnalysisReport {
   texto_formateado: string;
 }
 
-// Fuentes legales organizadas por jurisdicción y área
-const FUENTES_LEGALES = `
-## FUENTES DE CONSULTA OBLIGATORIAS - INCLUIR URLs EN LAS CITAS
+// Fuentes legales - versión reducida
+const FUENTES_LEGALES = `Fuentes: InfoLEG (https://www.argentina.gob.ar/normativa), SAIJ (https://www.argentina.gob.ar/justicia/saij), Boletín Oficial (https://www.boletinoficial.gob.ar/)`;
 
-### NIVEL NACIONAL
-- Boletín Oficial: https://www.boletinoficial.gob.ar/
-- InfoLEG (Normativa): https://www.argentina.gob.ar/normativa
-- SAIJ (Jurisprudencia): https://www.argentina.gob.ar/justicia/saij
-- SIPROJUD (CSJN): http://www.csjn.gov.ar/siprojur/
-- Código Civil y Comercial: http://www.bibliotecadigital.gob.ar/items/show/2690
-- Constitución Nacional: https://servicios.infoleg.gob.ar/infolegInternet/anexos/0-4999/804/norma.htm
+const prompt = `Analiza el documento legal y genera un JSON con:
+- titulo, tipo_documento, jurisdiccion, area_legal
+- resumen_ejecutivo: 8-12 párrafos detallados
+- clausulas_analizadas: mínimo 15, analizar todas las cláusulas
+- analisis_juridico: mínimo 15 párrafos estructurados
+- riesgos: mínimo 10 con nivel (bajo/medio/alto) y recomendación
+- recomendaciones: mínimo 15 con prioridad, urgencia, costo, tiempo, responsable
+- proximos_pasos: mínimo 12 acciones por fases (inmediata/corto/mediano/largo plazo)
+- citas: mínimo 10 con URLs
+- documentos_sugeridos: mínimo 5
+- texto_formateado: reporte completo formateado
 
-### ORGANISMOS NACIONALES
-- ANSES (Previsional): https://www.anses.gob.ar/institucional/normativa
-- BCRA (Financiero): http://www.bcra.gov.ar/BCRAyVos/Normativa.asp
-- AFIP/ARCA (Tributario): https://www.afip.gob.ar/normativa/
-- Ministerio de Trabajo: https://www.argentina.gob.ar/trabajo/normativa
-- Ministerio de Salud: https://www.argentina.gob.ar/salud/normativas
-
-### LEGISLATIVO
-- Cámara de Diputados: https://www.hcdn.gob.ar/
-- Senado: https://www.senado.gob.ar/
-
-### DOCTRINA Y RECURSOS ACADÉMICOS
-- SAIJ (Doctrina): https://www.saij.gob.ar/
-- UBA Derecho: https://www.derecho.uba.ar/investigacion/publicaciones.php
-- UNLP: https://www.bibliojuridica.laplata.edu.ar/
-
-### PROVINCIAS - Usar según jurisdicción del documento:
-- CABA Boletín Oficial: https://boletinoficial.buenosaires.gob.ar/
-- Buenos Aires (Normas): https://normas.gba.gob.ar/
-- Córdoba Boletín Oficial: https://boletinoficial.cba.gov.ar/
-- Santa Fe Boletín Oficial: https://boletinoficial.santafe.gob.ar/
-- Mendoza Boletín Oficial: https://www.boletinoficial.mendoza.gov.ar/
-`;
-
-const prompt = `Eres un analista legal senior de WNS & Asociados especializado en análisis de documentos legales (contratos, acuerdos, escrituras, etc.).
-
-INSTRUCCIONES CRÍTICAS:
-1. Detecta la JURISDICCIÓN del documento o documentos (Nacional, CABA, Buenos Aires, Córdoba, Santa Fe, Mendoza, u otra provincia)
-2. Identifica el ÁREA LEGAL (Civil, Comercial, Laboral, Tributario, Societario, etc.)
-3. Analiza TODAS las cláusulas del documento o documentos - NO omitas ninguna
-4. Genera un análisis EXTENSO y DETALLADO
-5. ⚠️ IMPORTANTE: Si las instrucciones del usuario indican que hay MÚLTIPLES DOCUMENTOS, SIEMPRE usa PLURAL ("los documentos", "estos documentos", "los documentos analizados") en TODAS las secciones. NUNCA uses "el documento" en singular cuando se analizan múltiples documentos.
-
-REQUISITOS DE EXTENSIÓN Y PROFUNDIDAD - ANÁLISIS ULTRA PROFUNDO Y COMPLETO:
-⚠️ IMPORTANTE: Este análisis debe ser EXHAUSTIVO, COMPLETO y MUY PROFUNDO. NO uses análisis superficiales o genéricos.
-
-- "resumen_ejecutivo": MÍNIMO 8-12 párrafos completos y MUY DETALLADOS. Debe incluir:
-  * Identificación completa de TODAS las partes con sus roles, razones sociales, datos de identificación
-  * Objeto COMPLETO y DETALLADO del documento con todos sus aspectos
-  * Plazos, fechas, condiciones y términos ESPECÍFICOS mencionados
-  * Precio/contraprestación DETALLADA con desglose si aplica
-  * Contexto comercial/jurídico COMPLETO y profundo
-  * Relaciones entre las partes y su naturaleza jurídica
-  * TODOS los aspectos relevantes y críticos identificados
-  * Comparación con contratos similares del mercado
-  * Análisis de la estructura general del documento
-  * Cualquier detalle que sea importante para entender el documento completo
-  * Si hay múltiples documentos: análisis comparativo, relaciones, consistencias e inconsistencias
-
-- "clausulas_analizadas": ⚠️ OBLIGATORIO analizar CADA cláusula del documento sin excepción. MÍNIMO ABSOLUTO 15 cláusulas (o TODAS si hay menos, pero si hay más de 15, analiza TODAS). Si el documento tiene menos de 15 cláusulas, analiza TODAS con EXTRA profundidad. Para cada cláusula incluir:
-  * Análisis ULTRA DETALLADO de qué establece EXACTAMENTE la cláusula (texto completo, no resumen)
-  * Implicancias legales MUY PROFUNDAS y consecuencias prácticas detalladas
-  * Análisis desde la perspectiva de CADA parte (favorable/desfavorable y por qué en detalle)
-  * Comparación EXHAUSTIVA con estándares del mercado y mejores prácticas del sector
-  * Posibles interpretaciones alternativas, su validez legal y consecuencias
-  * Relación DETALLADA con otras cláusulas del documento y su impacto conjunto
-  * Nivel de riesgo específico con justificación MUY DETALLADA
-  * Casos prácticos donde esta cláusula podría aplicarse o generar conflictos
-  * Recomendaciones específicas para mejorar o modificar la cláusula
-  * Análisis de cumplimiento y posibles dificultades de ejecución
-  * Comparación con normativa aplicable específica
-
-- "analisis_juridico": ⚠️ MÍNIMO ABSOLUTO 15 párrafos (preferiblemente 20 o más) con análisis legal ULTRA PROFUNDO Y EXHAUSTIVO. DEBE estar estructurado en subsecciones claras:
-  * MARCO NORMATIVO (2-3 párrafos): Marco normativo aplicable COMPLETO Y DETALLADO (leyes, decretos, resoluciones, artículos específicos con números, incisos, párrafos). Incluir jerarquía normativa y relaciones entre normas.
-  * INTERPRETACIÓN JURÍDICA (3-4 párrafos): Interpretación jurídica MUY DETALLADA de TODAS las cláusulas clave. Análisis de cada cláusula desde perspectiva legal, posibles interpretaciones alternativas, y su validez.
-  * VALIDEZ LEGAL Y FUNDAMENTACIÓN (2-3 párrafos): Validez legal de CADA disposición importante con fundamentación exhaustiva. Posibles conflictos con normativa vigente y cómo resolverlos. Análisis de posibles nulidades o invalideces.
-  * JURISPRUDENCIA APLICABLE (2-3 párrafos): Jurisprudencia relevante DETALLADA y cómo aplica específicamente al caso. Incluir fallos relevantes con referencias completas (tribunal, fecha, número de causa).
-  * DERECHOS Y OBLIGACIONES (2-3 párrafos): Análisis EXHAUSTIVO de derechos y obligaciones de cada parte. Desglose detallado de cada obligación, plazo, modalidad, y consecuencias de incumplimiento.
-  * CUMPLIMIENTO Y EJECUCIÓN (2-3 párrafos): Consideraciones sobre cumplimiento y ejecución con escenarios detallados. Dificultades potenciales, requisitos administrativos, y procedimientos necesarios.
-  * ESTÁNDARES Y MEJORES PRÁCTICAS (1-2 párrafos): Comparación con estándares legales del sector y mejores prácticas. Análisis de cómo el documento se compara con contratos similares del mercado.
-  * VACÍOS LEGALES Y AMBIGÜEDADES (1-2 párrafos): Análisis DETALLADO de posibles vacíos legales o ambigüedades. Identificación de áreas donde el documento no es claro o completo.
-  * ESTRUCTURA Y COHERENCIA (1-2 párrafos): Análisis de la estructura contractual y su coherencia jurídica. Evaluación de la lógica interna del documento y posibles inconsistencias.
-  * LITIGIOS Y DEFENSAS (1-2 párrafos): Consideraciones sobre posibles litigios y defensas disponibles. Análisis de escenarios de conflicto y estrategias legales.
-  * ASPECTOS PROCESALES (1-2 párrafos): Análisis de aspectos procesales y jurisdiccionales. Competencia, foro, y procedimientos aplicables.
-  * EFICACIA Y EJECUTABILIDAD (1 párrafo): Evaluación de la eficacia y ejecutabilidad de las disposiciones. Análisis de si las cláusulas son realmente ejecutables en la práctica.
-  * NORMATIVA INTERNACIONAL (1 párrafo, si aplica): Análisis comparativo con normativa internacional si aplica.
-
-- "riesgos": ⚠️ MÍNIMO ABSOLUTO 10 riesgos identificados (preferiblemente 15 o más). Si no encuentras 10 riesgos obvios, profundiza MÁS y busca riesgos desde diferentes perspectivas (jurídica, comercial, operativa, financiera, reputacional, contractual, de cumplimiento, etc.). Cada riesgo debe incluir:
-  * Descripción ULTRA ESPECÍFICA y MUY DETALLADA del riesgo con ejemplos concretos
-  * Probabilidad de ocurrencia (baja/media/alta) con justificación detallada
-  * Impacto potencial DETALLADO (económico, legal, operativo, reputacional)
-  * Nivel de riesgo (bajo/medio/alto/crítico) con justificación exhaustiva
-  * Recomendación MUY CONCRETA y ACCIONABLE para mitigar con pasos específicos
-  * Escenarios DETALLADOS donde el riesgo podría materializarse
-  * Costos potenciales CUANTIFICADOS cuando sea posible (económicos, legales, reputacionales)
-  * Tiempo estimado para que el riesgo se materialice
-  * Factores que aumentan o disminuyen el riesgo
-  * Medidas preventivas específicas y su efectividad
-
-- "recomendaciones": ⚠️ MÍNIMO ABSOLUTO 15 recomendaciones (preferiblemente 20 o más). Cada recomendación debe ser:
-  * Accionable y MUY concreta (no genérica, con pasos específicos)
-  * Específica sobre QUÉ hacer exactamente, CÓMO hacerlo, CUÁNDO y QUIÉN
-  * Incluir consideraciones prácticas DETALLADAS de implementación
-  * Priorizada según importancia (crítica/alta/media/baja) y urgencia (inmediata/corto plazo/mediano plazo/largo plazo)
-  * Categorizada por tipo: crítica (debe hacerse sí o sí), importante (debe hacerse pronto), preventiva (conviene hacer)
-  * Incluir recursos necesarios DETALLADOS (humanos, económicos, técnicos)
-  * Incluir costos estimados CUANTIFICADOS cuando sea posible (en pesos, dólares, o porcentaje del presupuesto)
-  * Incluir plazos específicos con fechas límite sugeridas
-  * Incluir responsable sugerido (rol, departamento, persona)
-  * Incluir dependencias con otras recomendaciones
-  * Justificación DETALLADA de por qué esta recomendación es importante y qué problema resuelve
-  * Incluir criterios de éxito para considerar la recomendación implementada
-
-- "proximos_pasos": ⚠️ MÍNIMO ABSOLUTO 12 acciones (preferiblemente 18 o más) MUY CONCRETAS a tomar. DEBE estar estructurado por fases temporales:
-  * FASE INMEDIATA (0-7 días): Mínimo 3-4 acciones críticas que deben hacerse de inmediato
-  * FASE CORTO PLAZO (1-4 semanas): Mínimo 4-5 acciones importantes para las próximas semanas
-  * FASE MEDIANO PLAZO (1-3 meses): Mínimo 4-5 acciones para los próximos meses
-  * FASE LARGO PLAZO (3+ meses): Mínimo 1-2 acciones estratégicas a largo plazo
-  Cada acción debe incluir:
-  * Qué hacer ESPECÍFICAMENTE con detalle paso a paso
-  * Quién debe hacerlo (rol específico, persona, departamento) con nombre si es posible
-  * Plazo ESPECÍFICO con fecha límite sugerida (ej: "antes del 15 de marzo")
-  * Prioridad (crítica/alta/media/baja) y urgencia (inmediata/corto plazo/mediano plazo/largo plazo)
-  * Recursos necesarios DETALLADOS (humanos: quién, cuántas horas; económicos: costo estimado; técnicos: herramientas/software)
-  * Dependencias con otras acciones (qué acciones deben completarse antes)
-  * Criterios de éxito ESPECÍFICOS para considerar la acción completada
-  * Impacto esperado de completar esta acción
-
-- "citas": MÍNIMO 10-15 citas de normativa/jurisprudencia relevante CON URLs. Debe incluir:
-  * Normativa aplicable ESPECÍFICA con artículos, incisos, párrafos (leyes, decretos, resoluciones)
-  * Jurisprudencia relevante DETALLADA del caso con referencias completas
-  * Doctrina cuando sea pertinente con referencias completas
-  * URLs de fuentes oficiales verificables
-  * Explicación de cómo cada cita aplica al documento analizado
-  * Referencias cruzadas entre normativas cuando sea relevante
-
-- "documentos_sugeridos": ⚠️ MÍNIMO ABSOLUTO 5 documentos (preferiblemente 8 o más). Debes identificar documentos complementarios, relacionados, necesarios para completar el marco contractual, o que podrían ser útiles. Incluye: contratos relacionados, anexos necesarios, documentos de respaldo, acuerdos complementarios, etc. Cada uno con justificación DETALLADA de por qué es relevante, cuándo sería necesario y qué aspectos cubriría
-
-Devuelve un JSON con esta estructura EXACTA:
-
-{
-  "titulo": "Análisis Legal de [tipo de documento] - [partes involucradas]" | "Análisis Legal Conjunto de [N] Documentos - [descripción]" si hay múltiples documentos,
-  "tipo_documento": "Tipo específico (ej: Contrato de Locación, Contrato de Distribución, Acuerdo de Confidencialidad)",
-  "jurisdiccion": "Jurisdicción identificada",
-  "area_legal": "Área legal principal",
-  "resumen_ejecutivo": "Resumen ULTRA EXTENSO de 8-12 párrafos COMPLETOS. Incluir: identificación completa de TODAS las partes con roles y datos, objeto COMPLETO y DETALLADO, plazos y condiciones ESPECÍFICAS, precio/contraprestación DETALLADA, contexto comercial/jurídico COMPLETO, relaciones entre partes, TODOS los aspectos relevantes, comparación con contratos similares, análisis de estructura general. Si hay múltiples documentos, DEBE mencionar explícitamente que se analizaron múltiples documentos, usar PLURAL ('los documentos', 'estos documentos') en todo el resumen, e incluir análisis comparativo, relaciones, consistencias e inconsistencias.",
-  "clausulas_analizadas": [
-    {
-      "numero": "1",
-      "titulo": "Título de la cláusula",
-      "analisis": "Análisis ULTRA DETALLADO y ULTRA PROFUNDO de la cláusula: qué establece EXACTAMENTE (texto completo, no resumen), implicancias legales MUY PROFUNDAS y consecuencias prácticas detalladas, análisis desde la perspectiva de CADA parte (favorable/desfavorable y por qué en detalle), comparación EXHAUSTIVA con estándares del mercado y mejores prácticas del sector, posibles interpretaciones alternativas, su validez legal y consecuencias, relación DETALLADA con otras cláusulas del documento y su impacto conjunto, nivel de riesgo específico con justificación MUY DETALLADA, casos prácticos donde esta cláusula podría aplicarse o generar conflictos, recomendaciones específicas para mejorar o modificar la cláusula, análisis de cumplimiento y posibles dificultades de ejecución, comparación con normativa aplicable específica"
-    }
-  ],
-  ⚠️ IMPORTANTE: Debes analizar MÍNIMO 15 cláusulas. Si el documento tiene menos, analiza TODAS con EXTRA profundidad. Si tiene más, analiza TODAS sin excepción.
-  "analisis_juridico": "Análisis jurídico ULTRA EXTENSO y ULTRA PROFUNDO de MÍNIMO 15 párrafos (preferiblemente 20 o más), estructurado en subsecciones claras: MARCO NORMATIVO (2-3 párrafos con leyes, decretos, resoluciones, artículos específicos), INTERPRETACIÓN JURÍDICA (3-4 párrafos analizando TODAS las cláusulas clave), VALIDEZ LEGAL Y FUNDAMENTACIÓN (2-3 párrafos con fundamentación exhaustiva), JURISPRUDENCIA APLICABLE (2-3 párrafos con fallos relevantes y referencias), DERECHOS Y OBLIGACIONES (2-3 párrafos con desglose exhaustivo), CUMPLIMIENTO Y EJECUCIÓN (2-3 párrafos con escenarios detallados), ESTÁNDARES Y MEJORES PRÁCTICAS (1-2 párrafos comparando con el mercado), VACÍOS LEGALES Y AMBIGÜEDADES (1-2 párrafos identificando problemas), ESTRUCTURA Y COHERENCIA (1-2 párrafos evaluando lógica interna), LITIGIOS Y DEFENSAS (1-2 párrafos con estrategias legales), ASPECTOS PROCESALES (1-2 párrafos sobre competencia y procedimientos), EFICACIA Y EJECUTABILIDAD (1 párrafo evaluando ejecutabilidad práctica), y NORMATIVA INTERNACIONAL (1 párrafo si aplica).",
-  "riesgos": [
-    {
-      "descripcion": "Descripción ESPECÍFICA del riesgo interpretando y aplicando el enfoque, punto de vista, criterios y preocupaciones mencionados en el chat. El riesgo DEBE ser coherente con el enfoque interpretado: si el chat menciona un punto de vista específico, el riesgo DEBE ser un riesgo PARA ESE PUNTO DE VISTA. Si menciona beneficios, preocupaciones o criterios específicos, el riesgo DEBE reflejarlos desde esa perspectiva. DEBE ser coherente con el enfoque del análisis completo en todas sus secciones.",
-      "nivel": "bajo" | "medio" | "alto",
-      "recomendacion": "Recomendación CONCRETA para mitigar este riesgo, alineada con el enfoque, criterios y punto de vista interpretados de las instrucciones del chat"
-    }
-  ],
-  "recomendaciones": [
-    {
-      "descripcion": "Descripción ESPECÍFICA y DETALLADA de la recomendación con pasos concretos y accionables. Incluir: qué hacer, cómo hacerlo, cuándo, quién, recursos necesarios, costos estimados, plazos, responsable sugerido, dependencias, justificación, y criterios de éxito",
-      "prioridad": "crítica",
-      "urgencia": "inmediata",
-      "categoria": "crítica",
-      "costo_estimado": "$50,000",
-      "tiempo_estimado": "2 semanas",
-      "responsable_sugerido": "Departamento Legal",
-      "dependencias": "Ninguna"
-    }
-  ],
-  ⚠️ IMPORTANTE: Debes generar MÍNIMO 15 recomendaciones (preferiblemente 20). Categoriza por prioridad y tipo. Incluye costos, tiempos, y responsables cuando sea posible.
-  "proximos_pasos": [
-    {
-      "accion": "Acción MUY CONCRETA a tomar con detalle específico paso a paso",
-      "fase": "inmediata",
-      "responsable": "Rol específico, persona o departamento responsable",
-      "fecha_limite": "15 de marzo de 2024",
-      "prioridad": "crítica",
-      "recursos": "Recursos necesarios detallados (humanos, económicos, técnicos)",
-      "dependencias": "Otras acciones que deben completarse antes (si aplica)",
-      "criterios_exito": "Criterios específicos para considerar la acción completada",
-      "impacto": "Impacto esperado de completar esta acción"
-    }
-  ],
-  ⚠️ IMPORTANTE: Debes generar MÍNIMO 12 acciones (preferiblemente 18). Estructura por fases temporales: inmediata (0-7 días), corto plazo (1-4 semanas), mediano plazo (1-3 meses), largo plazo (3+ meses).
-  "citas": [
-    {
-      "tipo": "normativa",
-      "referencia": "Art. XXX del Código Civil y Comercial",
-      "descripcion": "Descripción de qué regula este artículo",
-      "url": "URL de la fuente oficial"
-    }
-  ],
-  "documentos_sugeridos": [
-    {
-      "tipo": "Tipo de documento",
-      "descripcion": "Justificación DETALLADA de por qué se sugiere, para qué serviría, cuándo sería necesario y qué aspectos cubriría. Incluye: contratos relacionados, anexos necesarios, documentos de respaldo, acuerdos complementarios, garantías, seguros, etc."
-    }
-  ],
-  ⚠️ IMPORTANTE: Debes sugerir MÍNIMO 5 documentos (preferiblemente 8). Piensa en: contratos relacionados, anexos técnicos, garantías, seguros, documentos de respaldo, acuerdos complementarios, etc.
-  "texto_formateado": "Reporte completo formateado profesionalmente (ver formato abajo)"
-}
-
-FORMATO PARA "texto_formateado":
-═══════════════════════════════════════════════════════════════════════════════
-                              WNS & ASOCIADOS
-                         ANÁLISIS LEGAL DE DOCUMENTO
-═══════════════════════════════════════════════════════════════════════════════
-
-DOCUMENTO: [Tipo de documento]
-PARTES: [Partes involucradas]
-FECHA DE ANÁLISIS: [Fecha actual]
-JURISDICCIÓN: [Jurisdicción]
-ÁREA LEGAL: [Área legal]
-
-═══════════════════════════════════════════════════════════════════════════════
-                          I. RESUMEN EJECUTIVO
-═══════════════════════════════════════════════════════════════════════════════
-
-[Resumen extenso de 3-4 párrafos]
-
-═══════════════════════════════════════════════════════════════════════════════
-                       II. ANÁLISIS DE CLÁUSULAS
-═══════════════════════════════════════════════════════════════════════════════
-
-[Para cada cláusula analizada, incluir número, título, análisis y nivel de riesgo]
-
-═══════════════════════════════════════════════════════════════════════════════
-                        III. ANÁLISIS JURÍDICO
-═══════════════════════════════════════════════════════════════════════════════
-
-[Análisis jurídico extenso]
-
-═══════════════════════════════════════════════════════════════════════════════
-                      IV. RIESGOS IDENTIFICADOS
-═══════════════════════════════════════════════════════════════════════════════
-
-[Lista de riesgos con nivel y recomendación]
-
-═══════════════════════════════════════════════════════════════════════════════
-                        V. RECOMENDACIONES
-═══════════════════════════════════════════════════════════════════════════════
-
-[Lista de recomendaciones]
-
-═══════════════════════════════════════════════════════════════════════════════
-                         VI. PRÓXIMOS PASOS
-═══════════════════════════════════════════════════════════════════════════════
-
-[Lista de acciones a tomar]
-
-═══════════════════════════════════════════════════════════════════════════════
-                     VII. FUENTES Y REFERENCIAS
-═══════════════════════════════════════════════════════════════════════════════
-
-[Lista de citas con URLs]
-
-═══════════════════════════════════════════════════════════════════════════════
-
-WNS & ASOCIADOS
-Estudio Jurídico Integral
-
-═══════════════════════════════════════════════════════════════════════════════
-
-Devuelve SOLO el JSON válido, sin texto adicional.`;
+Si hay múltiples documentos, usa PLURAL en todas las secciones.`;
 
 export async function generateReport(input: ReportInput): Promise<AnalysisReport> {
   const startTime = Date.now();
@@ -349,36 +94,31 @@ export async function generateReport(input: ReportInput): Promise<AnalysisReport
 
     const checklistText = input.checklist?.items
       ? input.checklist.items
-          .map(
-            (item) =>
-              `- ${item.key}: ${item.found} (Riesgo: ${item.risk})\n  ${item.comment}`
-          )
-          .join("\n\n")
-      : "No checklist disponible";
+          .slice(0, 5) // Solo 5 items máximo
+          .map((item) => `${item.key}: ${item.found}`)
+          .join(", ")
+      : "Sin checklist";
 
     // Para análisis conjunto, necesitamos MÁS texto (múltiples documentos)
     const isConjointAnalysis = input.userInstructions?.includes("ANÁLISIS CONJUNTO") || 
                                  input.userInstructions?.includes("múltiples documentos") ||
                                  input.original.includes("DOCUMENTO 1 de") ||
                                  input.original.includes("DOCUMENTO 2 de");
-    // REDUCIR tamaño del texto del documento para dejar más espacio para la respuesta JSON
-    // El problema es que el prompt es demasiado grande y no queda espacio para tokens de output
-    const maxTextLength = isConjointAnalysis ? 12000 : 10000; // REDUCIDO para evitar truncado de JSON
+    // REDUCIR drásticamente tamaño del texto del documento
+    const maxTextLength = isConjointAnalysis ? 6000 : 5000; // Reducido de 12000/10000 a 6000/5000
     
     const translatedText = input.translated
       .map((c) => `${c.clause_number}. ${c.title_es}\n${c.body_es}`)
       .join("\n\n")
       .substring(0, maxTextLength);
 
-    // Formatear jurisprudencia para el prompt
+    // Formatear jurisprudencia - versión reducida
     const jurisprudenceText = jurisprudence.length > 0
       ? jurisprudence
-          .map(
-            (j) =>
-              `### ${j.title} (${j.source})\n${j.text}${j.url ? `\nFuente: ${j.url}` : ""}`
-          )
-          .join("\n\n")
-      : "No se encontró jurisprudencia en la base de datos. Usar las fuentes de referencia proporcionadas.";
+          .slice(0, 3) // Solo 3 resultados máximo
+          .map((j) => `${j.title}: ${j.text.substring(0, 300)}`) // Limitar texto a 300 chars
+          .join("\n")
+      : "Sin jurisprudencia adicional.";
 
     // Usar gpt-4o para ambos (máxima calidad y profundidad)
     // Análisis conjunto requiere MÁS profundidad, no menos
@@ -429,7 +169,7 @@ REGLAS:
 TIPO DE DOCUMENTO: ${input.type}
 
 TEXTO ORIGINAL:
-${isConjointAnalysis ? input.original.substring(0, 4000) : input.original.substring(0, 3000)}
+${isConjointAnalysis ? input.original.substring(0, 2000) : input.original.substring(0, 1500)}
 
 CLÁUSULAS DEL DOCUMENTO:
 ${translatedText}
