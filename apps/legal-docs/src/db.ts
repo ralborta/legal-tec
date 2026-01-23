@@ -125,6 +125,9 @@ export const legalDb = {
         status VARCHAR(50) DEFAULT 'uploaded',
         progress INTEGER DEFAULT 0,
         error_message TEXT,
+        activo BOOLEAN DEFAULT true,
+        borrado_por VARCHAR(255),
+        borrado_at TIMESTAMP,
         created_at TIMESTAMP DEFAULT NOW(),
         updated_at TIMESTAMP DEFAULT NOW()
       );
@@ -154,6 +157,9 @@ export const legalDb = {
     await db.query(`ALTER TABLE legal_documents ADD COLUMN IF NOT EXISTS progress INTEGER DEFAULT 0;`);
     await db.query(`ALTER TABLE legal_documents ADD COLUMN IF NOT EXISTS error_message TEXT;`);
     await db.query(`ALTER TABLE legal_documents ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW();`);
+    await db.query(`ALTER TABLE legal_documents ADD COLUMN IF NOT EXISTS activo BOOLEAN DEFAULT true;`);
+    await db.query(`ALTER TABLE legal_documents ADD COLUMN IF NOT EXISTS borrado_por VARCHAR(255);`);
+    await db.query(`ALTER TABLE legal_documents ADD COLUMN IF NOT EXISTS borrado_at TIMESTAMP;`);
 
     // ✅ Crear tabla knowledge_bases automáticamente (si no existe)
     // Esto evita que el servicio crashee si la tabla no existe
@@ -358,6 +364,9 @@ export const legalDb = {
          d.filename,
          d.mime_type,
          d.status,
+         d.activo,
+         d.borrado_por,
+         d.borrado_at,
          d.created_at,
          d.updated_at,
          a.type as analysis_type,
@@ -435,20 +444,20 @@ export const legalDb = {
     return result.rows;
   },
 
-  async deleteDocumentsByIds(ids: string[]) {
+  async deleteDocumentsByIds(ids: string[], borradoPor?: string) {
     if (ids.length === 0) return 0;
     
     try {
-      // Borrar análisis primero (aunque CASCADE lo haría automáticamente)
-      await db.query(
-        `DELETE FROM legal_analysis WHERE document_id = ANY($1)`,
-        [ids]
-      );
-      
-      // Borrar documentos
+      // Soft delete: marcar como inactivo en lugar de borrar físicamente
       const result = await db.query(
-        `DELETE FROM legal_documents WHERE id = ANY($1) RETURNING id`,
-        [ids]
+        `UPDATE legal_documents 
+         SET activo = false, 
+             borrado_por = $1, 
+             borrado_at = NOW(),
+             updated_at = NOW()
+         WHERE id = ANY($2) 
+         RETURNING id`,
+        [borradoPor || null, ids]
       );
       
       return result.rows.length;
@@ -466,17 +475,9 @@ export const legalDb = {
   },
 
   async deleteAnalysis(documentId: string) {
-    try {
-      const result = await db.query(
-        `DELETE FROM legal_analysis WHERE document_id = $1 RETURNING document_id`,
-        [documentId]
-      );
-      console.log(`[DB] ✅ Análisis eliminado para documento ${documentId}`);
-      return result.rows.length > 0;
-    } catch (error: any) {
-      console.error(`[DB] ❌ Error eliminando análisis para ${documentId}:`, error.message);
-      throw error;
-    }
+    // Ya no borramos el análisis físicamente, solo marcamos el documento como borrado
+    // El análisis se mantiene para trazabilidad
+    return true;
   },
 };
 

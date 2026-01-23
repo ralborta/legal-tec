@@ -284,7 +284,8 @@ export default function CentroGestionLegalPage() {
               <KPIGrid />
               <div className="mt-8">
                 <BandejaLocal 
-                  items={items} 
+                  items={items}
+                  usuario={usuario}
                   onDelete={(id) => {
                     // Actualizar items removiendo el eliminado
                     const updated = items.filter(item => item.id !== id);
@@ -828,7 +829,7 @@ function KPIGrid() {
   );
 }
 
-function BandejaLocal({ items, onDelete, onUpdateItem }: { items: any[]; onDelete?: (id: string) => void; onUpdateItem?: (id: string, updates: any) => void }) {
+function BandejaLocal({ items, onDelete, onUpdateItem, usuario }: { items: any[]; onDelete?: (id: string) => void; onUpdateItem?: (id: string, updates: any) => void; usuario: {id: string; email: string; nombre: string; rol: string} | null }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterTipo, setFilterTipo] = useState<string>("all");
   const [filterArea, setFilterArea] = useState<string>("all");
@@ -1139,16 +1140,18 @@ function BandejaLocal({ items, onDelete, onUpdateItem }: { items: any[]; onDelet
                       >
                         <Download className="h-4 w-4" />
                       </button>
-                      <button 
-                        className="p-1.5 rounded-md hover:bg-red-50 text-gray-600 hover:text-red-600 transition-colors"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDeleteConfirm({ id: row.id, title: row.title || row.asunto || "documento" });
-                        }}
-                        title="Eliminar documento"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      {usuario?.rol === 'admin' && (
+                        <button 
+                          className="p-1.5 rounded-md hover:bg-red-50 text-gray-600 hover:text-red-600 transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteConfirm({ id: row.id, title: row.title || row.asunto || "documento" });
+                          }}
+                          title="Eliminar documento (solo admin)"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -1390,19 +1393,21 @@ function BandejaLocal({ items, onDelete, onUpdateItem }: { items: any[]; onDelet
                   setDeleteConfirm(null);
                   
                   try {
-                    // Si es un análisis, eliminar de la base de datos
+                    // Si es un análisis, marcar como borrado en la base de datos (soft delete)
                     if (isAnalysis) {
                       const API = getApiUrl();
-                      if (API) {
+                      if (API && usuario?.email) {
                         const response = await fetch(`${API}/legal/document/${idToDelete}`, {
-                          method: "DELETE"
+                          method: "DELETE",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ borradoPor: usuario.email })
                         });
                         
                         if (!response.ok) {
                           const errorData = await response.json().catch(() => ({ message: "Error desconocido" }));
                           throw new Error(errorData.message || `Error ${response.status}`);
                         }
-                        console.log(`[DELETE] ✅ Análisis ${idToDelete} eliminado de la DB`);
+                        console.log(`[DELETE] ✅ Análisis ${idToDelete} marcado como borrado por ${usuario.email}`);
                       }
                     }
                     

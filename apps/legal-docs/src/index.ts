@@ -787,11 +787,33 @@ app.get("/status/:documentId", handleStatus);
 // El gateway ya maneja el prefijo /legal, el servicio NO debe tenerlo
 
 // Endpoint para obtener historial de documentos
-// Endpoint para eliminar un documento y su análisis
+// Endpoint para eliminar un documento (soft delete - solo admin)
 app.delete("/document/:documentId", async (req, res, next) => {
   try {
     const { documentId } = req.params;
-    console.log(`[DELETE] Eliminando documento ${documentId}...`);
+    const { borradoPor } = req.body; // Email del usuario que borra (debe ser admin)
+    
+    console.log(`[DELETE] Intentando borrar documento ${documentId} por ${borradoPor}...`);
+    
+    // Verificar que el usuario que borra es admin
+    if (!borradoPor) {
+      return res.status(400).json({ 
+        error: "Bad request",
+        message: "Se requiere información del usuario que realiza el borrado"
+      });
+    }
+    
+    // Verificar que el usuario es admin
+    const userCheck = await db.query(`
+      SELECT rol FROM usuarios WHERE email = $1 AND activo = true
+    `, [borradoPor]);
+    
+    if (userCheck.rows.length === 0 || userCheck.rows[0].rol !== 'admin') {
+      return res.status(403).json({ 
+        error: "Forbidden",
+        message: "Solo los administradores pueden borrar documentos"
+      });
+    }
     
     // Verificar que el documento existe
     const doc = await legalDb.getDocument(documentId);
@@ -803,32 +825,34 @@ app.delete("/document/:documentId", async (req, res, next) => {
       });
     }
     
-    // Eliminar análisis primero (si existe)
-    try {
-      await legalDb.deleteAnalysis(documentId);
-      console.log(`[DELETE] ✅ Análisis eliminado para ${documentId}`);
-    } catch (err: any) {
-      console.warn(`[DELETE] ⚠️ No se pudo eliminar análisis (puede que no exista):`, err.message);
+    // Verificar que no esté ya borrado
+    if (doc.activo === false) {
+      return res.status(400).json({ 
+        error: "Already deleted",
+        message: "El documento ya fue borrado anteriormente"
+      });
     }
     
-    // Eliminar documento de la DB
-    const deleted = await legalDb.deleteDocumentsByIds([documentId]);
+    // Soft delete: marcar como borrado (mantener en DB para trazabilidad)
+    const deleted = await legalDb.deleteDocumentsByIds([documentId], borradoPor);
     
     if (deleted > 0) {
-      console.log(`[DELETE] ✅ Documento ${documentId} eliminado exitosamente`);
+      console.log(`[DELETE] ✅ Documento ${documentId} marcado como borrado por ${borradoPor}`);
       return res.json({ 
         success: true, 
-        message: "Documento eliminado exitosamente",
-        documentId 
+        message: "Documento marcado como borrado exitosamente",
+        documentId,
+        borradoPor,
+        borradoAt: new Date().toISOString()
       });
     } else {
       return res.status(500).json({ 
         error: "Failed to delete",
-        message: "No se pudo eliminar el documento de la base de datos."
+        message: "No se pudo marcar el documento como borrado."
       });
     }
   } catch (err: any) {
-    console.error(`[DELETE] ❌ Error eliminando documento:`, err);
+    console.error(`[DELETE] ❌ Error borrando documento:`, err);
     next(err);
   }
 });
@@ -1650,7 +1674,7 @@ app.get("/history", async (_req, res) => {
           tipo: itemTipo,
           title: report?.titulo || doc.filename || 'Sin título',
           asunto: report?.titulo || doc.filename,
-          estado: doc.status === 'completed' ? 'Listo para revisión' : (doc.status || 'uploaded'),
+          estado: doc.activo === false ? 'Borrado' : (doc.status === 'completed' ? 'Listo para revisión' : (doc.status || 'uploaded')),
           prioridad: 'Media',
           createdAt: doc.created_at,
           creado: new Date(doc.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }),
@@ -1664,7 +1688,11 @@ app.get("/history", async (_req, res) => {
           } : null,
           citations: report?.citas || [],
           areaLegal: report?.area_legal || 'civil_comercial',
-          filename: doc.filename
+          filename: doc.filename,
+          activo: doc.activo !== false, // true si no está borrado
+          borrado: doc.activo === false,
+          borradoPor: doc.borrado_por || null,
+          borradoAt: doc.borrado_at || null
         };
       });
 
