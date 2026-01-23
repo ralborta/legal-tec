@@ -4219,7 +4219,9 @@ function AnalysisResultPanel({
               <div>
               <h4 className="font-semibold text-gray-900 mb-2">{report?.titulo || "Análisis del Documento"}</h4>
               <div className="text-sm text-gray-700 bg-gray-50 p-4 rounded-lg whitespace-pre-wrap">
-                {report?.resumen_ejecutivo || report?.texto_formateado || analysisResult.analysis.report}
+                {report?.resumen_ejecutivo || report?.texto_formateado || (typeof analysisResult.analysis.report === 'string' 
+                  ? analysisResult.analysis.report 
+                  : JSON.stringify(analysisResult.analysis.report || {}, null, 2))}
               </div>
             </div>
             {report?.analisis_juridico && (
