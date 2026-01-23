@@ -892,30 +892,33 @@ app.get("/stats", async (_req, res, next) => {
       : (docs7d > 0 ? "100" : "0");
     
     // 4. Exactitud de citas (por ahora N/A, pero podemos calcular si hay datos)
-    const accuracyResult = await db.query(`
-      SELECT COUNT(*) as total, 
-             COUNT(CASE WHEN report IS NOT NULL THEN 1 END) as with_report
-      FROM legal_analysis 
-      WHERE analyzed_at >= NOW() - INTERVAL '30 days'
-      LIMIT 100
-    `);
+    // Usar created_at en lugar de analyzed_at
     const accuracy = "N/A"; // Por ahora no tenemos métrica de exactitud
     
     // 5. Latencia media (tiempo promedio de análisis completado)
-    const latencyResult = await db.query(`
-      SELECT 
-        AVG(EXTRACT(EPOCH FROM (analyzed_at - created_at))) as avg_seconds,
-        PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM (analyzed_at - created_at))) as p95_seconds
-      FROM legal_analysis la
-      JOIN legal_documents ld ON la.document_id = ld.id
-      WHERE la.analyzed_at IS NOT NULL 
-        AND ld.created_at IS NOT NULL
-        AND la.analyzed_at >= NOW() - INTERVAL '7 days'
-    `);
-    const avgSeconds = parseFloat(latencyResult.rows[0]?.avg_seconds || "0");
-    const p95Seconds = parseFloat(latencyResult.rows[0]?.p95_seconds || "0");
-    const avgLatency = avgSeconds > 0 ? `${(avgSeconds / 60).toFixed(1)}m` : "N/A";
-    const p95Latency = p95Seconds > 0 ? `${(p95Seconds / 60).toFixed(1)}m` : "N/A";
+    // Usar created_at de legal_analysis en lugar de analyzed_at (que no existe)
+    let avgLatency = "N/A";
+    let p95Latency = "N/A";
+    try {
+      const latencyResult = await db.query(`
+        SELECT 
+          AVG(EXTRACT(EPOCH FROM (la.created_at - ld.created_at))) as avg_seconds,
+          PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM (la.created_at - ld.created_at))) as p95_seconds
+        FROM legal_analysis la
+        JOIN legal_documents ld ON la.document_id = ld.id
+        WHERE la.created_at IS NOT NULL 
+          AND ld.created_at IS NOT NULL
+          AND la.created_at >= NOW() - INTERVAL '7 days'
+          AND la.report IS NOT NULL
+      `);
+      const avgSeconds = parseFloat(latencyResult.rows[0]?.avg_seconds || "0");
+      const p95Seconds = parseFloat(latencyResult.rows[0]?.p95_seconds || "0");
+      avgLatency = avgSeconds > 0 ? `${(avgSeconds / 60).toFixed(1)}m` : "N/A";
+      p95Latency = p95Seconds > 0 ? `${(p95Seconds / 60).toFixed(1)}m` : "N/A";
+    } catch (err: any) {
+      console.warn(`[STATS] ⚠️ No se pudo calcular latencia:`, err.message);
+      // Usar valores por defecto si falla
+    }
     
     // 6. Fuentes conectadas (knowledge bases)
     let sourcesCount = 0;
