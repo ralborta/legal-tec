@@ -54,27 +54,29 @@ Organismos: ANSES (https://www.anses.gob.ar/institucional/normativa), BCRA (http
 Provincias: CABA (https://boletinoficial.buenosaires.gob.ar/), Buenos Aires (https://normas.gba.gob.ar/), Córdoba (https://boletinoficial.cba.gov.ar/), Santa Fe (https://boletinoficial.santafe.gob.ar/), Mendoza (https://www.boletinoficial.mendoza.gov.ar/)
 Doctrina: SAIJ (https://www.saij.gob.ar/), UBA Derecho (https://www.derecho.uba.ar/investigacion/publicaciones.php)`;
 
-// Prompt optimizado siguiendo mejores prácticas de OpenAI: claro, específico, sin repeticiones
-const prompt = `Eres un analista legal senior. Analiza el documento y genera un JSON con esta estructura:
+// Prompt optimizado: claro, específico, sin repeticiones, pero manteniendo especificaciones de profundidad
+const prompt = `Eres un analista legal senior de WNS & Asociados. Analiza el documento legal de forma PROFUNDA y EXHAUSTIVA.
+
+Genera un JSON con esta estructura:
 
 {
   "titulo": "Análisis Legal de [tipo] - [partes]" o "Análisis Legal Conjunto de [N] Documentos" si hay múltiples,
   "tipo_documento": "Tipo específico identificado",
-  "jurisdiccion": "Jurisdicción detectada",
-  "area_legal": "Área legal principal",
-  "resumen_ejecutivo": "8-12 párrafos detallados con: partes, objeto, plazos, precios, contexto, relaciones. Si hay múltiples documentos, menciona explícitamente y usa PLURAL.",
-  "clausulas_analizadas": [{"numero": "1", "titulo": "...", "analisis": "Análisis detallado de qué establece, implicancias, perspectivas, riesgos", "riesgo": "bajo|medio|alto"}],
-  "analisis_juridico": "Mínimo 15 párrafos estructurados: marco normativo, interpretación, validez, jurisprudencia, derechos/obligaciones, cumplimiento, estándares, vacíos legales, estructura, litigios, aspectos procesales",
-  "riesgos": [{"descripcion": "Riesgo específico coherente con instrucciones del usuario", "nivel": "bajo|medio|alto", "recomendacion": "Recomendación concreta"}],
-  "recomendaciones": [{"descripcion": "Recomendación específica con pasos", "prioridad": "crítica|alta|media|baja", "urgencia": "inmediata|corto|mediano|largo", "costo_estimado": "...", "tiempo_estimado": "...", "responsable_sugerido": "..."}],
-  "proximos_pasos": [{"accion": "Acción concreta", "fase": "inmediata|corto|mediano|largo", "responsable": "...", "fecha_limite": "...", "prioridad": "...", "recursos": "...", "dependencias": "...", "criterios_exito": "...", "impacto": "..."}],
+  "jurisdiccion": "Jurisdicción detectada (Nacional, CABA, Buenos Aires, etc.)",
+  "area_legal": "Área legal principal (Civil, Comercial, Laboral, etc.)",
+  "resumen_ejecutivo": "8-12 párrafos DETALLADOS con: identificación completa de partes (roles, razones sociales), objeto completo del documento, plazos y condiciones específicas, precio/contraprestación, contexto comercial/jurídico, relaciones entre partes, todos los aspectos relevantes. Si hay múltiples documentos, menciona explícitamente y usa PLURAL.",
+  "clausulas_analizadas": [{"numero": "1", "titulo": "...", "analisis": "Análisis DETALLADO: qué establece exactamente, implicancias legales profundas, análisis desde perspectiva de cada parte, comparación con estándares del mercado, posibles interpretaciones, relación con otras cláusulas, nivel de riesgo con justificación", "riesgo": "bajo|medio|alto"}],
+  "analisis_juridico": "Mínimo 15 párrafos estructurados en: marco normativo (leyes, decretos, artículos específicos), interpretación jurídica de cláusulas clave, validez legal y fundamentación, jurisprudencia aplicable, derechos y obligaciones, cumplimiento y ejecución, estándares y mejores prácticas, vacíos legales, estructura y coherencia, litigios y defensas, aspectos procesales, eficacia y ejecutabilidad",
+  "riesgos": [{"descripcion": "Riesgo específico coherente con instrucciones del usuario", "nivel": "bajo|medio|alto", "recomendacion": "Recomendación concreta para mitigar"}],
+  "recomendaciones": [{"descripcion": "Recomendación específica con pasos concretos", "prioridad": "crítica|alta|media|baja", "urgencia": "inmediata|corto|mediano|largo", "costo_estimado": "...", "tiempo_estimado": "...", "responsable_sugerido": "..."}],
+  "proximos_pasos": [{"accion": "Acción concreta paso a paso", "fase": "inmediata|corto|mediano|largo", "responsable": "...", "fecha_limite": "...", "prioridad": "...", "recursos": "...", "dependencias": "...", "criterios_exito": "...", "impacto": "..."}],
   "citas": [{"tipo": "normativa|jurisprudencia|doctrina", "referencia": "Art. XXX...", "descripcion": "...", "url": "URL oficial"}],
   "documentos_sugeridos": [{"tipo": "...", "descripcion": "Justificación de por qué es relevante"}],
   "texto_formateado": "Reporte completo formateado profesionalmente"
 }
 
-Mínimos obligatorios: 15+ cláusulas, 10+ riesgos, 15+ recomendaciones, 12+ próximos pasos, 10+ citas, 5+ documentos sugeridos.
-Aplica las instrucciones del usuario en TODAS las secciones. Si hay múltiples documentos, usa PLURAL siempre.`;
+MÍNIMOS OBLIGATORIOS: 15+ cláusulas (analizar TODAS), 10+ riesgos, 15+ recomendaciones, 12+ próximos pasos, 10+ citas, 5+ documentos sugeridos.
+Aplica las instrucciones del usuario coherentemente en TODAS las secciones. Si hay múltiples documentos, usa PLURAL siempre.`;
 
 export async function generateReport(input: ReportInput): Promise<AnalysisReport> {
   const startTime = Date.now();
