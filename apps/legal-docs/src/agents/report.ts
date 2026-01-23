@@ -509,7 +509,7 @@ NO ignores estas instrucciones. Son OBLIGATORIAS y tienen PRIORIDAD ABSOLUTA sob
 TIPO DE DOCUMENTO: ${input.type}
 
 TEXTO ORIGINAL:
-${isConjointAnalysis ? input.original.substring(0, 10000) : input.original.substring(0, 8000)}
+${isConjointAnalysis ? input.original.substring(0, 6000) : input.original.substring(0, 5000)}
 
 CLÁUSULAS DEL DOCUMENTO (analizar TODAS):
 ${translatedText}
@@ -740,7 +740,7 @@ ${instructionsText.includes("ANÁLISIS CONJUNTO") || instructionsText.includes("
 TIPO DE DOCUMENTO: ${input.type}
 
 TEXTO ORIGINAL:
-${isConjointAnalysis ? input.original.substring(0, 10000) : input.original.substring(0, 8000)}
+${isConjointAnalysis ? input.original.substring(0, 6000) : input.original.substring(0, 5000)}
 
 CLÁUSULAS DEL DOCUMENTO (analizar TODAS):
 ${translatedText}
