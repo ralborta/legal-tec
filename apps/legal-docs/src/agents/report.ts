@@ -360,8 +360,9 @@ export async function generateReport(input: ReportInput): Promise<AnalysisReport
                                  input.userInstructions?.includes("múltiples documentos") ||
                                  input.original.includes("DOCUMENTO 1 de") ||
                                  input.original.includes("DOCUMENTO 2 de");
-    // Análisis conjunto necesita MÁS contexto, no menos
-    const maxTextLength = isConjointAnalysis ? 20000 : 15000; // MÁS texto para conjunto (más documentos = más contexto necesario)
+    // REDUCIR tamaño del texto del documento para dejar más espacio para la respuesta JSON
+    // El problema es que el prompt es demasiado grande y no queda espacio para tokens de output
+    const maxTextLength = isConjointAnalysis ? 12000 : 10000; // REDUCIDO para evitar truncado de JSON
     
     const translatedText = input.translated
       .map((c) => `${c.clause_number}. ${c.title_es}\n${c.body_es}`)
@@ -381,8 +382,9 @@ export async function generateReport(input: ReportInput): Promise<AnalysisReport
     // Usar gpt-4o para ambos (máxima calidad y profundidad)
     // Análisis conjunto requiere MÁS profundidad, no menos
     const model = "gpt-4o"; // Siempre usar el modelo más potente para análisis profundo
-    // Aumentar tokens significativamente para análisis ultra profundo
-    const maxTokens = isConjointAnalysis ? 16000 : 12000; // MUCHO MÁS tokens para análisis exhaustivo
+    // Aumentar tokens MUCHO MÁS para evitar truncado - el reporte puede ser muy grande (55k+ chars = ~27k tokens)
+    // gpt-4o tiene límite de 16,384 tokens de output, pero necesitamos más espacio
+    const maxTokens = isConjointAnalysis ? 16384 : 16384; // Usar el máximo permitido para evitar truncado
     
     console.log(`[REPORT] Using model: ${model}, max_tokens: ${maxTokens}, conjoint: ${isConjointAnalysis}`);
     
@@ -571,24 +573,37 @@ NO ignores estas instrucciones. Son OBLIGATORIAS.`,
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
     console.log(`[REPORT] Completed in ${duration}s`);
 
+    // Verificar finish_reason para detectar truncado
+    const finishReason = response.choices[0]?.finish_reason;
+    if (finishReason === 'length') {
+      console.error(`[REPORT] ❌ ERROR: Respuesta truncada por límite de tokens (finish_reason: length)`);
+      console.error(`[REPORT] max_tokens usado: ${maxTokens}, pero la respuesta fue truncada`);
+      throw new Error(`El reporte generado excedió el límite de tokens (${maxTokens}). El análisis es demasiado extenso. Intenta con un documento más corto o reduce las instrucciones adicionales.`);
+    }
+
     const content = response.choices[0]?.message?.content;
     
+    if (!content) {
+      throw new Error("OpenAI no devolvió contenido");
+    }
+    
     // Validar que el contenido cumple con los mínimos requeridos
-    if (content) {
-      try {
-        const jsonText = content.trim();
-        
-        // Validar que el JSON no esté truncado
-        if (jsonText.startsWith('{') && !jsonText.endsWith('}')) {
-          console.error(`[REPORT] ❌ ERROR: JSON truncado - no termina con '}'`);
-          console.error(`[REPORT] JSON length: ${jsonText.length}`);
-          console.error(`[REPORT] Últimos 500 chars: ...${jsonText.substring(Math.max(0, jsonText.length - 500))}`);
-          throw new Error(`JSON truncado: el reporte generado no está completo (length: ${jsonText.length})`);
-        }
-        if (jsonText.startsWith('[') && !jsonText.endsWith(']')) {
-          console.error(`[REPORT] ❌ ERROR: JSON truncado - no termina con ']'`);
-          throw new Error(`JSON truncado: el reporte generado no está completo (length: ${jsonText.length})`);
-        }
+    try {
+      const jsonText = content.trim();
+      
+      // Validar que el JSON no esté truncado
+      if (jsonText.startsWith('{') && !jsonText.endsWith('}')) {
+        console.error(`[REPORT] ❌ ERROR: JSON truncado - no termina con '}'`);
+        console.error(`[REPORT] JSON length: ${jsonText.length}`);
+        console.error(`[REPORT] finish_reason: ${finishReason}`);
+        console.error(`[REPORT] Últimos 500 chars: ...${jsonText.substring(Math.max(0, jsonText.length - 500))}`);
+        throw new Error(`JSON truncado: el reporte generado no está completo (length: ${jsonText.length}, finish_reason: ${finishReason || 'unknown'}). El análisis es demasiado extenso.`);
+      }
+      if (jsonText.startsWith('[') && !jsonText.endsWith(']')) {
+        console.error(`[REPORT] ❌ ERROR: JSON truncado - no termina con ']'`);
+        console.error(`[REPORT] finish_reason: ${finishReason}`);
+        throw new Error(`JSON truncado: el reporte generado no está completo (finish_reason: ${finishReason || 'unknown'})`);
+      }
         
         const parsed = JSON.parse(jsonText) as any;
         
