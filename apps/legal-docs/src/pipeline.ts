@@ -236,8 +236,14 @@ export async function runFullAnalysis(documentId: string, userInstructions?: str
     const existingAnalysis = await legalDb.getAnalysis(documentId);
     if (existingAnalysis) {
       console.log(`[PIPELINE] ⚠️ Análisis previo encontrado para ${documentId}, limpiando para regeneración completa...`);
-      await legalDb.deleteAnalysis(documentId);
-      console.log(`[PIPELINE] ✅ Análisis previo eliminado, iniciando pipeline completo desde cero`);
+      // Borrar físicamente el análisis previo (puede estar corrupto/truncado)
+      try {
+        await db.query(`DELETE FROM legal_analysis WHERE document_id = $1`, [documentId]);
+        console.log(`[PIPELINE] ✅ Análisis previo eliminado físicamente, iniciando pipeline completo desde cero`);
+      } catch (deleteErr: any) {
+        console.warn(`[PIPELINE] ⚠️ No se pudo eliminar análisis previo:`, deleteErr.message);
+        // Continuar de todas formas
+      }
     }
 
   const originalText = await ocrAgent({

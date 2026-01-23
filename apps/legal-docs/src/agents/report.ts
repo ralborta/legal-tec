@@ -333,8 +333,9 @@ export async function generateReport(input: ReportInput): Promise<AnalysisReport
     // Consultar jurisprudencia relevante usando RAG
     console.log(`[REPORT] Consultando jurisprudencia para tipo: ${input.type}`);
     const instructions = (input.userInstructions || "").trim();
+    // Reducir límite de instrucciones para dejar más espacio para tokens de output
     const instructionsText = instructions
-      ? instructions.slice(0, 2000) // Aumentar límite para incluir contexto del chat
+      ? instructions.slice(0, 500) // Reducido de 2000 a 500 para evitar truncado
       : "Sin indicaciones adicionales del usuario.";
     if (instructions) {
       console.log(`[REPORT] Aplicando instrucciones del usuario (${instructions.length} chars)`);
