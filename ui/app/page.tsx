@@ -524,7 +524,7 @@ function SideLink({ icon: Icon, label, active, className = "", onClick, color = 
 
   return (
     <a 
-      className={`group flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300 cursor-pointer border border-transparent relative overflow-hidden ${
+      className={`group flex items-center space-x-3 px-4 py-3 rounded-xl transition-colors duration-200 cursor-pointer border border-transparent relative overflow-hidden ${
         active 
           ? `${colors.active} font-semibold scale-[1.02]` 
           : `text-slate-300 ${colors.hover} hover:scale-[1.01] hover:shadow-md`
@@ -532,15 +532,22 @@ function SideLink({ icon: Icon, label, active, className = "", onClick, color = 
       href="#"
       onClick={(e) => {
         e.preventDefault();
-        if (onClick) onClick();
+        // Ejecutar onClick de forma no bloqueante
+        if (onClick) {
+          if (typeof requestIdleCallback !== 'undefined') {
+            requestIdleCallback(() => onClick(), { timeout: 50 });
+          } else {
+            setTimeout(() => onClick(), 0);
+          }
+        }
       }}
     >
       {/* Efecto de brillo sutil en hover */}
       {!active && (
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 -translate-x-full group-hover:translate-x-full"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 -translate-x-full group-hover:translate-x-full"></div>
       )}
-      <Icon className={`h-5 w-5 transition-all duration-300 ${colors.icon} ${active ? "scale-110" : "group-hover:scale-110"}`} />
-      <span className={`text-sm transition-all duration-300 ${active ? "font-semibold" : "font-medium group-hover:font-semibold"}`}>{label}</span>
+      <Icon className={`h-5 w-5 transition-transform duration-200 ${colors.icon} ${active ? "scale-110" : "group-hover:scale-110"}`} />
+      <span className={`text-sm transition-[font-weight] duration-200 will-change-[font-weight] ${active ? "font-semibold" : "font-medium group-hover:font-semibold"}`}>{label}</span>
       {/* Indicador activo sutil */}
       {active && (
         <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-white/40 rounded-r-full"></div>
