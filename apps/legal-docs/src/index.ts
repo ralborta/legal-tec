@@ -618,17 +618,49 @@ ESTRUCTURA DEL ANÁLISIS COMPARATIVO (OBLIGATORIA):
 
 El análisis debe ser PROFUNDO, EXHAUSTIVO y PROFESIONAL.`;
 
+    // Calcular límite de caracteres por documento para mantenernos bajo 30,000 tokens TPM
+    // Aproximación: 1 token ≈ 4 caracteres
+    // Objetivo: ~25,000 tokens para documentos (dejando margen para system prompt e instrucciones)
+    // 25,000 tokens × 4 = 100,000 caracteres totales para ambos documentos
+    // Dividido entre 2 = 50,000 caracteres por documento máximo
+    // Pero para estar seguros, usamos 40,000 por documento (80,000 totales ≈ 20,000 tokens)
+    const MAX_CHARS_PER_DOC = 40000;
+    
+    // Función helper para truncar texto de forma inteligente (preservando párrafos completos)
+    const truncateText = (text: string, maxChars: number): string => {
+      if (text.length <= maxChars) return text;
+      
+      // Intentar cortar en un punto final o salto de línea cercano
+      const truncated = text.substring(0, maxChars);
+      const lastPeriod = truncated.lastIndexOf('.');
+      const lastNewline = truncated.lastIndexOf('\n');
+      const cutPoint = Math.max(lastPeriod, lastNewline);
+      
+      if (cutPoint > maxChars * 0.8) {
+        // Si encontramos un buen punto de corte (al menos 80% del límite), usarlo
+        return text.substring(0, cutPoint + 1) + "\n\n[... texto truncado para cumplir límites de tokens ...]";
+      }
+      
+      // Si no, cortar en el límite exacto
+      return truncated + "\n\n[... texto truncado para cumplir límites de tokens ...]";
+    };
+
+    const truncatedTextA = truncateText(textA, MAX_CHARS_PER_DOC);
+    const truncatedTextB = truncateText(textB, MAX_CHARS_PER_DOC);
+
+    console.log(`[COMPARE] 📊 Tamaños de documentos: A=${textA.length}→${truncatedTextA.length} chars, B=${textB.length}→${truncatedTextB.length} chars`);
+
     const userPrompt = `Compara los siguientes dos documentos legales:
 
 ═══════════════════════════════════════════════════════════════════════════════
 DOCUMENTO A (ID: ${documentIdA})
 ═══════════════════════════════════════════════════════════════════════════════
-${textA.substring(0, 100000)}${textA.length > 100000 ? "\n\n[... texto truncado por longitud ...]" : ""}
+${truncatedTextA}
 
 ═══════════════════════════════════════════════════════════════════════════════
 DOCUMENTO B (ID: ${documentIdB})
 ═══════════════════════════════════════════════════════════════════════════════
-${textB.substring(0, 100000)}${textB.length > 100000 ? "\n\n[... texto truncado por longitud ...]" : ""}
+${truncatedTextB}
 
 ${instructions ? `\n\nINSTRUCCIONES DEL USUARIO:\n${instructions}` : ""}
 ${additionalInstructions ? `\n\nINDICACIONES ADICIONALES:\n${additionalInstructions}` : ""}
@@ -637,7 +669,13 @@ ${additionalInstructions ? `\n\nINDICACIONES ADICIONALES:\n${additionalInstructi
 
 Realiza un análisis comparativo jurídico exhaustivo siguiendo la estructura indicada.`;
 
-    comparisonResults.set(comparisonId, { status: "processing", progress: 50, statusLabel: "Generando análisis comparativo con IA..." });
+    comparisonResults.set(comparisonId, { 
+      status: "processing", 
+      progress: 50, 
+      statusLabel: textA.length > MAX_CHARS_PER_DOC || textB.length > MAX_CHARS_PER_DOC
+        ? "Generando análisis comparativo con IA (documentos truncados por tamaño)..."
+        : "Generando análisis comparativo con IA..."
+    });
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
