@@ -577,6 +577,19 @@ NO ignores estas instrucciones. Son OBLIGATORIAS.`,
     if (content) {
       try {
         const jsonText = content.trim();
+        
+        // Validar que el JSON no esté truncado
+        if (jsonText.startsWith('{') && !jsonText.endsWith('}')) {
+          console.error(`[REPORT] ❌ ERROR: JSON truncado - no termina con '}'`);
+          console.error(`[REPORT] JSON length: ${jsonText.length}`);
+          console.error(`[REPORT] Últimos 500 chars: ...${jsonText.substring(Math.max(0, jsonText.length - 500))}`);
+          throw new Error(`JSON truncado: el reporte generado no está completo (length: ${jsonText.length})`);
+        }
+        if (jsonText.startsWith('[') && !jsonText.endsWith(']')) {
+          console.error(`[REPORT] ❌ ERROR: JSON truncado - no termina con ']'`);
+          throw new Error(`JSON truncado: el reporte generado no está completo (length: ${jsonText.length})`);
+        }
+        
         const parsed = JSON.parse(jsonText) as any;
         
         // Verificar mínimos

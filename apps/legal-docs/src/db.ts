@@ -230,8 +230,20 @@ export const legalDb = {
       let reportValue: string;
       if (typeof data.report === 'string') {
         reportValue = data.report;
+        // Validar que el string JSON esté completo (no truncado)
+        if (reportValue.trim().startsWith('{') && !reportValue.trim().endsWith('}')) {
+          console.error(`[DB] ⚠️ WARNING: Report JSON parece truncado (no termina con '}') para ${data.documentId}`);
+        }
       } else {
         reportValue = JSON.stringify(data.report);
+      }
+      
+      // Validar que el JSON es válido antes de guardar
+      try {
+        JSON.parse(reportValue);
+      } catch (e) {
+        console.error(`[DB] ❌ ERROR: Report JSON inválido antes de guardar para ${data.documentId}:`, e instanceof Error ? e.message : String(e));
+        throw new Error(`Report JSON inválido: ${e instanceof Error ? e.message : String(e)}`);
       }
       
       console.log(`[DB] Guardando análisis para ${data.documentId}, tipo: ${data.type}, report length: ${reportValue.length}`);
@@ -313,16 +325,33 @@ export const legalDb = {
       if (report) {
         // Si es string, intentar parsear
         if (typeof report === 'string') {
+          // Validar que el string no esté truncado
+          const trimmed = report.trim();
+          if (trimmed.startsWith('{') && !trimmed.endsWith('}')) {
+            console.error(`[DB] ⚠️ WARNING: Report JSON parece truncado (no termina con '}') para ${row.id}, length: ${report.length}`);
+            // Intentar encontrar dónde se truncó
+            const lastBrace = report.lastIndexOf('}');
+            if (lastBrace > 0) {
+              console.warn(`[DB] Último '}' encontrado en posición ${lastBrace}, pero el string tiene ${report.length} caracteres`);
+            }
+          }
+          if (trimmed.startsWith('[') && !trimmed.endsWith(']')) {
+            console.error(`[DB] ⚠️ WARNING: Report JSON parece truncado (no termina con ']') para ${row.id}, length: ${report.length}`);
+          }
+          
           try {
             // Si es un string JSON válido, parsearlo
-            if (report.trim().startsWith('{') || report.trim().startsWith('[')) {
+            if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
               report = JSON.parse(report);
             }
             // Si no es JSON, mantener como string (texto plano)
-        } catch (e) {
+          } catch (e) {
             const msg = e instanceof Error ? e.message : String(e);
-            console.warn(`[DB] No se pudo parsear report como JSON para ${row.id}:`, msg);
-            // Si no es JSON válido, mantener como string
+            console.error(`[DB] ❌ ERROR: No se pudo parsear report como JSON para ${row.id}:`, msg);
+            console.error(`[DB] Report length: ${report.length}, primeros 200 chars: ${report.substring(0, 200)}...`);
+            console.error(`[DB] Últimos 200 chars: ...${report.substring(Math.max(0, report.length - 200))}`);
+            // Si no es JSON válido, mantener como string pero lanzar error para que se detecte
+            throw new Error(`Report JSON inválido o truncado para ${row.id}: ${msg}`);
           }
         }
         // Si ya es objeto (JSONB devuelto como objeto), usarlo directamente
