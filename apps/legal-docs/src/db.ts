@@ -510,9 +510,15 @@ export const legalDb = {
   },
 
   async deleteAnalysis(documentId: string) {
-    // Ya no borramos el análisis físicamente, solo marcamos el documento como borrado
-    // El análisis se mantiene para trazabilidad
-    return true;
+    // Borrar físicamente el análisis para evitar datos corruptos/truncados
+    // Esto se usa cuando se regenera un análisis que puede estar corrupto
+    try {
+      await pool.query(`DELETE FROM legal_analysis WHERE document_id = $1`, [documentId]);
+      return true;
+    } catch (err: any) {
+      console.error(`[DB] Error borrando análisis ${documentId}:`, err.message);
+      return false;
+    }
   },
 };
 

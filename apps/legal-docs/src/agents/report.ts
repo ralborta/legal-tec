@@ -768,46 +768,59 @@ ${jurisprudenceText}`,
         } else {
           console.log(`[REPORT] ✅ Análisis cumple mínimos: ${clausulasCount} cláusulas, ${riesgosCount} riesgos, ${recomendacionesCount} recomendaciones, ${documentosSugeridosCount} documentos sugeridos, ${citasCount} citas`);
         }
+
+        // Limpiar JSON si viene con markdown (si no se regeneró)
+        let finalJsonText = jsonText;
+        if (finalJsonText.startsWith("```json")) {
+          finalJsonText = finalJsonText.replace(/^```json\s*/, "").replace(/\s*```$/, "");
+        } else if (finalJsonText.startsWith("```")) {
+          finalJsonText = finalJsonText.replace(/^```\s*/, "").replace(/\s*```$/, "");
+        }
+
+        const finalParsed = JSON.parse(finalJsonText) as AnalysisReport;
+
+        // Validar estructura mínima
+        if (!finalParsed.titulo || !finalParsed.resumen_ejecutivo) {
+          throw new Error("Respuesta de OpenAI incompleta: faltan campos requeridos");
+        }
+
+        // Asegurar arrays
+        finalParsed.clausulas_analizadas = finalParsed.clausulas_analizadas || [];
+        finalParsed.riesgos = finalParsed.riesgos || [];
+        finalParsed.recomendaciones = finalParsed.recomendaciones || [];
+        finalParsed.proximos_pasos = finalParsed.proximos_pasos || [];
+        finalParsed.citas = finalParsed.citas || [];
+        finalParsed.documentos_sugeridos = finalParsed.documentos_sugeridos || [];
+
+        console.log(`[REPORT] ✅ Reporte generado con ${finalParsed.clausulas_analizadas.length} cláusulas, ${finalParsed.riesgos.length} riesgos, ${finalParsed.recomendaciones.length} recomendaciones`);
+        console.log(`[REPORT] Instrucciones aplicadas: ${input.userInstructions ? "SÍ ✅" : "NO ❌"}`);
+        if (input.userInstructions) {
+          console.log(`[REPORT] Contenido de instrucciones (primeros 200 chars): ${input.userInstructions.substring(0, 200)}...`);
+          console.log(`[REPORT] Contiene contexto del chat: ${input.userInstructions.includes("CONTEXTO") || input.userInstructions.includes("CHAT") ? "SÍ ✅" : "NO ❌"}`);
+        }
+
+        return finalParsed;
       } catch (validationError) {
         console.warn(`[REPORT] Error validando mínimos:`, validationError);
-        // Continuar con el análisis original si falla la validación
+        // Si falla la validación, intentar parsear el JSON de todas formas
+        let fallbackJsonText = content.trim();
+        if (fallbackJsonText.startsWith("```json")) {
+          fallbackJsonText = fallbackJsonText.replace(/^```json\s*/, "").replace(/\s*```$/, "");
+        } else if (fallbackJsonText.startsWith("```")) {
+          fallbackJsonText = fallbackJsonText.replace(/^```\s*/, "").replace(/\s*```$/, "");
+        }
+        const fallbackParsed = JSON.parse(fallbackJsonText) as AnalysisReport;
+        
+        // Asegurar arrays
+        fallbackParsed.clausulas_analizadas = fallbackParsed.clausulas_analizadas || [];
+        fallbackParsed.riesgos = fallbackParsed.riesgos || [];
+        fallbackParsed.recomendaciones = fallbackParsed.recomendaciones || [];
+        fallbackParsed.proximos_pasos = fallbackParsed.proximos_pasos || [];
+        fallbackParsed.citas = fallbackParsed.citas || [];
+        fallbackParsed.documentos_sugeridos = fallbackParsed.documentos_sugeridos || [];
+        
+        return fallbackParsed;
       }
-    }
-    if (!content) {
-      throw new Error("OpenAI no devolvió contenido");
-    }
-
-    // Limpiar JSON si viene con markdown
-    let jsonText = content.trim();
-    if (jsonText.startsWith("```json")) {
-      jsonText = jsonText.replace(/^```json\s*/, "").replace(/\s*```$/, "");
-    } else if (jsonText.startsWith("```")) {
-      jsonText = jsonText.replace(/^```\s*/, "").replace(/\s*```$/, "");
-    }
-
-    const parsed = JSON.parse(jsonText) as AnalysisReport;
-
-    // Validar estructura mínima
-    if (!parsed.titulo || !parsed.resumen_ejecutivo) {
-      throw new Error("Respuesta de OpenAI incompleta: faltan campos requeridos");
-    }
-
-    // Asegurar arrays
-    parsed.clausulas_analizadas = parsed.clausulas_analizadas || [];
-    parsed.riesgos = parsed.riesgos || [];
-    parsed.recomendaciones = parsed.recomendaciones || [];
-    parsed.proximos_pasos = parsed.proximos_pasos || [];
-    parsed.citas = parsed.citas || [];
-    parsed.documentos_sugeridos = parsed.documentos_sugeridos || [];
-
-    console.log(`[REPORT] ✅ Reporte generado con ${parsed.clausulas_analizadas.length} cláusulas, ${parsed.riesgos.length} riesgos, ${parsed.recomendaciones.length} recomendaciones`);
-    console.log(`[REPORT] Instrucciones aplicadas: ${input.userInstructions ? "SÍ ✅" : "NO ❌"}`);
-    if (input.userInstructions) {
-      console.log(`[REPORT] Contenido de instrucciones (primeros 200 chars): ${input.userInstructions.substring(0, 200)}...`);
-      console.log(`[REPORT] Contiene contexto del chat: ${input.userInstructions.includes("CONTEXTO") || input.userInstructions.includes("CHAT") ? "SÍ ✅" : "NO ❌"}`);
-    }
-
-    return parsed;
   } catch (error) {
     console.error("Error generando reporte:", error);
     

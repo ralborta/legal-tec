@@ -237,8 +237,9 @@ export async function runFullAnalysis(documentId: string, userInstructions?: str
     if (existingAnalysis) {
       console.log(`[PIPELINE] ⚠️ Análisis previo encontrado para ${documentId}, limpiando para regeneración completa...`);
       // Borrar físicamente el análisis previo (puede estar corrupto/truncado)
+      // Usar deleteAnalysis que ahora borra físicamente para evitar datos corruptos
       try {
-        await db.query(`DELETE FROM legal_analysis WHERE document_id = $1`, [documentId]);
+        await legalDb.deleteAnalysis(documentId);
         console.log(`[PIPELINE] ✅ Análisis previo eliminado físicamente, iniciando pipeline completo desde cero`);
       } catch (deleteErr: any) {
         console.warn(`[PIPELINE] ⚠️ No se pudo eliminar análisis previo:`, deleteErr.message);
