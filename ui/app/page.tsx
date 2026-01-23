@@ -2016,34 +2016,53 @@ function AnalizarDocumentosPanel() {
     let consecutive502s = 0;
     const maxConsecutive502s = 10; // Aumentar a 10 para análisis conjunto (más tolerante)
     let lastSuccessfulStatus = Date.now();
+    let pollTimeoutId: NodeJS.Timeout | null = null;
+    let isPolling = true;
+
+    // Función para actualizar estado sin bloquear UI usando requestIdleCallback o setTimeout
+    const scheduleStateUpdate = (updateFn: () => void) => {
+      if (typeof requestIdleCallback !== 'undefined') {
+        requestIdleCallback(updateFn, { timeout: 100 });
+      } else {
+        setTimeout(updateFn, 0);
+      }
+    };
 
     const poll = async () => {
+      if (!isPolling) return;
+      
       try {
         // 1) Obtener status/progreso primero (si existe)
         try {
           const statusRes = await fetchWithTimeout(`${API}/legal/status/${docId}`, {}, 20000);
           if (statusRes.ok) {
             const s = await statusRes.json();
-            if (typeof s.progress === "number") setProgress(s.progress);
-            if (s.status) {
-              const statusMessages: Record<string, string> = {
-                'ocr': 'Extrayendo texto de documentos...',
-                'translating': 'Traduciendo cláusulas...',
-                'classifying': 'Clasificando documento...',
-                'analyzing': 'Analizando contenido...',
-                'generating_report': 'Generando reporte con IA...',
-                'saving': 'Guardando análisis...',
-                'completed': 'Completado',
-                'error': 'Error',
-                'processing': 'Procesando...'
-              };
-              const statusMsg = statusMessages[s.status] || s.status;
-              setStatusLabel(`${statusMsg}${isConjointAnalysis ? ` (análisis conjunto)` : ''} - Intento ${attempts + 1}/${maxAttempts}`);
-            }
+            // Actualizar estado de forma no bloqueante
+            scheduleStateUpdate(() => {
+              if (typeof s.progress === "number") setProgress(s.progress);
+              if (s.status) {
+                const statusMessages: Record<string, string> = {
+                  'ocr': 'Extrayendo texto de documentos...',
+                  'translating': 'Traduciendo cláusulas...',
+                  'classifying': 'Clasificando documento...',
+                  'analyzing': 'Analizando contenido...',
+                  'generating_report': 'Generando reporte con IA...',
+                  'saving': 'Guardando análisis...',
+                  'completed': 'Completado',
+                  'error': 'Error',
+                  'processing': 'Procesando...'
+                };
+                const statusMsg = statusMessages[s.status] || s.status;
+                setStatusLabel(`${statusMsg}${isConjointAnalysis ? ` (análisis conjunto)` : ''} - Intento ${attempts + 1}/${maxAttempts}`);
+              }
+            });
             if (s.status === "error") {
-              setError(s.error || "Error durante el análisis");
-              setAnalyzing(false);
-              setPolling(false);
+              scheduleStateUpdate(() => {
+                setError(s.error || "Error durante el análisis");
+                setAnalyzing(false);
+                setPolling(false);
+              });
+              isPolling = false;
               return;
             }
             if (s.status === "completed") {
@@ -2110,17 +2129,20 @@ function AnalizarDocumentosPanel() {
         } else if (attempts < maxAttempts) {
           attempts++;
           const pollInterval = isConjointAnalysis ? 5000 : 3000; // Poll cada 5s para conjunto, 3s para individual
-          setTimeout(poll, pollInterval);
+          pollTimeoutId = setTimeout(poll, pollInterval);
         } else {
           // Verificar si hubo algún progreso reciente
           const timeSinceLastSuccess = Date.now() - lastSuccessfulStatus;
-          if (timeSinceLastSuccess > 300000) { // 5 minutos sin progreso
-            setError("El análisis está tomando más tiempo del esperado y no hay progreso reciente. El servicio puede estar sobrecargado. Por favor, intenta más tarde o con menos documentos.");
-          } else {
-            setError("El análisis está tomando más tiempo del esperado. Intenta más tarde.");
-          }
-          setAnalyzing(false);
-          setPolling(false);
+          scheduleStateUpdate(() => {
+            if (timeSinceLastSuccess > 300000) { // 5 minutos sin progreso
+              setError("El análisis está tomando más tiempo del esperado y no hay progreso reciente. El servicio puede estar sobrecargado. Por favor, intenta más tarde o con menos documentos.");
+            } else {
+              setError("El análisis está tomando más tiempo del esperado. Intenta más tarde.");
+            }
+            setAnalyzing(false);
+            setPolling(false);
+          });
+          isPolling = false;
         }
       } catch (err: any) {
         // Manejar errores de red/timeout
@@ -2129,29 +2151,45 @@ function AnalizarDocumentosPanel() {
         if (isNetworkError && attempts < maxAttempts) {
           attempts++;
           console.warn(`[POLL] Error de red/timeout, reintentando... (${attempts}/${maxAttempts})`);
-          setStatusLabel(`Error de conexión, reintentando... (${attempts}/${maxAttempts})`);
-          setTimeout(poll, 5000);
+          scheduleStateUpdate(() => {
+            setStatusLabel(`Error de conexión, reintentando... (${attempts}/${maxAttempts})`);
+          });
+          pollTimeoutId = setTimeout(poll, 5000);
           return;
         }
         
         // Solo detener si no es un error temporal
         if (!err.message?.includes("502") && !isNetworkError) {
-          setError(err.message || "Error al obtener resultados");
-          setAnalyzing(false);
-          setPolling(false);
+          scheduleStateUpdate(() => {
+            setError(err.message || "Error al obtener resultados");
+            setAnalyzing(false);
+            setPolling(false);
+          });
+          isPolling = false;
         } else if (attempts < maxAttempts) {
           // Si es un error temporal y aún tenemos intentos, continuar
           attempts++;
-          setTimeout(poll, 5000);
+          pollTimeoutId = setTimeout(poll, 5000);
         } else {
-          setError("El servicio de análisis no está disponible después de múltiples intentos. Por favor, intenta más tarde.");
-          setAnalyzing(false);
-          setPolling(false);
+          scheduleStateUpdate(() => {
+            setError("El servicio de análisis no está disponible después de múltiples intentos. Por favor, intenta más tarde.");
+            setAnalyzing(false);
+            setPolling(false);
+          });
+          isPolling = false;
         }
       }
     };
 
     poll();
+    
+    // Retornar función de limpieza para cancelar polling si el componente se desmonta
+    return () => {
+      isPolling = false;
+      if (pollTimeoutId) {
+        clearTimeout(pollTimeoutId);
+      }
+    };
   };
 
   return (
