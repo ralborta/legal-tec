@@ -936,16 +936,22 @@ app.get("/stats", async (_req, res, next) => {
 });
 
 // Endpoint para obtener lista de abogados senior
-app.get("/abogados", async (_req, res, next) => {
+// Si se pasa ?all=true, devuelve todos (activos e inactivos) - para admin
+app.get("/abogados", async (req, res, next) => {
   try {
-    console.log(`[ABOGADOS] Obteniendo lista de abogados senior...`);
+    const all = req.query.all === 'true';
+    console.log(`[ABOGADOS] Obteniendo lista de abogados senior (all=${all})...`);
     
-    const result = await db.query(`
-      SELECT id, nombre, telefono, email, activo, orden
-      FROM abogados_senior
-      WHERE activo = true
-      ORDER BY orden ASC, nombre ASC
-    `);
+    const query = all 
+      ? `SELECT id, nombre, telefono, email, activo, orden, created_at, updated_at
+         FROM abogados_senior
+         ORDER BY orden ASC, nombre ASC`
+      : `SELECT id, nombre, telefono, email, activo, orden
+         FROM abogados_senior
+         WHERE activo = true
+         ORDER BY orden ASC, nombre ASC`;
+    
+    const result = await db.query(query);
     
     const abogados = result.rows.map((row: any) => ({
       id: row.id,
@@ -953,7 +959,9 @@ app.get("/abogados", async (_req, res, next) => {
       telefono: row.telefono || null,
       email: row.email,
       activo: row.activo,
-      orden: row.orden || 0
+      orden: row.orden || 0,
+      created_at: row.created_at || null,
+      updated_at: row.updated_at || null
     }));
     
     console.log(`[ABOGADOS] ✅ ${abogados.length} abogados encontrados`);

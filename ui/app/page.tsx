@@ -7254,6 +7254,64 @@ function LoginModal({ onLogin, onClose }: { onLogin: (usuario: {id: string; emai
 
 // Componente de Configuración (solo admin)
 function ConfiguracionPanel() {
+  const [activeTab, setActiveTab] = useState<"usuarios" | "abogados" | "asignaciones">("usuarios");
+  
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      <div className="mb-6">
+        <h3 className="font-bold text-xl text-gray-900">Configuración</h3>
+        <p className="text-sm text-gray-500 mt-1">Gestión del sistema</p>
+      </div>
+
+      {/* Tabs */}
+      <div className="border-b border-gray-200 mb-6">
+        <nav className="flex space-x-8">
+          <button
+            onClick={() => setActiveTab("usuarios")}
+            className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+              activeTab === "usuarios"
+                ? "border-purple-600 text-purple-600"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+            }`}
+          >
+            <Users className="h-4 w-4 inline mr-2" />
+            Usuarios
+          </button>
+          <button
+            onClick={() => setActiveTab("abogados")}
+            className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+              activeTab === "abogados"
+                ? "border-purple-600 text-purple-600"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+            }`}
+          >
+            <Gavel className="h-4 w-4 inline mr-2" />
+            Abogados
+          </button>
+          <button
+            onClick={() => setActiveTab("asignaciones")}
+            className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+              activeTab === "asignaciones"
+                ? "border-purple-600 text-purple-600"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+            }`}
+          >
+            <History className="h-4 w-4 inline mr-2" />
+            Historial de Asignaciones
+          </button>
+        </nav>
+      </div>
+
+      {/* Contenido de tabs */}
+      {activeTab === "usuarios" && <UsuariosTab />}
+      {activeTab === "abogados" && <AbogadosTab />}
+      {activeTab === "asignaciones" && <AsignacionesTab />}
+    </div>
+  );
+}
+
+// Tab de Usuarios
+function UsuariosTab() {
   const [usuarios, setUsuarios] = useState<Array<{id: string; email: string; nombre: string; rol: string; activo: boolean; created_at: string}>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -7348,11 +7406,11 @@ function ConfiguracionPanel() {
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+    <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 className="font-bold text-xl text-gray-900">Configuración</h3>
-          <p className="text-sm text-gray-500 mt-1">Gestión de usuarios del sistema</p>
+          <h4 className="font-bold text-lg text-gray-900">Usuarios del Sistema</h4>
+          <p className="text-sm text-gray-500 mt-1">Gestiona los usuarios que pueden acceder al sistema</p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
@@ -7623,6 +7681,608 @@ function EditUsuarioModal({ usuario, onSave, onClose }: { usuario: any; onSave: 
               />
               <span className="text-sm font-medium text-gray-700">Usuario activo</span>
             </label>
+          </div>
+        </div>
+        <div className="flex items-center justify-end gap-3 pt-2">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 font-medium"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={saving}
+            className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2"
+          >
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            Guardar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Tab de Abogados
+function AbogadosTab() {
+  const [abogados, setAbogados] = useState<Array<{id: string; nombre: string; telefono: string | null; email: string; activo: boolean; orden: number}>>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingAbogado, setEditingAbogado] = useState<any | null>(null);
+  const API = useMemo(() => getApiUrl(), []);
+
+  useEffect(() => {
+    loadAbogados();
+  }, []);
+
+  const loadAbogados = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`${API}/legal/abogados?all=true`);
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}`);
+      }
+      const data = await response.json();
+      setAbogados(data.abogados || []);
+    } catch (err: any) {
+      console.error("Error cargando abogados:", err);
+      setError(err.message || "Error al cargar abogados");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateAbogado = async (formData: {nombre: string; telefono: string; email: string; orden: number}) => {
+    try {
+      const response = await fetch(`${API}/legal/abogados`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...formData, activo: true })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: "Error al crear abogado" }));
+        throw new Error(errorData.message || `Error ${response.status}`);
+      }
+
+      await loadAbogados();
+      setShowCreateModal(false);
+    } catch (err: any) {
+      console.error("Error creando abogado:", err);
+      alert(`Error al crear abogado: ${err.message || "Intenta de nuevo"}`);
+    }
+  };
+
+  const handleUpdateAbogado = async (id: string, updates: {nombre?: string; telefono?: string; email?: string; activo?: boolean; orden?: number}) => {
+    try {
+      const response = await fetch(`${API}/legal/abogados/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: "Error al actualizar abogado" }));
+        throw new Error(errorData.message || `Error ${response.status}`);
+      }
+
+      await loadAbogados();
+      setEditingAbogado(null);
+    } catch (err: any) {
+      console.error("Error actualizando abogado:", err);
+      alert(`Error al actualizar abogado: ${err.message || "Intenta de nuevo"}`);
+    }
+  };
+
+  const handleDeleteAbogado = async (id: string) => {
+    if (!confirm("¿Estás seguro de que querés desactivar este abogado?")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API}/legal/abogados/${id}`, {
+        method: "DELETE"
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: "Error al desactivar abogado" }));
+        throw new Error(errorData.message || `Error ${response.status}`);
+      }
+
+      await loadAbogados();
+    } catch (err: any) {
+      console.error("Error desactivando abogado:", err);
+      alert(`Error al desactivar abogado: ${err.message || "Intenta de nuevo"}`);
+    }
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h4 className="font-bold text-lg text-gray-900">Abogados Senior</h4>
+          <p className="text-sm text-gray-500 mt-1">Gestiona los abogados que pueden recibir asignaciones de documentos</p>
+        </div>
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-500 text-white rounded-lg font-medium hover:from-purple-700 hover:to-purple-600 transition-all flex items-center gap-2"
+        >
+          <Plus className="h-4 w-4" />
+          Crear Abogado
+        </button>
+      </div>
+
+      {error && (
+        <div className="rounded-lg border border-rose-200 bg-rose-50 text-rose-700 p-3 text-sm mb-4">
+          {error}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
+        </div>
+      ) : abogados.length === 0 ? (
+        <div className="text-center py-12">
+          <Gavel className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+          <p className="text-gray-500">No hay abogados registrados</p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-700 uppercase">Nombre</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-700 uppercase">Email</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-700 uppercase">Teléfono</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-700 uppercase">Orden</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-700 uppercase">Estado</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-700 uppercase">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {abogados.map((abogado) => (
+                <tr key={abogado.id}>
+                  <td className="py-3 px-4 text-sm text-gray-900">{abogado.nombre}</td>
+                  <td className="py-3 px-4 text-sm text-gray-900">{abogado.email}</td>
+                  <td className="py-3 px-4 text-sm text-gray-500">{abogado.telefono || "-"}</td>
+                  <td className="py-3 px-4 text-sm text-gray-500">{abogado.orden}</td>
+                  <td className="py-3 px-4">
+                    <span className={`text-xs px-2 py-1 rounded ${
+                      abogado.activo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    }`}>
+                      {abogado.activo ? 'Activo' : 'Inactivo'}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setEditingAbogado(abogado)}
+                        className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                      >
+                        Editar
+                      </button>
+                      {abogado.activo && (
+                        <button
+                          onClick={() => handleDeleteAbogado(abogado.id)}
+                          className="text-red-600 hover:text-red-800 text-sm font-medium"
+                        >
+                          Desactivar
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {showCreateModal && (
+        <CreateAbogadoModal
+          onSave={handleCreateAbogado}
+          onClose={() => setShowCreateModal(false)}
+        />
+      )}
+
+      {editingAbogado && (
+        <EditAbogadoModal
+          abogado={editingAbogado}
+          onSave={(updates) => handleUpdateAbogado(editingAbogado.id, updates)}
+          onClose={() => setEditingAbogado(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+// Tab de Historial de Asignaciones
+function AsignacionesTab() {
+  const [asignaciones, setAsignaciones] = useState<Array<any>>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [filtroEstado, setFiltroEstado] = useState<string>("");
+  const [editingAsignacion, setEditingAsignacion] = useState<any | null>(null);
+  const API = useMemo(() => getApiUrl(), []);
+
+  useEffect(() => {
+    loadAsignaciones();
+  }, [filtroEstado]);
+
+  const loadAsignaciones = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const url = filtroEstado 
+        ? `${API}/legal/assignments?estado=${filtroEstado}`
+        : `${API}/legal/assignments`;
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}`);
+      }
+      const data = await response.json();
+      setAsignaciones(data.asignaciones || []);
+    } catch (err: any) {
+      console.error("Error cargando asignaciones:", err);
+      setError(err.message || "Error al cargar asignaciones");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateEstado = async (id: string, nuevoEstado: string) => {
+    try {
+      const response = await fetch(`${API}/legal/assignments/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ estado: nuevoEstado })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: "Error al actualizar estado" }));
+        throw new Error(errorData.message || `Error ${response.status}`);
+      }
+
+      await loadAsignaciones();
+      setEditingAsignacion(null);
+    } catch (err: any) {
+      console.error("Error actualizando estado:", err);
+      alert(`Error al actualizar estado: ${err.message || "Intenta de nuevo"}`);
+    }
+  };
+
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return "-";
+    const date = new Date(dateStr);
+    return date.toLocaleDateString("es-AR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h4 className="font-bold text-lg text-gray-900">Historial de Asignaciones</h4>
+          <p className="text-sm text-gray-500 mt-1">Revisa y gestiona las asignaciones de documentos a abogados</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <select
+            value={filtroEstado}
+            onChange={(e) => setFiltroEstado(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500"
+          >
+            <option value="">Todos los estados</option>
+            <option value="asignado">Asignado</option>
+            <option value="revisado">Revisado</option>
+            <option value="completado">Completado</option>
+          </select>
+        </div>
+      </div>
+
+      {error && (
+        <div className="rounded-lg border border-rose-200 bg-rose-50 text-rose-700 p-3 text-sm mb-4">
+          {error}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
+        </div>
+      ) : asignaciones.length === 0 ? (
+        <div className="text-center py-12">
+          <FileText className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+          <p className="text-gray-500">No hay asignaciones registradas</p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-700 uppercase">Documento</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-700 uppercase">Tipo</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-700 uppercase">Abogado</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-700 uppercase">Estado</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-700 uppercase">Fecha</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-700 uppercase">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {asignaciones.map((asig) => (
+                <tr key={asig.id}>
+                  <td className="py-3 px-4 text-sm text-gray-900">{asig.documento_titulo || asig.documento_id}</td>
+                  <td className="py-3 px-4 text-sm text-gray-500">{asig.documento_tipo}</td>
+                  <td className="py-3 px-4 text-sm text-gray-900">{asig.abogado_nombre}</td>
+                  <td className="py-3 px-4">
+                    <span className={`text-xs px-2 py-1 rounded ${
+                      asig.estado === 'completado' ? 'bg-green-100 text-green-800' :
+                      asig.estado === 'revisado' ? 'bg-blue-100 text-blue-800' :
+                      'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {asig.estado}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4 text-sm text-gray-500">{formatDate(asig.created_at)}</td>
+                  <td className="py-3 px-4">
+                    <button
+                      onClick={() => setEditingAsignacion(asig)}
+                      className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                    >
+                      Cambiar Estado
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {editingAsignacion && (
+        <EditEstadoAsignacionModal
+          asignacion={editingAsignacion}
+          onSave={(nuevoEstado) => handleUpdateEstado(editingAsignacion.id, nuevoEstado)}
+          onClose={() => setEditingAsignacion(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+// Modal para crear abogado
+function CreateAbogadoModal({ onSave, onClose }: { onSave: (data: {nombre: string; telefono: string; email: string; orden: number}) => void; onClose: () => void }) {
+  const [nombre, setNombre] = useState("");
+  const [telefono, setTelefono] = useState("");
+  const [email, setEmail] = useState("");
+  const [orden, setOrden] = useState(0);
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!nombre.trim() || !email.trim()) {
+      alert("Nombre y email son requeridos");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await onSave({ nombre: nombre.trim(), telefono: telefono.trim(), email: email.trim(), orden });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4">
+        <h3 className="text-xl font-bold text-gray-900">Crear Abogado</h3>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+            <input
+              type="text"
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500"
+              placeholder="Dr./Dra. Nombre Apellido"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500"
+              placeholder="email@wns.com"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono (opcional)</label>
+            <input
+              type="text"
+              value={telefono}
+              onChange={(e) => setTelefono(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500"
+              placeholder="+54 11 1234-5678"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Orden (para ordenar en lista)</label>
+            <input
+              type="number"
+              value={orden}
+              onChange={(e) => setOrden(parseInt(e.target.value) || 0)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500"
+              min="0"
+            />
+          </div>
+        </div>
+        <div className="flex items-center justify-end gap-3 pt-2">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 font-medium"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={saving}
+            className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2"
+          >
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            Crear
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Modal para editar abogado
+function EditAbogadoModal({ abogado, onSave, onClose }: { abogado: any; onSave: (updates: any) => void; onClose: () => void }) {
+  const [nombre, setNombre] = useState(abogado.nombre);
+  const [telefono, setTelefono] = useState(abogado.telefono || "");
+  const [email, setEmail] = useState(abogado.email);
+  const [orden, setOrden] = useState(abogado.orden || 0);
+  const [activo, setActivo] = useState(abogado.activo);
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!nombre.trim() || !email.trim()) {
+      alert("Nombre y email son requeridos");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await onSave({ nombre: nombre.trim(), telefono: telefono.trim(), email: email.trim(), orden, activo });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4">
+        <h3 className="text-xl font-bold text-gray-900">Editar Abogado</h3>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+            <input
+              type="text"
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
+            <input
+              type="text"
+              value={telefono}
+              onChange={(e) => setTelefono(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Orden</label>
+            <input
+              type="number"
+              value={orden}
+              onChange={(e) => setOrden(parseInt(e.target.value) || 0)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500"
+              min="0"
+            />
+          </div>
+          <div>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={activo}
+                onChange={(e) => setActivo(e.target.checked)}
+                className="rounded border-gray-300"
+              />
+              <span className="text-sm font-medium text-gray-700">Abogado activo</span>
+            </label>
+          </div>
+        </div>
+        <div className="flex items-center justify-end gap-3 pt-2">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 font-medium"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={saving}
+            className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2"
+          >
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            Guardar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Modal para cambiar estado de asignación
+function EditEstadoAsignacionModal({ asignacion, onSave, onClose }: { asignacion: any; onSave: (estado: string) => void; onClose: () => void }) {
+  const [estado, setEstado] = useState(asignacion.estado);
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async () => {
+    setSaving(true);
+    try {
+      await onSave(estado);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4">
+        <h3 className="text-xl font-bold text-gray-900">Cambiar Estado de Asignación</h3>
+        <div className="space-y-4">
+          <div>
+            <p className="text-sm text-gray-600 mb-2">
+              <strong>Documento:</strong> {asignacion.documento_titulo || asignacion.documento_id}
+            </p>
+            <p className="text-sm text-gray-600 mb-4">
+              <strong>Abogado:</strong> {asignacion.abogado_nombre}
+            </p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+            <select
+              value={estado}
+              onChange={(e) => setEstado(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500"
+            >
+              <option value="asignado">Asignado</option>
+              <option value="revisado">Revisado</option>
+              <option value="completado">Completado</option>
+            </select>
           </div>
         </div>
         <div className="flex items-center justify-end gap-3 pt-2">

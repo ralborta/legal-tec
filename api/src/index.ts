@@ -2214,6 +2214,21 @@ Responde SOLO con un JSON válido con esta estructura:
       await proxyToLegalDocs(req, rep, path, legalDocsTimeoutMs, LEGAL_DOCS_URL);
     });
     
+    app.all("/legal/assignments", async (req, rep) => {
+      // Proxy a /assignments - para obtener historial de asignaciones (admin)
+      const path = `/assignments`;
+      app.log.info(`[GW-ASSIGNMENTS] Incoming: ${req.method} ${req.url} → ${path}`);
+      await proxyToLegalDocs(req, rep, path, legalDocsTimeoutMs, LEGAL_DOCS_URL);
+    });
+    
+    app.all("/legal/assignments/:id", async (req, rep) => {
+      // Proxy a /assignments/:id - para actualizar estado de asignación (admin)
+      const id = (req.params as any).id;
+      const path = `/assignments/${id}`;
+      app.log.info(`[GW-ASSIGNMENTS] Incoming: ${req.method} ${req.url} → ${path}`);
+      await proxyToLegalDocs(req, rep, path, legalDocsTimeoutMs, LEGAL_DOCS_URL);
+    });
+    
     // Endpoints de autenticación y usuarios
     app.all("/legal/auth/login", async (req, rep) => {
       const path = `/auth/login`;
