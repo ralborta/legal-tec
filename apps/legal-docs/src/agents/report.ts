@@ -65,8 +65,8 @@ Genera un JSON con esta estructura:
   "jurisdiccion": "Jurisdicción detectada (Nacional, CABA, Buenos Aires, etc.)",
   "area_legal": "Área legal principal (Civil, Comercial, Laboral, etc.)",
   "resumen_ejecutivo": "8-12 párrafos DETALLADOS con: identificación completa de partes (roles, razones sociales), objeto completo del documento, plazos y condiciones específicas, precio/contraprestación, contexto comercial/jurídico, relaciones entre partes, todos los aspectos relevantes. Si hay múltiples documentos, menciona explícitamente y usa PLURAL.",
-  "clausulas_analizadas": [{"numero": "1", "titulo": "...", "analisis": "Análisis DETALLADO: qué establece exactamente, implicancias legales profundas, análisis desde perspectiva de cada parte, comparación con estándares del mercado, posibles interpretaciones, relación con otras cláusulas, nivel de riesgo con justificación", "riesgo": "bajo|medio|alto"}],
-  "analisis_juridico": "Mínimo 15 párrafos estructurados en: marco normativo (leyes, decretos, artículos específicos), interpretación jurídica de cláusulas clave, validez legal y fundamentación, jurisprudencia aplicable, derechos y obligaciones, cumplimiento y ejecución, estándares y mejores prácticas, vacíos legales, estructura y coherencia, litigios y defensas, aspectos procesales, eficacia y ejecutabilidad",
+  "clausulas_analizadas": [{"numero": "1", "titulo": "...", "analisis": "Análisis ULTRA DETALLADO: qué establece exactamente (texto literal y significado), implicancias legales profundas (consecuencias jurídicas, comerciales, financieras), análisis desde perspectiva de cada parte (ventajas/desventajas, riesgos/beneficios), comparación con estándares del mercado (prácticas comunes, cláusulas típicas), posibles interpretaciones (interpretación literal, teleológica, sistemática), relación con otras cláusulas (coherencia, contradicciones, complementariedad), nivel de riesgo con justificación detallada (por qué bajo/medio/alto), aspectos procesales (cómo se ejecutaría, qué tribunales, plazos), eficacia práctica (viabilidad, costos, tiempo)", "riesgo": "bajo|medio|alto"}],
+  "analisis_juridico": "Mínimo 20 párrafos estructurados en: (1) Marco normativo aplicable: leyes, decretos, resoluciones, artículos específicos con citas exactas, jerarquía normativa, vigencia; (2) Interpretación jurídica profunda: análisis literal, teleológico y sistemático de cláusulas clave, principios generales aplicables, doctrina relevante; (3) Validez legal y fundamentación: requisitos de validez (capacidad, objeto, causa, forma), posibles nulidades o anulabilidades, fundamentos legales; (4) Jurisprudencia aplicable: fallos relevantes de tribunales superiores, tendencias jurisprudenciales, precedentes vinculantes; (5) Derechos y obligaciones: identificación exhaustiva de cada parte, correlación entre derechos y obligaciones, límites y alcances; (6) Cumplimiento y ejecución: mecanismos de cumplimiento, garantías, medidas cautelares, ejecución forzada; (7) Estándares y mejores prácticas: comparación con contratos similares del mercado, prácticas recomendadas, cláusulas tipo; (8) Vacíos legales: aspectos no regulados, lagunas normativas, necesidad de regulación adicional; (9) Estructura y coherencia: análisis de la estructura contractual, coherencia interna, contradicciones o ambigüedades; (10) Litigios y defensas: posibles conflictos, estrategias de defensa, argumentos jurídicos, carga probatoria; (11) Aspectos procesales: competencia, jurisdicción, arbitraje, plazos procesales, costas; (12) Eficacia y ejecutabilidad: viabilidad práctica, costos de ejecución, tiempo estimado, alternativas; (13) Análisis comparativo: si hay múltiples documentos, comparar estructuras, cláusulas similares, diferencias significativas; (14) Perspectiva comercial: impacto en operaciones, relaciones comerciales, competitividad; (15) Perspectiva financiera: implicancias económicas, costos, garantías financieras, riesgos crediticios",
   "riesgos": [{"descripcion": "Riesgo específico coherente con instrucciones del usuario", "nivel": "bajo|medio|alto", "recomendacion": "Recomendación concreta para mitigar"}],
   "recomendaciones": [{"descripcion": "Recomendación específica con pasos concretos", "prioridad": "crítica|alta|media|baja", "urgencia": "inmediata|corto|mediano|largo", "costo_estimado": "...", "tiempo_estimado": "...", "responsable_sugerido": "..."}],
   "proximos_pasos": [{"accion": "Acción concreta paso a paso", "fase": "inmediata|corto|mediano|largo", "responsable": "...", "fecha_limite": "...", "prioridad": "...", "recursos": "...", "dependencias": "...", "criterios_exito": "...", "impacto": "..."}],
@@ -148,7 +148,14 @@ export async function generateReport(input: ReportInput): Promise<AnalysisReport
       messages: [
         {
           role: "system",
-            content: `Eres un analista legal senior de WNS & Asociados especializado en análisis exhaustivos de documentos legales. Genera análisis PROFUNDOS, DETALLADOS y EXHAUSTIVOS cumpliendo todos los mínimos requeridos. Aplica las instrucciones del usuario coherentemente en todas las secciones. Analiza desde múltiples perspectivas (jurídica, comercial, operativa, financiera). Mantén coherencia: riesgos deben corresponder a recomendaciones, próximos pasos a recomendaciones. Devuelve SOLO JSON válido sin texto adicional.`,
+            content: `Eres un analista legal senior de WNS & Asociados especializado en análisis exhaustivos de documentos legales. Genera análisis ULTRA PROFUNDOS, DETALLADOS y EXHAUSTIVOS cumpliendo todos los mínimos requeridos. 
+
+REQUISITOS DE PROFUNDIDAD:
+- Análisis jurídico: mínimo 20 párrafos cubriendo marco normativo, interpretación, validez, jurisprudencia, derechos/obligaciones, cumplimiento, estándares, vacíos legales, estructura, litigios, aspectos procesales, eficacia, análisis comparativo (si aplica), perspectivas comercial y financiera.
+- Cláusulas analizadas: cada cláusula debe tener análisis ultra detallado con implicancias legales profundas, perspectivas de cada parte, comparación con mercado, interpretaciones posibles, relación con otras cláusulas, aspectos procesales y eficacia práctica.
+- Citas: incluir artículos específicos con números exactos, leyes completas, decretos, resoluciones, jurisprudencia con datos de tribunales y fechas.
+
+Aplica las instrucciones del usuario coherentemente en todas las secciones. Analiza desde múltiples perspectivas (jurídica, comercial, operativa, financiera). Mantén coherencia: riesgos deben corresponder a recomendaciones, próximos pasos a recomendaciones. Devuelve SOLO JSON válido sin texto adicional.`,
         },
         {
           role: "user",
@@ -241,7 +248,7 @@ ${jurisprudenceText}`,
         const minProximosPasos = 12; // Nuevo mínimo
         const minDocumentosSugeridos = 5;
         const minCitas = 10;
-        const minAnalisisJuridicoParrafos = 15; // Nuevo mínimo (aproximado por longitud)
+        const minAnalisisJuridicoParrafos = 20; // Aumentado de 15 a 20 para análisis más completo
         
         const issues: string[] = [];
         if (clausulasCount < minClausulas) {
