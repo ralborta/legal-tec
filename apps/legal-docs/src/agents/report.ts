@@ -47,22 +47,34 @@ export interface AnalysisReport {
   texto_formateado: string;
 }
 
-// Fuentes legales - versión reducida
-const FUENTES_LEGALES = `Fuentes: InfoLEG (https://www.argentina.gob.ar/normativa), SAIJ (https://www.argentina.gob.ar/justicia/saij), Boletín Oficial (https://www.boletinoficial.gob.ar/)`;
+// Fuentes legales - amplias pero sin repeticiones
+const FUENTES_LEGALES = `FUENTES DE CONSULTA:
+Nacional: InfoLEG (https://www.argentina.gob.ar/normativa), SAIJ (https://www.argentina.gob.ar/justicia/saij), Boletín Oficial (https://www.boletinoficial.gob.ar/), SIPROJUD (http://www.csjn.gov.ar/siprojur/), Código Civil y Comercial (http://www.bibliotecadigital.gob.ar/items/show/2690), Constitución Nacional (https://servicios.infoleg.gob.ar/infolegInternet/anexos/0-4999/804/norma.htm)
+Organismos: ANSES (https://www.anses.gob.ar/institucional/normativa), BCRA (http://www.bcra.gov.ar/BCRAyVos/Normativa.asp), AFIP (https://www.afip.gob.ar/normativa/), Trabajo (https://www.argentina.gob.ar/trabajo/normativa), Salud (https://www.argentina.gob.ar/salud/normativas)
+Provincias: CABA (https://boletinoficial.buenosaires.gob.ar/), Buenos Aires (https://normas.gba.gob.ar/), Córdoba (https://boletinoficial.cba.gov.ar/), Santa Fe (https://boletinoficial.santafe.gob.ar/), Mendoza (https://www.boletinoficial.mendoza.gov.ar/)
+Doctrina: SAIJ (https://www.saij.gob.ar/), UBA Derecho (https://www.derecho.uba.ar/investigacion/publicaciones.php)`;
 
-const prompt = `Analiza el documento legal y genera un JSON con:
-- titulo, tipo_documento, jurisdiccion, area_legal
-- resumen_ejecutivo: 8-12 párrafos detallados
-- clausulas_analizadas: mínimo 15, analizar todas las cláusulas
-- analisis_juridico: mínimo 15 párrafos estructurados
-- riesgos: mínimo 10 con nivel (bajo/medio/alto) y recomendación
-- recomendaciones: mínimo 15 con prioridad, urgencia, costo, tiempo, responsable
-- proximos_pasos: mínimo 12 acciones por fases (inmediata/corto/mediano/largo plazo)
-- citas: mínimo 10 con URLs
-- documentos_sugeridos: mínimo 5
-- texto_formateado: reporte completo formateado
+// Prompt optimizado siguiendo mejores prácticas de OpenAI: claro, específico, sin repeticiones
+const prompt = `Eres un analista legal senior. Analiza el documento y genera un JSON con esta estructura:
 
-Si hay múltiples documentos, usa PLURAL en todas las secciones.`;
+{
+  "titulo": "Análisis Legal de [tipo] - [partes]" o "Análisis Legal Conjunto de [N] Documentos" si hay múltiples,
+  "tipo_documento": "Tipo específico identificado",
+  "jurisdiccion": "Jurisdicción detectada",
+  "area_legal": "Área legal principal",
+  "resumen_ejecutivo": "8-12 párrafos detallados con: partes, objeto, plazos, precios, contexto, relaciones. Si hay múltiples documentos, menciona explícitamente y usa PLURAL.",
+  "clausulas_analizadas": [{"numero": "1", "titulo": "...", "analisis": "Análisis detallado de qué establece, implicancias, perspectivas, riesgos", "riesgo": "bajo|medio|alto"}],
+  "analisis_juridico": "Mínimo 15 párrafos estructurados: marco normativo, interpretación, validez, jurisprudencia, derechos/obligaciones, cumplimiento, estándares, vacíos legales, estructura, litigios, aspectos procesales",
+  "riesgos": [{"descripcion": "Riesgo específico coherente con instrucciones del usuario", "nivel": "bajo|medio|alto", "recomendacion": "Recomendación concreta"}],
+  "recomendaciones": [{"descripcion": "Recomendación específica con pasos", "prioridad": "crítica|alta|media|baja", "urgencia": "inmediata|corto|mediano|largo", "costo_estimado": "...", "tiempo_estimado": "...", "responsable_sugerido": "..."}],
+  "proximos_pasos": [{"accion": "Acción concreta", "fase": "inmediata|corto|mediano|largo", "responsable": "...", "fecha_limite": "...", "prioridad": "...", "recursos": "...", "dependencias": "...", "criterios_exito": "...", "impacto": "..."}],
+  "citas": [{"tipo": "normativa|jurisprudencia|doctrina", "referencia": "Art. XXX...", "descripcion": "...", "url": "URL oficial"}],
+  "documentos_sugeridos": [{"tipo": "...", "descripcion": "Justificación de por qué es relevante"}],
+  "texto_formateado": "Reporte completo formateado profesionalmente"
+}
+
+Mínimos obligatorios: 15+ cláusulas, 10+ riesgos, 15+ recomendaciones, 12+ próximos pasos, 10+ citas, 5+ documentos sugeridos.
+Aplica las instrucciones del usuario en TODAS las secciones. Si hay múltiples documentos, usa PLURAL siempre.`;
 
 export async function generateReport(input: ReportInput): Promise<AnalysisReport> {
   const startTime = Date.now();
@@ -75,46 +87,47 @@ export async function generateReport(input: ReportInput): Promise<AnalysisReport
   const timeout = isConjointAnalysis ? 600000 : 300000; // 10 min para conjunto (ultra profundo), 5 min para individual (ultra profundo)
   
   try {
-    // DESACTIVADO: queryJurisprudence puede hacer llamadas adicionales a OpenAI
-    // Usar jurisprudencia vacía para evitar gasto innecesario
-    const jurisprudence: any[] = [];
-    console.log(`[REPORT] Jurisprudencia desactivada para reducir costos`);
-    
+    // Consultar jurisprudencia (está deshabilitada pero no hace llamadas a OpenAI)
     const instructions = (input.userInstructions || "").trim();
     const instructionsText = instructions
-      ? instructions.slice(0, 300) // Reducido aún más: 500 → 300
+      ? instructions.slice(0, 400) // Límite razonable: 400 caracteres
       : "Sin indicaciones adicionales del usuario.";
     if (instructions) {
       console.log(`[REPORT] Aplicando instrucciones del usuario (${instructions.length} chars)`);
     }
+    
+    const jurisprudence = await queryJurisprudence(
+      input.original,
+      input.type,
+      4 // Reducido de 6 a 4 para optimizar
+    );
+    console.log(`[REPORT] Jurisprudencia: ${jurisprudence.length} fuentes encontradas`);
 
     const checklistText = input.checklist?.items
       ? input.checklist.items
-          .slice(0, 5) // Solo 5 items máximo
-          .map((item) => `${item.key}: ${item.found}`)
-          .join(", ")
-      : "Sin checklist";
+          .map((item) => `${item.key}: ${item.found} (Riesgo: ${item.risk}) - ${item.comment}`)
+          .join("\n")
+      : "Sin checklist disponible";
 
     // Para análisis conjunto, necesitamos MÁS texto (múltiples documentos)
     const isConjointAnalysis = input.userInstructions?.includes("ANÁLISIS CONJUNTO") || 
                                  input.userInstructions?.includes("múltiples documentos") ||
                                  input.original.includes("DOCUMENTO 1 de") ||
                                  input.original.includes("DOCUMENTO 2 de");
-    // REDUCIR drásticamente tamaño del texto del documento
-    const maxTextLength = isConjointAnalysis ? 6000 : 5000; // Reducido de 12000/10000 a 6000/5000
+    // Tamaño optimizado del texto del documento (balance entre contexto y tokens)
+    const maxTextLength = isConjointAnalysis ? 8000 : 6000; // Aumentado ligeramente para mejor contexto
     
     const translatedText = input.translated
       .map((c) => `${c.clause_number}. ${c.title_es}\n${c.body_es}`)
       .join("\n\n")
       .substring(0, maxTextLength);
 
-    // Formatear jurisprudencia - versión reducida
+    // Formatear jurisprudencia - amplia pero optimizada
     const jurisprudenceText = jurisprudence.length > 0
       ? jurisprudence
-          .slice(0, 3) // Solo 3 resultados máximo
-          .map((j) => `${j.title}: ${j.text.substring(0, 300)}`) // Limitar texto a 300 chars
-          .join("\n")
-      : "Sin jurisprudencia adicional.";
+          .map((j) => `${j.title} (${j.source}): ${j.text.substring(0, 500)}${j.url ? `\nFuente: ${j.url}` : ""}`)
+          .join("\n\n")
+      : "Usar las fuentes de referencia proporcionadas en FUENTES_LEGALES.";
 
     // Usar gpt-4o para ambos (máxima calidad y profundidad)
     // Análisis conjunto requiere MÁS profundidad, no menos
@@ -133,7 +146,7 @@ export async function generateReport(input: ReportInput): Promise<AnalysisReport
       messages: [
         {
           role: "system",
-            content: `Eres un analista legal senior. Genera análisis detallados y exhaustivos. Cumple los mínimos requeridos (15+ cláusulas, 10+ riesgos, 15+ recomendaciones, 12+ próximos pasos, 5+ documentos sugeridos, 10+ citas). Aplica las instrucciones del usuario en todas las secciones. Devuelve SOLO JSON válido.`,
+            content: `Eres un analista legal senior de WNS & Asociados. Genera análisis profundos y exhaustivos cumpliendo los mínimos requeridos. Aplica las instrucciones del usuario coherentemente en todas las secciones. Devuelve SOLO JSON válido sin texto adicional.`,
         },
         {
           role: "user",
@@ -363,15 +376,15 @@ ${instructionsText.includes("ANÁLISIS CONJUNTO") || instructionsText.includes("
 TIPO DE DOCUMENTO: ${input.type}
 
 TEXTO ORIGINAL:
-${isConjointAnalysis ? input.original.substring(0, 6000) : input.original.substring(0, 5000)}
+${isConjointAnalysis ? input.original.substring(0, 3000) : input.original.substring(0, 2500)}
 
-CLÁUSULAS DEL DOCUMENTO (analizar TODAS):
+CLÁUSULAS DEL DOCUMENTO:
 ${translatedText}
 
-CHECKLIST DE ANÁLISIS PREVIO:
+CHECKLIST:
 ${checklistText}
 
-JURISPRUDENCIA Y NORMATIVA RELEVANTE:
+JURISPRUDENCIA:
 ${jurisprudenceText}`,
                 },
               ],
