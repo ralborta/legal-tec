@@ -1920,7 +1920,7 @@ function AnalizarDocumentosPanel() {
   const [progress, setProgress] = useState<number>(0);
   const [statusLabel, setStatusLabel] = useState<string>("");
   const [instructions, setInstructions] = useState<string>("");
-  const instructionsLimit = 500;
+  const instructionsLimit = 320; // Reducido de 500 a 320 para evitar truncado de JSON
   const API = useMemo(() => getApiUrl(), []);
   const LEGAL_DOCS_URL = useMemo(() => getLegalDocsUrl(), []);
 
