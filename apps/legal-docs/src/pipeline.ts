@@ -181,7 +181,8 @@ async function updateAnalysisStatus(documentId: string, status: string, progress
 
 export async function runFullAnalysis(documentId: string, userInstructions?: string | null) {
   const startTime = Date.now();
-  const MAX_PIPELINE_TIME = 180000; // 3 minutos máximo para todo el pipeline
+  // Aumentar timeout: el reporte puede tardar hasta 5 min, más tiempo para OCR, traducción, etc.
+  const MAX_PIPELINE_TIME = 420000; // 7 minutos máximo para todo el pipeline (reporte 5min + otros pasos 2min)
   const trimmedInstructions = userInstructions?.trim() || null;
   
   // Adquirir slot de análisis (limita concurrencia)
@@ -280,19 +281,26 @@ export async function runFullAnalysis(documentId: string, userInstructions?: str
   await updateAnalysisStatus(documentId, "saving", 90);
 
   // 6. Guardar análisis
-  await legalDb.upsertAnalysis({
-    documentId,
-    type,
-    original: { text: originalText },
-    translated,
-    checklist,
-    report,
-    userInstructions: trimmedInstructions,
-  });
+  console.log(`[PIPELINE] Guardando análisis en la DB para ${documentId}...`);
+  try {
+    await legalDb.upsertAnalysis({
+      documentId,
+      type,
+      original: { text: originalText },
+      translated,
+      checklist,
+      report,
+      userInstructions: trimmedInstructions,
+    });
+    console.log(`[PIPELINE] ✅ Análisis guardado exitosamente en la DB`);
+  } catch (saveError: any) {
+    console.error(`[PIPELINE] ❌ Error guardando análisis:`, saveError);
+    throw new Error(`Error al guardar análisis: ${saveError.message || "Error desconocido"}`);
+  }
 
-    const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-    console.log(`[PIPELINE] Analysis completed for document ${documentId} in ${duration}s`);
-    await updateAnalysisStatus(documentId, "completed", 100);
+  const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+  console.log(`[PIPELINE] Analysis completed for document ${documentId} in ${duration}s`);
+  await updateAnalysisStatus(documentId, "completed", 100);
     clearTimeout(pipelineTimeout);
     if (releaseSlot) releaseSlot(); // Liberar slot al completar
   } catch (error) {
