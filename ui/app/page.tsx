@@ -6948,13 +6948,26 @@ function HistorialPanel({ items }: { items: Array<any> }) {
 
                 {/* Contenido */}
                 <div className="mb-4">
-                  <h4 className="font-bold text-gray-900 mb-2 line-clamp-2 text-lg group-hover:text-purple-600 transition-colors">
-                    {item.title || item.asunto || "Sin título"}
-                  </h4>
-                  {item.memoData?.resumen && (
-                    <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed">
-                      {item.memoData.resumen}
-                    </p>
+                  {item.borrado ? (
+                    <>
+                      <h4 className="font-bold text-gray-500 mb-2 line-clamp-2 text-lg italic">
+                        Documento borrado
+                      </h4>
+                      <p className="text-sm text-gray-400 line-clamp-2 leading-relaxed">
+                        Este documento fue eliminado del sistema. El contenido ya no está disponible.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <h4 className="font-bold text-gray-900 mb-2 line-clamp-2 text-lg group-hover:text-purple-600 transition-colors">
+                        {item.title || item.asunto || "Sin título"}
+                      </h4>
+                      {item.memoData?.resumen && (
+                        <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed">
+                          {item.memoData.resumen}
+                        </p>
+                      )}
+                    </>
                   )}
                 </div>
 
@@ -7019,43 +7032,59 @@ function HistorialPanel({ items }: { items: Array<any> }) {
                       {itemSeleccionado.tipo || itemSeleccionado.type || "Documento"}
                     </span>
                   </div>
-                  <h3 className="text-2xl font-bold mb-2">{itemSeleccionado.title || itemSeleccionado.asunto}</h3>
-                  <div className="flex items-center gap-4 text-sm text-white/90">
-                    <span className="flex items-center gap-1">
-                      <Clock3 className="h-4 w-4" />
-                      {itemSeleccionado.creado || new Date(itemSeleccionado.createdAt).toLocaleDateString("es-AR", { 
-                        day: '2-digit', 
-                        month: 'long', 
-                        year: 'numeric' 
-                      })}
-                    </span>
-                    {itemSeleccionado.areaLegal && (
-                      <span className="px-2 py-1 rounded bg-white/20 backdrop-blur-sm">
-                        {itemSeleccionado.areaLegal.replace(/_/g, " ")}
-                      </span>
+                    {itemSeleccionado.borrado ? (
+                      <>
+                        <h3 className="text-2xl font-bold mb-2 italic">Documento Borrado</h3>
+                        <div className="flex items-center gap-4 text-sm text-white/90">
+                          <span className="px-2 py-1 rounded bg-red-500/30 backdrop-blur-sm border border-red-300/50">
+                            🗑️ Borrado
+                          </span>
+                          {itemSeleccionado.borradoPor && (
+                            <span className="font-medium">Borrado por: {itemSeleccionado.borradoPor}</span>
+                          )}
+                          {itemSeleccionado.borradoAt && (
+                            <span className="font-medium">
+                              Fecha: {new Date(itemSeleccionado.borradoAt).toLocaleDateString("es-AR", { 
+                                day: '2-digit', 
+                                month: 'long', 
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </span>
+                          )}
+                        </div>
+                        <div className="mt-3 text-sm text-white/80">
+                          <span className="flex items-center gap-1">
+                            <Clock3 className="h-4 w-4" />
+                            Creado: {itemSeleccionado.creado || new Date(itemSeleccionado.createdAt).toLocaleDateString("es-AR", { 
+                              day: '2-digit', 
+                              month: 'long', 
+                              year: 'numeric' 
+                            })}
+                          </span>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <h3 className="text-2xl font-bold mb-2">{itemSeleccionado.title || itemSeleccionado.asunto}</h3>
+                        <div className="flex items-center gap-4 text-sm text-white/90">
+                          <span className="flex items-center gap-1">
+                            <Clock3 className="h-4 w-4" />
+                            {itemSeleccionado.creado || new Date(itemSeleccionado.createdAt).toLocaleDateString("es-AR", { 
+                              day: '2-digit', 
+                              month: 'long', 
+                              year: 'numeric' 
+                            })}
+                          </span>
+                          {itemSeleccionado.areaLegal && (
+                            <span className="px-2 py-1 rounded bg-white/20 backdrop-blur-sm">
+                              {itemSeleccionado.areaLegal.replace(/_/g, " ")}
+                            </span>
+                          )}
+                        </div>
+                      </>
                     )}
-                    {itemSeleccionado.borrado && (
-                      <span className="px-2 py-1 rounded bg-red-500/30 backdrop-blur-sm border border-red-300/50">
-                        🗑️ Borrado
-                      </span>
-                    )}
-                  </div>
-                  {itemSeleccionado.borrado && itemSeleccionado.borradoPor && (
-                    <div className="mt-3 text-sm text-white/80">
-                      <span className="font-medium">Borrado por:</span> {itemSeleccionado.borradoPor}
-                      {itemSeleccionado.borradoAt && (
-                        <span className="ml-4">
-                          <span className="font-medium">Fecha:</span> {new Date(itemSeleccionado.borradoAt).toLocaleDateString("es-AR", { 
-                            day: '2-digit', 
-                            month: 'long', 
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </span>
-                      )}
-                    </div>
-                  )}
                 </div>
                 <button
                   onClick={() => setItemSeleccionado(null)}
@@ -7066,21 +7095,51 @@ function HistorialPanel({ items }: { items: Array<any> }) {
               </div>
             </div>
             <div className="flex-1 overflow-y-auto p-6 bg-gradient-to-b from-gray-50 to-white">
-              {itemSeleccionado.memoData?.resumen && (
-                <div className="mb-6 p-5 bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl border border-purple-200 shadow-sm">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Sparkles className="h-5 w-5 text-purple-600" />
-                    <h4 className="font-bold text-purple-900">Resumen Ejecutivo</h4>
+              {itemSeleccionado.borrado ? (
+                <div className="mb-6 p-8 bg-gradient-to-br from-red-50 to-orange-50 rounded-2xl border-2 border-red-200 shadow-sm text-center">
+                  <div className="flex items-center justify-center gap-2 mb-4">
+                    <Trash2 className="h-8 w-8 text-red-600" />
+                    <h4 className="font-bold text-red-900 text-xl">Documento Eliminado</h4>
                   </div>
-                  <p className="text-sm text-purple-800 leading-relaxed">{itemSeleccionado.memoData.resumen}</p>
+                  <p className="text-sm text-red-700 leading-relaxed mb-4">
+                    Este documento fue eliminado del sistema. El contenido ya no está disponible para consulta.
+                  </p>
+                  {itemSeleccionado.borradoPor && (
+                    <div className="text-sm text-red-600">
+                      <span className="font-medium">Eliminado por:</span> {itemSeleccionado.borradoPor}
+                    </div>
+                  )}
+                  {itemSeleccionado.borradoAt && (
+                    <div className="text-sm text-red-600 mt-2">
+                      <span className="font-medium">Fecha de eliminación:</span> {new Date(itemSeleccionado.borradoAt).toLocaleDateString("es-AR", { 
+                        day: '2-digit', 
+                        month: 'long', 
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </div>
+                  )}
                 </div>
+              ) : (
+                <>
+                  {itemSeleccionado.memoData?.resumen && (
+                    <div className="mb-6 p-5 bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl border border-purple-200 shadow-sm">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Sparkles className="h-5 w-5 text-purple-600" />
+                        <h4 className="font-bold text-purple-900">Resumen Ejecutivo</h4>
+                      </div>
+                      <p className="text-sm text-purple-800 leading-relaxed">{itemSeleccionado.memoData.resumen}</p>
+                    </div>
+                  )}
+                  {itemSeleccionado.markdown && !itemSeleccionado.borrado && (
+                    <div className="mb-6">
+                      <div className="flex items-center gap-2 mb-4">
+                        <FileText className="h-5 w-5 text-gray-600" />
+                        <h4 className="font-bold text-gray-900">Contenido Completo</h4>
+                      </div>
+                </>
               )}
-              {itemSeleccionado.markdown && (
-                <div className="mb-6">
-                  <div className="flex items-center gap-2 mb-4">
-                    <FileText className="h-5 w-5 text-gray-600" />
-                    <h4 className="font-bold text-gray-900">Contenido Completo</h4>
-                  </div>
                   <div className="prose prose-sm max-w-none">
                     <div className="whitespace-pre-wrap text-sm text-gray-700 bg-white border-2 border-gray-200 p-6 rounded-2xl overflow-auto shadow-inner font-mono leading-relaxed">
                       {itemSeleccionado.markdown}
