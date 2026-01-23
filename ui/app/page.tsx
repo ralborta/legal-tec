@@ -2670,7 +2670,7 @@ function AnalizarComparativoPanel() {
   const [instructions, setInstructions] = useState<string>("");
   const [additionalInstructions, setAdditionalInstructions] = useState<string>("");
   const [areaLegal, setAreaLegal] = useState<"civil_comercial"|"laboral"|"corporativo"|"compliance"|"marcas"|"consumidor"|"traducir">("civil_comercial");
-  const instructionsLimit = 500;
+  const instructionsLimit = 320; // Reducido de 500 a 320 para evitar truncado de JSON
   const API = useMemo(() => getApiUrl(), []);
   const LEGAL_DOCS_URL = useMemo(() => getLegalDocsUrl(), []);
 
