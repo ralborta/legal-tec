@@ -1688,17 +1688,7 @@ function DocCard({ row }: { row: any }) {
                                c.source === "jurisprudencia" ? "Jurisprudencia" :
                                c.source === "doctrina" ? "Doctrina" : "Otra"}
                             </span>
-                            {c.url && (
-                              <a 
-                                className="text-xs text-purple-600 hover:text-purple-700 underline flex items-center gap-1" 
-                                href={c.url} 
-                                target="_blank" 
-                                rel="noreferrer"
-                              >
-                                <ExternalLink className="h-3 w-3" />
-                                Ver fuente
-                              </a>
-                            )}
+                            {/* Links deshabilitados para evitar URLs incorrectas */}
                           </div>
                         </div>
                       </li>
