@@ -383,9 +383,9 @@ export async function generateReport(input: ReportInput): Promise<AnalysisReport
     // Usar gpt-4o para ambos (máxima calidad y profundidad)
     // Análisis conjunto requiere MÁS profundidad, no menos
     const model = "gpt-4o"; // Siempre usar el modelo más potente para análisis profundo
-    // Aumentar tokens MUCHO MÁS para evitar truncado - el reporte puede ser muy grande (55k+ chars = ~27k tokens)
-    // gpt-4o tiene límite de 16,384 tokens de output, pero necesitamos más espacio
-    const maxTokens = isConjointAnalysis ? 16384 : 16384; // Usar el máximo permitido para evitar truncado
+    // Reducir tokens para controlar costos - 8000 es suficiente para análisis detallado
+    // El problema de truncado se soluciona reduciendo el prompt, no aumentando tokens
+    const maxTokens = isConjointAnalysis ? 8000 : 8000; // Reducido de 16384 a 8000 para controlar costos
     
     console.log(`[REPORT] Using model: ${model}, max_tokens: ${maxTokens}, conjoint: ${isConjointAnalysis}`);
     
@@ -397,16 +397,7 @@ export async function generateReport(input: ReportInput): Promise<AnalysisReport
       messages: [
         {
           role: "system",
-            content: `Eres un analista legal senior de WNS & Asociados. Genera análisis ULTRA EXTENSOS, ULTRA DETALLADOS y EXHAUSTIVOS.
-
-⚠️⚠️⚠️ REGLAS CRÍTICAS OBLIGATORIAS ⚠️⚠️⚠️:
-1. DEBES cumplir TODOS los mínimos especificados (cláusulas, riesgos, recomendaciones, etc.)
-2. NO puedes generar menos elementos que los mínimos requeridos
-3. Si el documento es pequeño, profundiza EXTRA en cada sección para cumplir los mínimos
-4. Si el documento es grande, analiza TODAS las cláusulas sin excepción
-5. Los mínimos son OBLIGATORIOS, no sugerencias
-6. Antes de responder, VERIFICA que cumpliste todos los mínimos
-7. Devuelve SOLO JSON válido, sin texto adicional`,
+            content: `Eres un analista legal senior. Genera análisis detallados y exhaustivos. Cumple los mínimos requeridos (15+ cláusulas, 10+ riesgos, 15+ recomendaciones, 12+ próximos pasos, 5+ documentos sugeridos, 10+ citas). Aplica las instrucciones del usuario en todas las secciones. Devuelve SOLO JSON válido.`,
         },
         {
           role: "user",
@@ -428,140 +419,26 @@ ${instructionsText.includes("ANÁLISIS CONJUNTO") || instructionsText.includes("
 - Todas las secciones deben reflejar que es un análisis conjunto
 ` : ""}
 
-═══════════════════════════════════════════════════════════════════════════════
-⚠️⚠️⚠️ REGLAS CRÍTICAS - DEBES APLICAR ESTAS INSTRUCCIONES A TODAS LAS SECCIONES ⚠️⚠️⚠️
-═══════════════════════════════════════════════════════════════════════════════
-
-LEE Y APLICA CADA PUNTO DE LAS INSTRUCCIONES DEL USUARIO MOSTRADAS ARRIBA EN TODAS Y CADA UNA DE LAS SECCIONES DEL ANÁLISIS.
-
-🚨 PRINCIPIO FUNDAMENTAL: Interpreta las instrucciones del usuario y aplícalas COHERENTEMENTE en TODAS las secciones. No uses análisis genéricos. Cada sección debe reflejar el enfoque, criterios y conclusiones mencionados en el chat.
-
-🚨 OBLIGATORIO: Las instrucciones del usuario DEBEN reflejarse en:
-
-1. ✅ RESUMEN EJECUTIVO (resumen_ejecutivo):
-   - Interpreta el enfoque solicitado en el chat y reflejalo en el resumen
-   - Si menciona un punto de vista específico, criterios, beneficios, riesgos o preocupaciones, DEBEN aparecer en el resumen
-   - El resumen DEBE alinearse completamente con las instrucciones del chat
-
-2. ✅ PUNTOS TRATADOS / CLÁUSULAS ANALIZADAS (clausulas_analizadas):
-   - Cada cláusula analizada DEBE reflejar el enfoque, criterios y punto de vista mencionados en el chat
-   - Interpreta las instrucciones y aplica ese enfoque a CADA análisis de cláusula
-   - Los riesgos de cada cláusula DEBEN evaluarse según los criterios y enfoque del chat
-   - NO uses análisis genéricos, usa el enfoque específico interpretado de las instrucciones
-
-3. ✅ RIESGOS (riesgos):
-   - 🚨 CRÍTICO: Los riesgos DEBEN ser COHERENTES con el enfoque, punto de vista y criterios mencionados en el chat
-   - Interpreta las instrucciones: si el usuario menciona un punto de vista específico (ej: "desde el punto de vista de X"), los riesgos DEBEN ser riesgos PARA ESE PUNTO DE VISTA
-   - Si el usuario menciona beneficios, preocupaciones, o criterios específicos, los riesgos DEBEN reflejarlos desde esa perspectiva
-   - El nivel de riesgo DEBE evaluarse según el enfoque y criterios mencionados en el chat
-   - Cada riesgo DEBE tener una recomendación específica alineada con las instrucciones y el enfoque interpretado
-   - NO uses riesgos genéricos. Cada riesgo DEBE reflejar el punto de vista, criterios y enfoque específico mencionado en el chat
-   - Si el chat menciona un enfoque diferente, REESCRIBE los riesgos desde ese enfoque interpretado, no solo cambies el resumen
-   - COHERENCIA: Si el resumen refleja un enfoque, los riesgos DEBEN ser coherentes con ese mismo enfoque
-
-4. ✅ ANÁLISIS JURÍDICO (analisis_juridico):
-   - El análisis jurídico COMPLETO DEBE incorporar el enfoque, criterios y punto de vista interpretados del chat
-   - Interpreta las instrucciones y aplica ese enfoque a TODO el análisis jurídico
-   - Las interpretaciones legales DEBEN alinearse con las instrucciones del chat
-
-5. ✅ RECOMENDACIONES (recomendaciones):
-   - TODAS las recomendaciones DEBEN alinearse con las instrucciones, enfoque y criterios del chat
-   - Interpreta las instrucciones y genera recomendaciones que reflejen ese enfoque
-   - Las recomendaciones DEBEN ser específicas y reflejar el enfoque interpretado de las instrucciones
-
-6. ✅ PRÓXIMOS PASOS (proximos_pasos):
-   - Los próximos pasos DEBEN reflejar las acciones sugeridas en el chat
-   - DEBEN ser coherentes con el enfoque, criterios y punto de vista interpretados de las instrucciones
-
-7. ✅ TEXTO FORMATEADO COMPLETO (texto_formateado):
-   - TODO el texto formateado DEBE reflejar el enfoque, criterios y punto de vista interpretados del chat
-   - NO uses texto genérico, incorpora las instrucciones interpretadas en CADA sección del texto
-   - El texto completo DEBE ser coherente con las instrucciones del usuario en todas sus secciones
-
-🚨 PRINCIPIO DE COHERENCIA: 
-   - Interpreta las instrucciones del usuario (punto de vista, criterios, enfoque, beneficios, preocupaciones, etc.)
-   - Aplica ese enfoque interpretado COHERENTEMENTE en TODAS las secciones
-   - Si el resumen refleja un enfoque, los riesgos DEBEN ser coherentes con ese mismo enfoque
-   - Si las cláusulas se analizan desde una perspectiva, los riesgos DEBEN ser desde esa misma perspectiva
-   - NO mezcles enfoques: si el usuario solicita un punto de vista específico, mantén ese punto de vista en TODAS las secciones
-   - Los riesgos DEBEN reflejar las preocupaciones, criterios y punto de vista mencionados en el chat
-   - Si el usuario menciona beneficios, los riesgos DEBEN ser coherentes con esos beneficios (riesgos de perderlos, no acceder a ellos, etc.)
-   - Si el usuario menciona un punto de vista específico, los riesgos DEBEN ser riesgos PARA ESE PUNTO DE VISTA, no para otro
-
-NO ignores estas instrucciones. Son OBLIGATORIAS y tienen PRIORIDAD ABSOLUTA sobre cualquier análisis genérico. APLÍCALAS A TODAS LAS SECCIONES SIN EXCEPCIÓN.
-
-🚨🚨🚨 VERIFICACIÓN FINAL OBLIGATORIA ANTES DE GENERAR EL JSON 🚨🚨🚨:
-1. ¿Tienes MÍNIMO 15 cláusulas en "clausulas_analizadas"? Si no, analiza MÁS o profundiza MÁS en las existentes.
-2. ¿Tienes MÍNIMO 10 riesgos en "riesgos"? Si no, identifica MÁS desde diferentes perspectivas.
-3. ¿Tienes MÍNIMO 15 recomendaciones en "recomendaciones" (preferiblemente 20)? Si no, genera MÁS recomendaciones específicas. ¿Están categorizadas por prioridad y tipo? ¿Incluyen costos, tiempos y responsables?
-4. ¿Tienes MÍNIMO 5 documentos en "documentos_sugeridos"? Si no, identifica MÁS documentos complementarios.
-5. ¿Tienes MÍNIMO 10 citas en "citas"? Si no, busca MÁS normativa y jurisprudencia.
-6. ¿El "resumen_ejecutivo" tiene MÍNIMO 8 párrafos completos? Si no, expande MÁS.
-7. ¿El "analisis_juridico" tiene MÍNIMO 15 párrafos (preferiblemente 20) estructurados en subsecciones? Si no, profundiza MÁS y estructura mejor.
-8. ¿Tienes MÍNIMO 12 acciones en "proximos_pasos" (preferiblemente 18) estructuradas por fases temporales? Si no, genera MÁS acciones y estructura por fases.
-9. ¿Las recomendaciones corresponden a los riesgos identificados? Verifica coherencia.
-10. ¿Los próximos pasos corresponden a las recomendaciones? Verifica coherencia.
-11. ¿Las citas se usan en el análisis jurídico? Verifica que las citas mencionadas en "citas" aparezcan referenciadas en "analisis_juridico".
-
-⚠️ NO generes el JSON hasta cumplir TODOS estos mínimos. Si el documento es pequeño, profundiza EXTRA en cada sección para cumplir los mínimos.
-
-═══════════════════════════════════════════════════════════════════════════════
+REGLAS:
+- Aplica las instrucciones del usuario en TODAS las secciones (resumen, cláusulas, riesgos, recomendaciones, etc.)
+- Mínimos obligatorios: 15+ cláusulas, 10+ riesgos, 15+ recomendaciones, 12+ próximos pasos, 5+ documentos sugeridos, 10+ citas
+- Si el documento es pequeño, profundiza más en cada sección
+- Analiza desde múltiples perspectivas (jurídica, comercial, operativa, financiera)
+- Mantén coherencia: riesgos deben corresponder a recomendaciones, próximos pasos a recomendaciones
 
 TIPO DE DOCUMENTO: ${input.type}
 
 TEXTO ORIGINAL:
-${isConjointAnalysis ? input.original.substring(0, 6000) : input.original.substring(0, 5000)}
+${isConjointAnalysis ? input.original.substring(0, 4000) : input.original.substring(0, 3000)}
 
-CLÁUSULAS DEL DOCUMENTO (analizar TODAS):
+CLÁUSULAS DEL DOCUMENTO:
 ${translatedText}
 
-CHECKLIST DE ANÁLISIS PREVIO:
+CHECKLIST:
 ${checklistText}
 
-JURISPRUDENCIA Y NORMATIVA RELEVANTE:
-${jurisprudenceText}
-
-IMPORTANTE: El análisis debe ser MUY EXTENSO, DETALLADO y PROFUNDO. Analiza TODAS las cláusulas del documento sin excepción. 
-
-🚨🚨🚨 PROFUNDIDAD ULTRA REQUERIDA - ANÁLISIS EXHAUSTIVO 🚨🚨🚨:
-⚠️⚠️⚠️ CUMPLIMIENTO OBLIGATORIO DE MÍNIMOS ⚠️⚠️⚠️:
-- Los MÍNIMOS especificados son OBLIGATORIOS. NO puedes generar menos cláusulas, riesgos, recomendaciones, etc.
-- Si el documento tiene menos cláusulas que el mínimo, analiza TODAS las que tenga con EXTRA profundidad
-- Si el documento tiene más cláusulas que el mínimo, analiza TODAS sin excepción
-- PROHIBIDO usar análisis superficiales, genéricos o resúmenes breves
-- DEBES profundizar EXHAUSTIVAMENTE en cada aspecto legal, comercial, práctico y estratégico
-- Analiza las implicancias desde MÚLTIPLES perspectivas (jurídica, comercial, operativa, financiera, reputacional)
-- Incluye contexto COMPLETO, comparaciones DETALLADAS y consideraciones EXHAUSTIVAS
-- Sé ULTRA EXHAUSTIVO en el análisis de CADA cláusula - no dejes ningún aspecto sin analizar
-- Considera escenarios DETALLADOS y casos de uso reales con ejemplos concretos
-- Analiza relaciones DETALLADAS entre cláusulas y su impacto conjunto
-- Incluye análisis comparativo con contratos similares y mejores prácticas del sector
-- Profundiza en aspectos procesales, jurisdiccionales y de ejecución
-- Analiza posibles conflictos futuros y cómo prevenirlos o resolverlos
-- Incluye recomendaciones específicas y accionables para cada aspecto identificado
-- El análisis debe ser TAN COMPLETO que un abogado senior pueda usarlo directamente sin necesidad de revisar el documento original
-
-🚨 VERIFICACIÓN OBLIGATORIA ANTES DE RESPONDER:
-- ¿Tienes MÍNIMO 15-25 cláusulas analizadas? Si no, analiza MÁS cláusulas o profundiza MÁS en las existentes
-- ¿Tienes MÍNIMO 10-15 riesgos? Si no, identifica MÁS riesgos desde diferentes perspectivas
-- ¿Tienes MÍNIMO 12-18 recomendaciones? Si no, genera MÁS recomendaciones específicas
-- ¿Tienes MÍNIMO 5-8 documentos sugeridos? Si no, identifica MÁS documentos complementarios
-- ¿Tienes MÍNIMO 10-15 citas? Si no, busca MÁS normativa y jurisprudencia relevante
-- NO respondas hasta cumplir TODOS los mínimos
-
-⚠️⚠️⚠️ RECORDATORIO FINAL CRÍTICO ⚠️⚠️⚠️
-TODAS las secciones del JSON que generes (resumen_ejecutivo, clausulas_analizadas, analisis_juridico, riesgos, recomendaciones, proximos_pasos, texto_formateado) DEBEN reflejar las instrucciones del usuario mostradas arriba en la sección "INSTRUCCIONES Y CONTEXTO DEL USUARIO".
-
-NO uses contenido genérico. INTERPRETA las instrucciones del usuario y APLICA el enfoque, criterios, punto de vista y conclusiones del chat en CADA sección:
-- Interpreta el enfoque solicitado (punto de vista, criterios, beneficios, preocupaciones, etc.) y aplícalo a CADA cláusula analizada
-- 🚨 RIESGOS - COHERENCIA CRÍTICA: Interpreta las instrucciones del chat. Si el usuario menciona un punto de vista específico, los riesgos DEBEN ser riesgos PARA ESE PUNTO DE VISTA. Si menciona beneficios, preocupaciones o criterios específicos, los riesgos DEBEN reflejarlos desde esa perspectiva interpretada. NO mezcles enfoques. Si el resumen refleja un enfoque, los riesgos DEBEN ser coherentes con ese mismo enfoque interpretado.
-- Si el usuario menciona beneficios, los riesgos DEBEN ser coherentes: riesgos de perder esos beneficios o no poder acceder a ellos (desde la perspectiva del beneficiario mencionado)
-- Si el usuario menciona preocupaciones, DEBEN aparecer en los riesgos identificados desde el enfoque y punto de vista interpretado
-- El texto_formateado COMPLETO DEBE reflejar el enfoque interpretado del chat en TODAS sus secciones, especialmente en la sección de riesgos
-
-🚨 COHERENCIA CRÍTICA: Interpreta las instrucciones del usuario y mantén coherencia. Si el resumen refleja un enfoque interpretado, los riesgos DEBEN ser coherentes con ese mismo enfoque. NO uses riesgos genéricos o desde otra perspectiva. Cada sección debe reflejar el mismo enfoque interpretado de las instrucciones.
-
-NO ignores estas instrucciones. Son OBLIGATORIAS.`,
+JURISPRUDENCIA:
+${jurisprudenceText}`,
           },
         ],
         response_format: { type: "json_object" },
@@ -572,7 +449,11 @@ NO ignores estas instrucciones. Son OBLIGATORIAS.`,
     ]) as any;
     
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-    console.log(`[REPORT] Completed in ${duration}s`);
+    const usage = response.usage;
+    const promptTokens = usage?.prompt_tokens || 0;
+    const completionTokens = usage?.completion_tokens || 0;
+    const totalTokens = usage?.total_tokens || 0;
+    console.log(`[REPORT] Completed in ${duration}s | Tokens: ${totalTokens} (prompt: ${promptTokens}, completion: ${completionTokens})`);
 
     // Verificar finish_reason para detectar truncado
     const finishReason = response.choices[0]?.finish_reason;
@@ -672,8 +553,13 @@ NO ignores estas instrucciones. Son OBLIGATORIAS.`,
         
         if (issues.length > 0) {
           console.warn(`[REPORT] ⚠️ Análisis no cumple mínimos: ${issues.join(", ")}`);
-          console.warn(`[REPORT] Regenerando con instrucciones más estrictas...`);
+          console.warn(`[REPORT] ⚠️ ADVERTENCIA: Análisis no cumple todos los mínimos, pero continuando para evitar gasto adicional de tokens`);
+          // DESACTIVADO: Regeneración automática consume demasiados tokens
+          // Si el usuario necesita más detalle, puede usar el chat para regenerar
+          // console.warn(`[REPORT] Regenerando con instrucciones más estrictas...`);
           
+          // DESACTIVADO: No regenerar automáticamente - consume el doble de tokens
+          /*
           // Regenerar con instrucciones más estrictas
           const strictPrompt = `${prompt}
 
@@ -765,6 +651,7 @@ ${jurisprudenceText}`,
             console.log(`[REPORT] ✅ Análisis regenerado cumpliendo mínimos`);
             return JSON.parse(retryContent.trim()) as AnalysisReport;
           }
+          */
         } else {
           console.log(`[REPORT] ✅ Análisis cumple mínimos: ${clausulasCount} cláusulas, ${riesgosCount} riesgos, ${recomendacionesCount} recomendaciones, ${documentosSugeridosCount} documentos sugeridos, ${citasCount} citas`);
         }
