@@ -7132,20 +7132,20 @@ function HistorialPanel({ items }: { items: Array<any> }) {
                       <p className="text-sm text-purple-800 leading-relaxed">{itemSeleccionado.memoData.resumen}</p>
                     </div>
                   )}
-                  {itemSeleccionado.markdown && !itemSeleccionado.borrado && (
+                  {itemSeleccionado.markdown && (
                     <div className="mb-6">
                       <div className="flex items-center gap-2 mb-4">
                         <FileText className="h-5 w-5 text-gray-600" />
                         <h4 className="font-bold text-gray-900">Contenido Completo</h4>
                       </div>
-                </>
-              )}
-                  <div className="prose prose-sm max-w-none">
-                    <div className="whitespace-pre-wrap text-sm text-gray-700 bg-white border-2 border-gray-200 p-6 rounded-2xl overflow-auto shadow-inner font-mono leading-relaxed">
-                      {itemSeleccionado.markdown}
+                      <div className="prose prose-sm max-w-none">
+                        <div className="whitespace-pre-wrap text-sm text-gray-700 bg-white border-2 border-gray-200 p-6 rounded-2xl overflow-auto shadow-inner font-mono leading-relaxed">
+                          {itemSeleccionado.markdown}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
+                  )}
+                </>
               )}
               {itemSeleccionado.citations && itemSeleccionado.citations.length > 0 && (
                 <div className="mt-6">
