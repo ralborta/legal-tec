@@ -529,7 +529,8 @@ async function start() {
       const openai = new OpenAI({ apiKey: openaiKey });
 
       // Construir historial de conversación
-      const conversationHistory = body.messages.map(msg => ({
+      const trimmedMessages = body.messages.slice(-10);
+      const conversationHistory = trimmedMessages.map(msg => ({
         role: msg.role,
         content: msg.content
       }));
@@ -663,7 +664,7 @@ Formato de respuesta:
           { role: "system", content: systemPrompt },
           ...conversationHistory
         ],
-        temperature: 0.7,
+        temperature: 0.4,
         max_tokens: 800  // Aumentado para permitir preguntas más completas y detalladas
       });
 
@@ -688,7 +689,8 @@ Formato de respuesta:
       const body = z.object({
         descripcion: z.string(),
         detalles: z.record(z.any()).optional(),
-        titulo: z.string().optional()
+        titulo: z.string().optional(),
+        mode: z.enum(["standard", "deep"]).optional()
       }).parse(req.body);
 
       const openaiKey = process.env.OPENAI_API_KEY;
@@ -705,7 +707,9 @@ Formato de respuesta:
             .join("\n")
         : "";
 
-      const systemPrompt = `Sos un abogado argentino senior de WNS & Asociados. Generá documentos legales ULTRA COMPLETOS, PROFESIONALES, DETALLADOS y LISTOS PARA USAR.
+      const mode = body.mode || "standard";
+      const systemPrompt = mode === "deep"
+        ? `Sos un abogado argentino senior de WNS & Asociados. Generá documentos legales ULTRA COMPLETOS, PROFESIONALES, DETALLADOS y LISTOS PARA USAR.
 
 REGLAS OBLIGATORIAS:
 1. Documento COMPLETO y listo para firmar/usar - NO básico ni superficial
@@ -736,7 +740,15 @@ EJEMPLO:
 ❌ MAL: "Las partes se comprometen a cumplir con sus obligaciones."
 ✅ BIEN: "CLÁUSULA 5: OBLIGACIONES DE LA PARTE PRIMERA. La Parte Primera se obliga a: (a) entregar el bien/servicio en el plazo establecido; (b) garantizar la calidad conforme a las especificaciones; (c) mantener la confidencialidad de la información recibida; (d) cumplir con todas las normativas aplicables. El incumplimiento de cualquiera de estas obligaciones dará lugar a las penalidades establecidas en la Cláusula 12."
 
-El documento debe estar listo para usar sin necesidad de agregar más contenido.`;
+El documento debe estar listo para usar sin necesidad de agregar más contenido.`
+        : `Sos un abogado argentino senior de WNS & Asociados. Generá un documento legal profesional, completo y listo para revisión.
+
+REGLAS OBLIGATORIAS:
+1. Documento completo (no un esquema), pero priorizá claridad y utilidad práctica.
+2. No inventes datos fácticos. Si falta información específica (nombres, domicilios, montos, fechas, jurisdicción, CUIT/DNI), usá el placeholder "XXXXXX".
+3. Incluí cláusulas estándar necesarias según el tipo de documento, sin extenderte de manera innecesaria.
+4. Estilo formal, español argentino, con numeración de cláusulas.
+5. Si corresponde citar normativa, hacelo de forma prudente ("sujeto a verificación").`;
 
       const userPrompt = `Generá un documento legal completo basándote en la siguiente descripción:
 
@@ -749,6 +761,7 @@ ${body.titulo ? `\nTÍTULO SUGERIDO: ${body.titulo}` : ""}
 
 Generá el documento completo, profesional y listo para usar:`;
 
+      const maxTokens = mode === "deep" ? 6000 : 2500;
       const response = await openai.chat.completions.create({
         model: "gpt-4o",
         messages: [
@@ -756,7 +769,7 @@ Generá el documento completo, profesional y listo para usar:`;
           { role: "user", content: userPrompt }
         ],
         temperature: 0.3,
-        max_tokens: 6000  // Aumentado para permitir documentos más completos y detallados
+        max_tokens: maxTokens
       });
 
       const documento = response.choices[0]?.message?.content || "No se pudo generar el documento.";

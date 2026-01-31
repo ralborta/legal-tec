@@ -6182,6 +6182,7 @@ function ChatDocumentoPersonalizado({
   const [generando, setGenerando] = useState(false);
   const [documentoGenerado, setDocumentoGenerado] = useState<string | null>(null);
   const [tituloDocumento, setTituloDocumento] = useState<string>("Documento Personalizado");
+  const [modoGeneracion, setModoGeneracion] = useState<"standard" | "deep">("standard");
   const [downloading, setDownloading] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const API = useMemo(() => getApiUrl(), []);
@@ -6214,11 +6215,12 @@ function ChatDocumentoPersonalizado({
     setLoadingLocal(true);
 
     try {
+      const messagesToSend = newMessages.slice(-10);
       const response = await fetch(`${API}/api/chat-custom-document`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: newMessages
+          messages: messagesToSend
         })
       });
 
@@ -6272,7 +6274,8 @@ function ChatDocumentoPersonalizado({
         body: JSON.stringify({
           descripcion: userMessages,
           detalles: detalles,
-          titulo: titulo
+          titulo: titulo,
+          mode: modoGeneracion
         })
       });
 
@@ -6425,6 +6428,16 @@ function ChatDocumentoPersonalizado({
           <p className="text-xs text-gray-500">Describe tu documento y el asistente te ayudará a crearlo</p>
         </div>
         <div className="flex items-center gap-2">
+          <select
+            value={modoGeneracion}
+            onChange={(e) => setModoGeneracion(e.target.value as "standard" | "deep")}
+            className="hidden sm:block rounded-lg border border-gray-200 bg-white px-2 py-2 text-sm text-gray-700"
+            disabled={generando}
+            title="Modo de generación: Standard (más económico) o Deep (más completo)"
+          >
+            <option value="standard">Standard</option>
+            <option value="deep">Deep</option>
+          </select>
           {/* Botón Descargar Word con recomendaciones del chat - Siempre visible */}
           {documentoGenerado && (
             <button
