@@ -6184,6 +6184,9 @@ function ChatDocumentoPersonalizado({
   const [tituloDocumento, setTituloDocumento] = useState<string>("Documento Personalizado");
   const [modoGeneracion, setModoGeneracion] = useState<"standard" | "deep">("standard");
   const [guardandoTemplate, setGuardandoTemplate] = useState(false);
+  const [showSaveTemplateModal, setShowSaveTemplateModal] = useState(false);
+  const [templateNombre, setTemplateNombre] = useState("Documento Personalizado");
+  const [templateDescripcion, setTemplateDescripcion] = useState("");
   const [referenceFiles, setReferenceFiles] = useState<File[]>([]);
   const [referenceText, setReferenceText] = useState<string>("");
   const [referenceUploading, setReferenceUploading] = useState(false);
@@ -6471,12 +6474,20 @@ function ChatDocumentoPersonalizado({
   };
 
   const handleGuardarComoTemplate = async () => {
+    if (!documentoGenerado) return;
+    setTemplateNombre(tituloDocumento || "Documento Personalizado");
+    setTemplateDescripcion("");
+    setShowSaveTemplateModal(true);
+  };
+
+  const handleConfirmSaveTemplate = async () => {
     if (!API || guardandoTemplate || !documentoGenerado) return;
-
-    const nombre = (window.prompt("Nombre del template", tituloDocumento) || "").trim();
-    if (!nombre) return;
-
-    const descripcion = (window.prompt("Descripción (opcional)", "") || "").trim();
+    const nombre = templateNombre.trim();
+    const descripcion = templateDescripcion.trim();
+    if (!nombre) {
+      setError("Ingresá un nombre para el template");
+      return;
+    }
 
     setGuardandoTemplate(true);
     setError(null);
@@ -6499,7 +6510,7 @@ function ChatDocumentoPersonalizado({
         throw new Error((parsed && (parsed.error || parsed.message)) || rawText || `Error ${r.status}`);
       }
 
-      alert("✅ Guardado como template. Debería aparecer en tu lista de plantillas.");
+      setShowSaveTemplateModal(false);
       onGuardarTemplate({ nombre, descripcion, campos: [] });
     } catch (e: any) {
       setError(e.message || "Error al guardar template");
@@ -6532,6 +6543,62 @@ function ChatDocumentoPersonalizado({
 
   return (
     <div className="space-y-4">
+      {showSaveTemplateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => !guardandoTemplate && setShowSaveTemplateModal(false)}
+          />
+          <div className="relative w-full max-w-lg rounded-xl border border-gray-200 bg-white shadow-xl">
+            <div className="border-b border-gray-200 px-5 py-4">
+              <div className="text-base font-semibold text-gray-900">Guardar como template</div>
+              <div className="text-xs text-gray-500">Se guardará en Mis Documentos/Plantillas</div>
+            </div>
+            <div className="px-5 py-4 space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Nombre</label>
+                <input
+                  value={templateNombre}
+                  onChange={(e) => setTemplateNombre(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#C026D3] focus:border-[#C026D3]"
+                  placeholder="Ej.: NDA - Proveedor"
+                  disabled={guardandoTemplate}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Descripción (opcional)</label>
+                <textarea
+                  value={templateDescripcion}
+                  onChange={(e) => setTemplateDescripcion(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#C026D3] focus:border-[#C026D3]"
+                  placeholder="Breve descripción para identificarlo"
+                  rows={3}
+                  disabled={guardandoTemplate}
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 border-t border-gray-200 px-5 py-4">
+              <button
+                type="button"
+                onClick={() => setShowSaveTemplateModal(false)}
+                disabled={guardandoTemplate}
+                className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmSaveTemplate}
+                disabled={guardandoTemplate}
+                className="rounded-lg bg-[#C026D3] px-4 py-2 text-sm font-medium text-white hover:bg-[#A21CAF] disabled:opacity-50"
+              >
+                {guardandoTemplate ? "Guardando..." : "Guardar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h4 className="font-medium text-gray-900">📝 Documento Personalizado</h4>
