@@ -6193,6 +6193,42 @@ function ChatDocumentoPersonalizado({
   const referenceInputRef = useRef<HTMLInputElement>(null);
   const API = useMemo(() => getApiUrl(), []);
 
+  const processReferenceFiles = async () => {
+    if (!API || referenceFiles.length === 0) return;
+    setReferenceUploading(true);
+    setError(null);
+    try {
+      const form = new FormData();
+      referenceFiles.slice(0, 2).forEach((f) => form.append("files", f));
+      const r = await fetch(`${API}/api/custom-document/reference-text`, {
+        method: "POST",
+        body: form
+      });
+      const txt = await r.text().catch(() => "");
+      let data: any = null;
+      try {
+        data = txt ? JSON.parse(txt) : null;
+      } catch {
+        data = null;
+      }
+      if (!r.ok) {
+        throw new Error((data && (data.error || data.message)) || txt || `Error ${r.status}`);
+      }
+      setReferenceText((data?.referenceText as string) || "");
+      setReferenceExtracted(data?.extracted || null);
+      setDetallesEjemplo({});
+      if (data?.files) {
+        const assistantMessage = {
+          role: "assistant" as const,
+          content: `📎 Ejemplos cargados: ${(data.files as any[]).map(f => f.filename).join(", ")}. Los usaré como referencia de estilo para generar el documento.`
+        };
+        setMessages((prev) => [...prev, assistantMessage]);
+      }
+    } finally {
+      setReferenceUploading(false);
+    }
+  };
+
   // Mensaje inicial del asistente
   useEffect(() => {
     if (messages.length === 0) {
@@ -6213,6 +6249,15 @@ function ChatDocumentoPersonalizado({
 
   const handleSendMessage = async () => {
     if (!currentMessage.trim() || !API || loading) return;
+
+    if (referenceFiles.length > 0 && !referenceText && !referenceUploading) {
+      try {
+        await processReferenceFiles();
+      } catch (e: any) {
+        setError(e.message || "Error al procesar ejemplos");
+        return;
+      }
+    }
 
     const userMessage = currentMessage.trim();
     setCurrentMessage("");
@@ -6533,36 +6578,10 @@ function ChatDocumentoPersonalizado({
                   className="rounded-lg border border-gray-200 bg-white px-3 py-1 text-xs hover:bg-gray-50 disabled:opacity-50"
                   disabled={referenceUploading || generando || !API || referenceFiles.length === 0}
                   onClick={async () => {
-                    if (!API || referenceFiles.length === 0) return;
-                    setReferenceUploading(true);
-                    setError(null);
                     try {
-                      const form = new FormData();
-                      referenceFiles.slice(0, 2).forEach((f) => form.append("files", f));
-                      const r = await fetch(`${API}/api/custom-document/reference-text`, {
-                        method: "POST",
-                        body: form
-                      });
-                      const txt = await r.text().catch(() => "");
-                      let data: any = null;
-                      try { data = txt ? JSON.parse(txt) : null; } catch { data = null; }
-                      if (!r.ok) {
-                        throw new Error((data && (data.error || data.message)) || txt || `Error ${r.status}`);
-                      }
-                      setReferenceText((data?.referenceText as string) || "");
-                      setReferenceExtracted(data?.extracted || null);
-                      setDetallesEjemplo({});
-                      if (data?.files) {
-                        const assistantMessage = {
-                          role: "assistant" as const,
-                          content: `📎 Ejemplos cargados: ${(data.files as any[]).map(f => f.filename).join(", ")}. Los usaré como referencia de estilo para generar el documento.`
-                        };
-                        setMessages((prev) => [...prev, assistantMessage]);
-                      }
+                      await processReferenceFiles();
                     } catch (err: any) {
                       setError(err.message || "Error al subir ejemplos");
-                    } finally {
-                      setReferenceUploading(false);
                     }
                   }}
                 >
