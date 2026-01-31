@@ -6186,6 +6186,8 @@ function ChatDocumentoPersonalizado({
   const [referenceFiles, setReferenceFiles] = useState<File[]>([]);
   const [referenceText, setReferenceText] = useState<string>("");
   const [referenceUploading, setReferenceUploading] = useState(false);
+  const [referenceExtracted, setReferenceExtracted] = useState<any>(null);
+  const [detallesEjemplo, setDetallesEjemplo] = useState<Record<string, any>>({});
   const [downloading, setDownloading] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const referenceInputRef = useRef<HTMLInputElement>(null);
@@ -6272,12 +6274,14 @@ function ChatDocumentoPersonalizado({
       const objetoMatch = userMessages.match(/(?:objeto|para|sobre)\s+([^\.]+)/i);
       if (objetoMatch) detalles.objeto = objetoMatch[1];
 
+      const detallesFinal = { ...detallesEjemplo, ...detalles };
+
       const response = await fetch(`${API}/api/generate-custom-document`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           descripcion: userMessages,
-          detalles: detalles,
+          detalles: detallesFinal,
           titulo: titulo,
           mode: modoGeneracion,
           referenceText: referenceText || undefined
@@ -6545,6 +6549,8 @@ function ChatDocumentoPersonalizado({
                         throw new Error((data && (data.error || data.message)) || txt || `Error ${r.status}`);
                       }
                       setReferenceText((data?.referenceText as string) || "");
+                      setReferenceExtracted(data?.extracted || null);
+                      setDetallesEjemplo({});
                       if (data?.files) {
                         const assistantMessage = {
                           role: "assistant" as const,
@@ -6567,6 +6573,8 @@ function ChatDocumentoPersonalizado({
                   onClick={() => {
                     setReferenceFiles([]);
                     setReferenceText("");
+                    setReferenceExtracted(null);
+                    setDetallesEjemplo({});
                   }}
                 >
                   Limpiar
@@ -6597,6 +6605,70 @@ function ChatDocumentoPersonalizado({
             )}
             {referenceText && (
               <div className="text-xs text-emerald-700">Referencia lista. Se usará al generar el documento.</div>
+            )}
+            {referenceExtracted && (
+              <div className="rounded-lg border border-gray-200 bg-white p-2 text-xs space-y-2">
+                <div className="font-medium text-gray-700">Datos detectados (requiere confirmación)</div>
+                <div className="text-gray-600">
+                  <div><span className="font-medium">Tipo:</span> {referenceExtracted.documentType || "—"}</div>
+                  <div><span className="font-medium">Jurisdicción:</span> {referenceExtracted.jurisdiction || "—"}</div>
+                  <div><span className="font-medium">Plazo/Vigencia:</span> {referenceExtracted.term || "—"}</div>
+                  <div><span className="font-medium">Precio:</span> {referenceExtracted.price || "—"} {referenceExtracted.currency || ""}</div>
+                  {Array.isArray(referenceExtracted.parties) && referenceExtracted.parties.length > 0 && (
+                    <div className="mt-1">
+                      <div className="font-medium text-gray-700">Partes:</div>
+                      <div className="space-y-1">
+                        {referenceExtracted.parties.slice(0, 4).map((p: any, i: number) => (
+                          <div key={i} className="rounded border border-gray-100 bg-gray-50 p-2">
+                            <div><span className="font-medium">Rol:</span> {p.role || "—"}</div>
+                            <div><span className="font-medium">Nombre:</span> {p.name || "—"}</div>
+                            <div><span className="font-medium">ID:</span> {p.id || "—"}</div>
+                            <div><span className="font-medium">Domicilio:</span> {p.address || "—"}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    className="rounded-lg bg-[#C026D3] px-3 py-1 text-xs font-medium text-white hover:bg-[#A21CAF] disabled:opacity-50"
+                    disabled={generando}
+                    onClick={() => {
+                      const next: Record<string, any> = {};
+                      if (referenceExtracted?.jurisdiction) next.jurisdiccion = referenceExtracted.jurisdiction;
+                      if (referenceExtracted?.term) next.plazo = referenceExtracted.term;
+                      if (referenceExtracted?.price) next.precio = referenceExtracted.price;
+                      if (referenceExtracted?.currency) next.moneda = referenceExtracted.currency;
+
+                      const partes = Array.isArray(referenceExtracted?.parties) ? referenceExtracted.parties : [];
+                      const partesText = partes
+                        .filter((p: any) => p && (p.name || p.id || p.address))
+                        .map((p: any, idx: number) => {
+                          const role = p.role || `Parte ${idx + 1}`;
+                          const name = p.name || "XXXXXX";
+                          const id = p.id ? ` (${p.id})` : "";
+                          const address = p.address ? `, domicilio: ${p.address}` : "";
+                          return `${role}: ${name}${id}${address}`;
+                        })
+                        .join(" | ");
+                      if (partesText) next.partes = partesText;
+
+                      setDetallesEjemplo(next);
+                      const assistantMessage = {
+                        role: "assistant" as const,
+                        content: "✅ Confirmado. Voy a usar los datos detectados del/los ejemplo(s) para completar el documento (podés corregirlos escribiendo en el chat)."
+                      };
+                      setMessages((prev) => [...prev, assistantMessage]);
+                    }}
+                  >
+                    Usar datos detectados
+                  </button>
+                  {Object.keys(detallesEjemplo).length > 0 && (
+                    <div className="text-emerald-700">Aplicados</div>
+                  )}
+                </div>
+              </div>
             )}
           </div>
         )}

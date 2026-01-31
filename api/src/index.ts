@@ -187,7 +187,64 @@ async function start() {
       }
 
       const referenceText = combined.trim().slice(0, 12000);
-      return rep.send({ referenceText, files: filesMeta });
+
+      const openaiKey = process.env.OPENAI_API_KEY;
+      if (!openaiKey) {
+        return rep.send({ referenceText, files: filesMeta, extracted: null });
+      }
+
+      const openai = new OpenAI({ apiKey: openaiKey });
+      const extractionSystem = `Sos un abogado argentino senior. Te voy a dar texto de documentos de ejemplo (modelos). Extraé SOLO información explícita, sin inventar. Si un dato no aparece, devolvé null.`;
+      const extractionUser = `Extraé un JSON con esta estructura EXACTA:
+
+{
+  "documentType": string | null,
+  "jurisdiction": string | null,
+  "term": string | null,
+  "price": string | null,
+  "currency": string | null,
+  "parties": [
+    {
+      "role": string | null,
+      "name": string | null,
+      "id": string | null,
+      "address": string | null,
+      "email": string | null,
+      "phone": string | null,
+      "representative": string | null
+    }
+  ]
+}
+
+Reglas:
+- NO incluyas texto fuera del JSON.
+- role puede ser "Parte 1", "Parte 2", "Acreedor", "Deudor", "Locador", "Locatario", "Proveedor", "Cliente" o similar.
+- id puede ser DNI/CUIT/CUIL si está.
+
+TEXTO:
+${referenceText.slice(0, 8000)}
+`;
+
+      let extracted: any = null;
+      try {
+        const resp = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [
+            { role: "system", content: extractionSystem },
+            { role: "user", content: extractionUser }
+          ],
+          temperature: 0.1,
+          max_tokens: 700,
+          response_format: { type: "json_object" }
+        });
+
+        const content = resp.choices[0]?.message?.content || "";
+        extracted = content ? JSON.parse(content) : null;
+      } catch (err) {
+        extracted = null;
+      }
+
+      return rep.send({ referenceText, files: filesMeta, extracted });
     } catch (error) {
       app.log.error(error, "Error en /api/custom-document/reference-text");
       return rep.status(500).send({
