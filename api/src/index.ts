@@ -693,6 +693,46 @@ Formato de respuesta:
         mode: z.enum(["standard", "deep"]).optional()
       }).parse(req.body);
 
+      const descripcion = body.descripcion.trim();
+      const detalles = body.detalles || {};
+
+      const hasMatch = (text: string, patterns: RegExp[]) => patterns.some((p) => p.test(text));
+      const getStr = (v: unknown) => (typeof v === "string" ? v : "");
+
+      const partesText = getStr((detalles as any).partes);
+      const objetoText = getStr((detalles as any).objeto);
+      const jurisdiccionText = getStr((detalles as any).jurisdiccion);
+      const plazoText = getStr((detalles as any).plazo);
+      const precioText = getStr((detalles as any).precio);
+      const mergedText = `${descripcion}\n${partesText}\n${objetoText}\n${jurisdiccionText}\n${plazoText}\n${precioText}`.toLowerCase();
+
+      const missing: string[] = [];
+      if (!partesText.trim() && !hasMatch(mergedText, [/\bentre\b/, /\bpartes?\b/, /\blocador\b/, /\blocatario\b/, /\bproveedor\b/, /\bcliente\b/, /\bacreed(or|ora)\b/, /\bdeud(or|ora)\b/])) {
+        missing.push("partes (nombres/razones sociales, DNI/CUIT, domicilios)");
+      }
+      if (!objetoText.trim() && !hasMatch(mergedText, [/\bobjeto\b/, /\bservici(o|os)\b/, /\blocaci(o|ó)n\b/, /\bcompraventa\b/, /\bconfidencialidad\b/, /\bnda\b/, /\bprestaci(o|ó)n\b/])) {
+        missing.push("objeto (qué se contrata/acuerda exactamente)");
+      }
+      if (!plazoText.trim() && !hasMatch(mergedText, [/\bplazo\b/, /\bduraci(o|ó)n\b/, /\bvigencia\b/, /\bmes(es)?\b/, /\ba(ñ|n)os\b/, /\bdesde\b/, /\bhasta\b/])) {
+        missing.push("plazo/fechas (inicio, duración, vencimiento)");
+      }
+      if (!precioText.trim() && !hasMatch(mergedText, [/\bprecio\b/, /\bmonto\b/, /\bcontraprestaci(o|ó)n\b/, /\bcanon\b/, /\balquiler\b/, /\bhonorarios\b/, /\busd\b/, /\bars\b/, /\$|\b€\b/])) {
+        missing.push("precio/montos (monto, moneda, forma de pago)");
+      }
+      if (!jurisdiccionText.trim() && !hasMatch(mergedText, [/\bjurisdic(ci|c)i(o|ó)n\b/, /\bley aplicable\b/, /\btribunal(es)?\b/, /\bcaba\b/, /\bbuenos aires\b/, /\bprovincia\b/])) {
+        missing.push("jurisdicción/ley aplicable (provincia/ciudad, fuero)");
+      }
+
+      // Si faltan datos críticos, no gastar tokens generando un documento genérico.
+      if (missing.length >= 2) {
+        return rep.status(400).send({
+          error: "Información insuficiente para generar un documento de calidad",
+          missingFields: missing,
+          message:
+            `Para generar un documento profesional sin inventar datos, necesito que completes:\n\n- ${missing.join("\n- ")}\n\nPodés responder con esos datos (si no los tenés, indicá 'XXXXXX').`
+        });
+      }
+
       const openaiKey = process.env.OPENAI_API_KEY;
       if (!openaiKey) {
         return rep.status(500).send({ error: "OPENAI_API_KEY no configurada" });
@@ -753,7 +793,7 @@ REGLAS OBLIGATORIAS:
       const userPrompt = `Generá un documento legal completo basándote en la siguiente descripción:
 
 DESCRIPCIÓN:
-${body.descripcion}
+${descripcion}
 
 ${detallesText ? `\nDETALLES ADICIONALES:\n${detallesText}` : ""}
 

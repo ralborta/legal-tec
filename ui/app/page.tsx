@@ -6280,8 +6280,28 @@ function ChatDocumentoPersonalizado({
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || `Error ${response.status}`);
+        const rawText = await response.text().catch(() => "");
+        let parsed: any = null;
+        try {
+          parsed = rawText ? JSON.parse(rawText) : null;
+        } catch {
+          parsed = null;
+        }
+
+        // Si faltan datos, el backend devuelve 400 con un mensaje para continuar el chat.
+        if (response.status === 400 && parsed && (parsed.message || parsed.missingFields)) {
+          const missingText = Array.isArray(parsed.missingFields) && parsed.missingFields.length > 0
+            ? `\n\nFaltan datos:\n- ${parsed.missingFields.join("\n- ")}`
+            : "";
+          const assistantMessage = {
+            role: "assistant" as const,
+            content: `${parsed.message || "Necesito más información para generar un documento de calidad."}${missingText}`
+          };
+          setMessages([...messages, assistantMessage]);
+          return;
+        }
+
+        throw new Error((parsed && (parsed.error || parsed.message)) || rawText || `Error ${response.status}`);
       }
 
       const data = await response.json();
