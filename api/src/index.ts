@@ -822,6 +822,7 @@ Formato de respuesta:
 
       const descripcion = body.descripcion.trim();
       const detalles = body.detalles || {};
+      const mode = body.mode || "standard";
 
       const hasMatch = (text: string, patterns: RegExp[]) => patterns.some((p) => p.test(text));
       const getStr = (v: unknown) => (typeof v === "string" ? v : "");
@@ -850,8 +851,10 @@ Formato de respuesta:
         missing.push("jurisdicción/ley aplicable (provincia/ciudad, fuero)");
       }
 
-      // Si faltan datos críticos, no gastar tokens generando un documento genérico.
-      if (missing.length >= 2) {
+      // Si faltan datos críticos:
+      // - En modo deep: bloquear para evitar un documento superficial/incompleto.
+      // - En modo standard: permitir generar usando placeholders (XXXXXX) para no frenar el flujo.
+      if (missing.length >= 2 && mode === "deep") {
         return rep.status(400).send({
           error: "Información insuficiente para generar un documento de calidad",
           missingFields: missing,
@@ -874,7 +877,6 @@ Formato de respuesta:
             .join("\n")
         : "";
 
-      const mode = body.mode || "standard";
       const referenceText = (body.referenceText || "").trim();
       const systemPrompt = mode === "deep"
         ? `Sos un abogado argentino senior de WNS & Asociados. Generá documentos legales ULTRA COMPLETOS, PROFESIONALES, DETALLADOS y LISTOS PARA USAR.
