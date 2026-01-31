@@ -75,6 +75,28 @@ async function start() {
     // No crashear si falla, el código es resiliente
   }
 
+  // ✅ Crear tabla templates automáticamente al iniciar (si no existe)
+  try {
+    const client = new Client({ connectionString: process.env.DATABASE_URL });
+    await client.connect();
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS templates (
+        id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+        nombre text NOT NULL,
+        descripcion text,
+        content_md text NOT NULL,
+        created_at timestamptz DEFAULT now()
+      )
+    `);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_templates_created_at ON templates(created_at)`);
+
+    await client.end();
+    app.log.info("[STARTUP] Tabla templates creada/verificada correctamente");
+  } catch (error: any) {
+    app.log.warn(`[STARTUP] No se pudo crear/verificar templates (continuando igual): ${error?.message || error}`);
+  }
+
   const allowedOriginsFromEnv = (process.env.CORS_ORIGINS || process.env.CORS_ORIGIN || "")
     .split(",")
     .map((s) => s.trim())
@@ -132,6 +154,60 @@ async function start() {
     limits: {
       fileSize: 50 * 1024 * 1024, // 50MB máximo por archivo (igual que legal-docs)
       files: 5, // Máximo 5 archivos
+    }
+  });
+
+  app.post("/api/save-template", async (req, rep) => {
+    try {
+      const body = z.object({
+        nombre: z.string().min(1),
+        descripcion: z.string().optional(),
+        content_md: z.string().min(1)
+      }).parse(req.body);
+
+      const dbUrl = process.env.DATABASE_URL;
+      if (!dbUrl) return rep.status(500).send({ error: "DATABASE_URL no configurada" });
+
+      const client = new Client({ connectionString: dbUrl });
+      await client.connect();
+      const result = await client.query(
+        `INSERT INTO templates (nombre, descripcion, content_md) VALUES ($1,$2,$3) RETURNING id, created_at`,
+        [body.nombre, body.descripcion || null, body.content_md]
+      );
+      await client.end();
+
+      return rep.send({
+        id: result.rows[0]?.id,
+        created_at: result.rows[0]?.created_at
+      });
+    } catch (error) {
+      app.log.error(error, "Error en /api/save-template");
+      return rep.status(500).send({
+        error: "Error al guardar template",
+        message: error instanceof Error ? error.message : "Error desconocido"
+      });
+    }
+  });
+
+  app.get("/api/templates", async (_req, rep) => {
+    try {
+      const dbUrl = process.env.DATABASE_URL;
+      if (!dbUrl) return rep.status(500).send({ error: "DATABASE_URL no configurada" });
+
+      const client = new Client({ connectionString: dbUrl });
+      await client.connect();
+      const result = await client.query(
+        `SELECT id, nombre, descripcion, created_at FROM templates ORDER BY created_at DESC LIMIT 100`
+      );
+      await client.end();
+
+      return rep.send({ templates: result.rows });
+    } catch (error) {
+      app.log.error(error, "Error en /api/templates");
+      return rep.status(500).send({
+        error: "Error al listar templates",
+        message: error instanceof Error ? error.message : "Error desconocido"
+      });
     }
   });
 

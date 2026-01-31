@@ -6183,6 +6183,7 @@ function ChatDocumentoPersonalizado({
   const [documentoGenerado, setDocumentoGenerado] = useState<string | null>(null);
   const [tituloDocumento, setTituloDocumento] = useState<string>("Documento Personalizado");
   const [modoGeneracion, setModoGeneracion] = useState<"standard" | "deep">("standard");
+  const [guardandoTemplate, setGuardandoTemplate] = useState(false);
   const [referenceFiles, setReferenceFiles] = useState<File[]>([]);
   const [referenceText, setReferenceText] = useState<string>("");
   const [referenceUploading, setReferenceUploading] = useState(false);
@@ -6467,6 +6468,44 @@ function ChatDocumentoPersonalizado({
     }
 
     return documentoActualizado;
+  };
+
+  const handleGuardarComoTemplate = async () => {
+    if (!API || guardandoTemplate || !documentoGenerado) return;
+
+    const nombre = (window.prompt("Nombre del template", tituloDocumento) || "").trim();
+    if (!nombre) return;
+
+    const descripcion = (window.prompt("Descripción (opcional)", "") || "").trim();
+
+    setGuardandoTemplate(true);
+    setError(null);
+    try {
+      const content_md = generateUpdatedDocument(documentoGenerado, messages);
+      const r = await fetch(`${API}/api/save-template`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nombre, descripcion: descripcion || undefined, content_md })
+      });
+      const rawText = await r.text().catch(() => "");
+      let parsed: any = null;
+      try {
+        parsed = rawText ? JSON.parse(rawText) : null;
+      } catch {
+        parsed = null;
+      }
+
+      if (!r.ok) {
+        throw new Error((parsed && (parsed.error || parsed.message)) || rawText || `Error ${r.status}`);
+      }
+
+      alert("✅ Guardado como template. Debería aparecer en tu lista de plantillas.");
+      onGuardarTemplate({ nombre, descripcion, campos: [] });
+    } catch (e: any) {
+      setError(e.message || "Error al guardar template");
+    } finally {
+      setGuardandoTemplate(false);
+    }
   };
 
   // Función para descargar documento actualizado con recomendaciones del chat
@@ -6780,6 +6819,15 @@ function ChatDocumentoPersonalizado({
         <div className="border border-green-300 bg-green-50 rounded-lg p-4">
           <p className="text-sm font-medium text-green-900 mb-2">✅ Documento generado</p>
           <p className="text-xs text-green-700">Podés seguir chateando para pedir modificaciones, agregar cláusulas o hacer ajustes al documento.</p>
+          <div className="mt-3 flex items-center gap-2">
+            <button
+              onClick={handleGuardarComoTemplate}
+              disabled={guardandoTemplate}
+              className="rounded-lg bg-[#C026D3] px-3 py-2 text-xs font-medium text-white hover:bg-[#A21CAF] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {guardandoTemplate ? "Guardando..." : "Guardar como template"}
+            </button>
+          </div>
         </div>
       )}
     </div>
