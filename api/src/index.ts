@@ -194,32 +194,33 @@ async function start() {
       }
 
       const openai = new OpenAI({ apiKey: openaiKey });
-      const extractionSystem = `Sos un abogado argentino senior. Te voy a dar texto de documentos de ejemplo (modelos). Extraé SOLO información explícita, sin inventar. Si un dato no aparece, devolvé null.`;
-      const extractionUser = `Extraé un JSON con esta estructura EXACTA:
+      const extractionSystem = `Sos un abogado argentino senior. Te voy a dar texto de documentos de ejemplo (modelos). Tu tarea es DEVOLVER SOLO METADATA NO SENSIBLE para mejorar la UX. No devuelvas nombres propios, domicilios, IDs, emails ni teléfonos. No inventes.`;
+      const extractionUser = `Extraé un JSON con esta estructura EXACTA (sin datos sensibles):
 
 {
   "documentType": string | null,
-  "jurisdiction": string | null,
-  "term": string | null,
-  "price": string | null,
-  "currency": string | null,
-  "parties": [
-    {
-      "role": string | null,
-      "name": string | null,
-      "id": string | null,
-      "address": string | null,
-      "email": string | null,
-      "phone": string | null,
-      "representative": string | null
-    }
-  ]
+  "hasPartyData": boolean,
+  "sections": {
+    "definitions": boolean,
+    "purpose_object": boolean,
+    "confidentiality": boolean,
+    "term": boolean,
+    "price_payment": boolean,
+    "ip": boolean,
+    "non_solicitation": boolean,
+    "non_compete": boolean,
+    "liability_indemnity": boolean,
+    "governing_law_jurisdiction": boolean,
+    "notices": boolean,
+    "assignment": boolean,
+    "termination": boolean,
+    "dispute_resolution": boolean
+  }
 }
 
 Reglas:
 - NO incluyas texto fuera del JSON.
-- role puede ser "Parte 1", "Parte 2", "Acreedor", "Deudor", "Locador", "Locatario", "Proveedor", "Cliente" o similar.
-- id puede ser DNI/CUIT/CUIL si está.
+- hasPartyData = true si en el texto parece haber datos de identificación de partes (sin decir cuáles).
 
 TEXTO:
 ${referenceText.slice(0, 8000)}
