@@ -637,7 +637,8 @@ ${referenceText.slice(0, 8000)}
         messages: z.array(z.object({
           role: z.enum(["user", "assistant"]),
           content: z.string()
-        }))
+        })),
+        referenceText: z.string().optional()
       }).parse(req.body);
 
       const openaiKey = process.env.OPENAI_API_KEY;
@@ -653,6 +654,11 @@ ${referenceText.slice(0, 8000)}
         role: msg.role,
         content: msg.content
       }));
+
+      const referenceText = (body.referenceText || "").trim();
+      const referenceBlock = referenceText
+        ? `\n\nCONTEXTO (DOCUMENTOS DE EJEMPLO SUBIDOS POR EL USUARIO):\n${referenceText.slice(0, 6000)}\n\nREGLAS PARA USAR EL CONTEXTO:\n- Podés basarte en el texto para identificar tipo de documento, estructura y posibles datos.\n- NO inventes datos que no estén explícitos.\n- Si hay datos sensibles, pedí confirmación antes de asumirlos.\n- No copies literalmente secciones largas; usalo como guía.`
+        : "";
 
       // System prompt para chat de documentos personalizados - MEJORADO Y PROFUNDO
       const systemPrompt = `Sos un abogado argentino senior de WNS & Asociados, especializado en redactar documentos legales profesionales y completos. Tu rol es hacer PREGUNTAS PROFUNDAS Y ESPECÍFICAS para recopilar TODA la información necesaria para generar un documento legal profesional de alta calidad.
@@ -775,7 +781,7 @@ Formato de respuesta:
 - Sé claro, profesional y directo
 - Haz UNA pregunta específica y detallada
 - Confirma información recibida antes de continuar
-- Al final, resume lo recopilado y pregunta por lo que falta`;
+- Al final, resume lo recopilado y pregunta por lo que falta${referenceBlock}`;
 
       const response = await openai.chat.completions.create({
         model: "gpt-4o",
