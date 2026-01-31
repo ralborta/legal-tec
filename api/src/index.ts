@@ -135,6 +135,68 @@ async function start() {
     }
   });
 
+  // Subir documentos de ejemplo para Documento Personalizado (solo para la generación actual)
+  app.post("/api/custom-document/reference-text", async (req, rep) => {
+    try {
+      const parts = req.files();
+      const filesMeta: Array<{ filename: string; mimeType?: string; chars: number }> = [];
+      let combined = "";
+      let count = 0;
+
+      for await (const part of parts) {
+        count++;
+        if (count > 2) {
+          return rep.status(400).send({ error: "Máximo 2 archivos de ejemplo" });
+        }
+
+        if (!part.file || !part.filename) {
+          continue;
+        }
+
+        const buf = await part.toBuffer();
+        const filename = part.filename;
+        const mimeType = (part.mimetype || "").toLowerCase();
+        const nameLower = filename.toLowerCase();
+
+        let text = "";
+        if (mimeType === "application/pdf" || nameLower.endsWith(".pdf")) {
+          text = await extractTextFromPdf(buf);
+        } else if (
+          mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+          nameLower.endsWith(".docx")
+        ) {
+          const { value } = await mammoth.extractRawText({ buffer: buf });
+          text = value || "";
+        } else if (mimeType === "text/plain" || nameLower.endsWith(".txt")) {
+          text = buf.toString("utf-8");
+        } else {
+          return rep.status(400).send({
+            error: `Formato no soportado para ejemplo: ${filename}. Usá PDF, DOCX o TXT.`
+          });
+        }
+
+        const clean = (text || "").trim();
+        filesMeta.push({ filename, mimeType, chars: clean.length });
+        if (clean) {
+          combined += `\n\n═══════════════════════════════════════════════════════════════════════════════\nDOCUMENTO EJEMPLO: ${filename}\n═══════════════════════════════════════════════════════════════════════════════\n${clean}`;
+        }
+      }
+
+      if (!filesMeta.length) {
+        return rep.status(400).send({ error: "No se recibieron archivos" });
+      }
+
+      const referenceText = combined.trim().slice(0, 12000);
+      return rep.send({ referenceText, files: filesMeta });
+    } catch (error) {
+      app.log.error(error, "Error en /api/custom-document/reference-text");
+      return rep.status(500).send({
+        error: "Error al procesar documentos de ejemplo",
+        message: error instanceof Error ? error.message : "Error desconocido"
+      });
+    }
+  });
+
   app.get("/health", async () => ({ ok: true }));
   
   // Endpoint de prueba para verificar que el servidor está corriendo
@@ -690,7 +752,8 @@ Formato de respuesta:
         descripcion: z.string(),
         detalles: z.record(z.any()).optional(),
         titulo: z.string().optional(),
-        mode: z.enum(["standard", "deep"]).optional()
+        mode: z.enum(["standard", "deep"]).optional(),
+        referenceText: z.string().optional()
       }).parse(req.body);
 
       const descripcion = body.descripcion.trim();
@@ -748,6 +811,7 @@ Formato de respuesta:
         : "";
 
       const mode = body.mode || "standard";
+      const referenceText = (body.referenceText || "").trim();
       const systemPrompt = mode === "deep"
         ? `Sos un abogado argentino senior de WNS & Asociados. Generá documentos legales ULTRA COMPLETOS, PROFESIONALES, DETALLADOS y LISTOS PARA USAR.
 
@@ -790,10 +854,16 @@ REGLAS OBLIGATORIAS:
 4. Estilo formal, español argentino, con numeración de cláusulas.
 5. Si corresponde citar normativa, hacelo de forma prudente ("sujeto a verificación").`;
 
+      const referenceBlock = referenceText
+        ? `\n\nDOCUMENTOS DE EJEMPLO (usar como referencia de estilo y redacción; NO copiar datos personales; adaptar al caso):\n${referenceText.slice(0, 8000)}`
+        : "";
+
       const userPrompt = `Generá un documento legal completo basándote en la siguiente descripción:
 
 DESCRIPCIÓN:
 ${descripcion}
+
+${referenceBlock}
 
 ${detallesText ? `\nDETALLES ADICIONALES:\n${detallesText}` : ""}
 

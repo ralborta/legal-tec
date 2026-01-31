@@ -6183,8 +6183,12 @@ function ChatDocumentoPersonalizado({
   const [documentoGenerado, setDocumentoGenerado] = useState<string | null>(null);
   const [tituloDocumento, setTituloDocumento] = useState<string>("Documento Personalizado");
   const [modoGeneracion, setModoGeneracion] = useState<"standard" | "deep">("standard");
+  const [referenceFiles, setReferenceFiles] = useState<File[]>([]);
+  const [referenceText, setReferenceText] = useState<string>("");
+  const [referenceUploading, setReferenceUploading] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const referenceInputRef = useRef<HTMLInputElement>(null);
   const API = useMemo(() => getApiUrl(), []);
 
   // Mensaje inicial del asistente
@@ -6275,7 +6279,8 @@ function ChatDocumentoPersonalizado({
           descripcion: userMessages,
           detalles: detalles,
           titulo: titulo,
-          mode: modoGeneracion
+          mode: modoGeneracion,
+          referenceText: referenceText || undefined
         })
       });
 
@@ -6448,6 +6453,29 @@ function ChatDocumentoPersonalizado({
           <p className="text-xs text-gray-500">Describe tu documento y el asistente te ayudará a crearlo</p>
         </div>
         <div className="flex items-center gap-2">
+          <input
+            ref={referenceInputRef}
+            type="file"
+            accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              const selected = Array.from(e.target.files || []);
+              if (!selected.length) return;
+              const limited = [...referenceFiles, ...selected].slice(0, 2);
+              setReferenceFiles(limited);
+              // Reset para permitir re-seleccionar el mismo archivo
+              e.currentTarget.value = "";
+            }}
+          />
+          <button
+            onClick={() => referenceInputRef.current?.click()}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+            disabled={generando}
+            title="Adjuntar 1-2 documentos ejemplo (PDF/DOCX/TXT)"
+          >
+            +
+          </button>
           <select
             value={modoGeneracion}
             onChange={(e) => setModoGeneracion(e.target.value as "standard" | "deep")}
@@ -6491,6 +6519,87 @@ function ChatDocumentoPersonalizado({
 
       {/* Chat */}
       <div className="border border-gray-200 rounded-lg bg-white" style={{ maxHeight: "500px", display: "flex", flexDirection: "column" }}>
+        {(referenceFiles.length > 0 || referenceText) && (
+          <div className="border-b border-gray-200 p-3 text-sm text-gray-700 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="text-xs font-medium text-gray-700">Documentos de ejemplo (solo para esta generación)</div>
+              <div className="flex items-center gap-2">
+                <button
+                  className="rounded-lg border border-gray-200 bg-white px-3 py-1 text-xs hover:bg-gray-50 disabled:opacity-50"
+                  disabled={referenceUploading || generando || !API || referenceFiles.length === 0}
+                  onClick={async () => {
+                    if (!API || referenceFiles.length === 0) return;
+                    setReferenceUploading(true);
+                    setError(null);
+                    try {
+                      const form = new FormData();
+                      referenceFiles.slice(0, 2).forEach((f) => form.append("files", f));
+                      const r = await fetch(`${API}/api/custom-document/reference-text`, {
+                        method: "POST",
+                        body: form
+                      });
+                      const txt = await r.text().catch(() => "");
+                      let data: any = null;
+                      try { data = txt ? JSON.parse(txt) : null; } catch { data = null; }
+                      if (!r.ok) {
+                        throw new Error((data && (data.error || data.message)) || txt || `Error ${r.status}`);
+                      }
+                      setReferenceText((data?.referenceText as string) || "");
+                      if (data?.files) {
+                        const assistantMessage = {
+                          role: "assistant" as const,
+                          content: `📎 Ejemplos cargados: ${(data.files as any[]).map(f => f.filename).join(", ")}. Los usaré como referencia de estilo para generar el documento.`
+                        };
+                        setMessages((prev) => [...prev, assistantMessage]);
+                      }
+                    } catch (err: any) {
+                      setError(err.message || "Error al subir ejemplos");
+                    } finally {
+                      setReferenceUploading(false);
+                    }
+                  }}
+                >
+                  {referenceUploading ? "Procesando..." : "Procesar"}
+                </button>
+                <button
+                  className="rounded-lg border border-gray-200 bg-white px-3 py-1 text-xs hover:bg-gray-50"
+                  disabled={referenceUploading || generando}
+                  onClick={() => {
+                    setReferenceFiles([]);
+                    setReferenceText("");
+                  }}
+                >
+                  Limpiar
+                </button>
+              </div>
+            </div>
+            {referenceFiles.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {referenceFiles.map((f, idx) => (
+                  <div key={idx} className="flex items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs">
+                    <span className="max-w-[220px] truncate">{f.name}</span>
+                    <button
+                      className="text-gray-500 hover:text-gray-700"
+                      onClick={() => {
+                        setReferenceFiles(referenceFiles.filter((_, i) => i !== idx));
+                        setReferenceText("");
+                      }}
+                      title="Quitar"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {referenceFiles.length > 0 && !referenceText && (
+              <div className="text-xs text-gray-500">Hacé click en "Procesar" para convertirlos en texto de referencia.</div>
+            )}
+            {referenceText && (
+              <div className="text-xs text-emerald-700">Referencia lista. Se usará al generar el documento.</div>
+            )}
+          </div>
+        )}
         <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
           {messages.map((msg, idx) => (
             <div
