@@ -7,7 +7,54 @@ import { tmpdir } from "os";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+async function extractPdfTextViaOpenAIResponses(buffer: Buffer, filename: string): Promise<string> {
+  // Nota: el SDK/entorno puede no soportar Responses API. Este método se llama dentro de try/catch.
+  const base64 = buffer.toString("base64");
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const clientAny = openai as any;
+  if (!clientAny.responses || typeof clientAny.responses.create !== "function") {
+    throw new Error("Responses API no disponible en este SDK/runtime");
+  }
+
+  const response = await clientAny.responses.create({
+    model: "gpt-4o-mini",
+    input: [
+      {
+        role: "user",
+        content: [
+          {
+            type: "input_text",
+            text: "Extraé TODO el texto del PDF adjunto (incluyendo OCR si es un PDF escaneado). Devolvé SOLO el texto extraído, preservando saltos de línea."
+          },
+          {
+            type: "input_file",
+            filename,
+            file_data: base64
+          }
+        ]
+      }
+    ]
+  });
+
+  // El SDK expone el texto final en output_text.
+  // Si no existe (por cambios de SDK), forzamos fallback a Assistants.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const anyResp = response as any;
+  const extracted: string = (anyResp.output_text || "").toString();
+  if (!extracted || extracted.trim().length === 0) {
+    throw new Error("Responses API returned empty output_text");
+  }
+  return extracted;
+}
+
 async function extractPdfTextViaOpenAI(buffer: Buffer, filename: string): Promise<string> {
+  try {
+    return await extractPdfTextViaOpenAIResponses(buffer, filename);
+  } catch {
+    // fallback a Assistants + file_search
+  }
+
   const tempPath = join(tmpdir(), `ocr-${Date.now()}-${filename}`);
   let tempFileCreated = false;
   let fileId: string | null = null;
