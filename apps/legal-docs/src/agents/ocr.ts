@@ -18,7 +18,7 @@ async function extractPdfTextViaOpenAIResponses(buffer: Buffer, filename: string
   }
 
   const response = await clientAny.responses.create({
-    model: "gpt-4o-mini",
+    model: "gpt-4o",
     input: [
       {
         role: "user",
@@ -74,7 +74,7 @@ async function extractFileTextViaOpenAI(buffer: Buffer, filename: string): Promi
       name: "PDF OCR Extractor",
       instructions:
         "Extraé TODO el texto del archivo provisto. No inventes. Preservá saltos de línea y la estructura. Devolvé SOLO el texto extraído.",
-      model: "gpt-4o-mini",
+      model: "gpt-4o",
       tools: [{ type: "file_search" }]
     });
 
@@ -251,7 +251,7 @@ export async function ocrAgent(file: {
 
       // Usar OpenAI Vision API para extraer texto
       const response = await openai.chat.completions.create({
-        model: "gpt-4o-mini", // Cambiado a mini para reducir costos // gpt-4o tiene mejor soporte para visión
+        model: "gpt-4o", // Mejor OCR en imágenes/escaneados
         messages: [
           {
             role: "user",
