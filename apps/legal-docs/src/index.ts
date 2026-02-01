@@ -523,16 +523,40 @@ async function runComparison(
   try {
     comparisonResults.set(comparisonId, { status: "processing", progress: 10, statusLabel: "Obteniendo documentos..." });
 
+    const coerceOriginalText = (original: unknown): string => {
+      if (typeof original === "string") {
+        const s = original.trim();
+        // Si es un string JSON, intentar parsear (caso común cuando viene serializado)
+        if (s.startsWith("{") || s.startsWith("[")) {
+          try {
+            const parsed = JSON.parse(s);
+            return coerceOriginalText(parsed);
+          } catch {
+            return s;
+          }
+        }
+        return s;
+      }
+      if (original && typeof original === "object") {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const anyObj = original as any;
+        if (typeof anyObj.text === "string") return anyObj.text.trim();
+        return "";
+      }
+      return "";
+    };
+
     // Función helper para obtener texto de un documento (con o sin análisis previo)
     const getDocumentText = async (documentId: string, docLabel: string): Promise<string> => {
       // Primero intentar obtener del análisis si existe
       const result = await getFullResult(documentId);
       if (result?.analysis?.original) {
-        const text = result.analysis.original.trim();
+        const text = coerceOriginalText(result.analysis.original);
         if (text.length > 0) {
-          console.log(`[COMPARE] ✅ Texto obtenido de análisis previo para ${docLabel}`);
+          console.log(`[COMPARE] ✅ Texto obtenido de análisis previo para ${docLabel} (${text.length} chars)`);
           return text;
         }
+        console.log(`[COMPARE] ⚠️ Análisis previo encontrado pero sin texto usable para ${docLabel} (original vacío)`);
       }
 
       // Si no hay análisis, extraer texto directamente del archivo
@@ -555,12 +579,13 @@ async function runComparison(
         filename: doc.filename,
       });
 
-      if (!text || text.trim().length === 0) {
-        throw new Error(`${docLabel} no tiene texto extraíble`);
+      const trimmed = (text || "").trim();
+      if (!trimmed || trimmed.length === 0) {
+        throw new Error(`${docLabel} no tiene texto extraíble (PDF posiblemente escaneado). Intentá nuevamente o subí un PDF con mejor calidad.`);
       }
 
-      console.log(`[COMPARE] ✅ Texto extraído directamente para ${docLabel} (${text.length} caracteres)`);
-      return text.trim();
+      console.log(`[COMPARE] ✅ Texto extraído por OCR/directo para ${docLabel} (${trimmed.length} caracteres)`);
+      return trimmed;
     };
 
     // Obtener textos de ambos documentos (con o sin análisis previo)
