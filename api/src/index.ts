@@ -1101,7 +1101,56 @@ Generá el documento completo, profesional y listo para usar:`;
         return rep.status(500).send({ error: "OPENAI_API_KEY no configurada" });
       }
 
-      const result = await chatCompare(openaiKey, body);
+      const LEGAL_DOCS_URL = process.env.LEGAL_DOCS_URL || "";
+      let baseUrl = LEGAL_DOCS_URL.trim();
+      if (baseUrl && !baseUrl.startsWith("http://") && !baseUrl.startsWith("https://")) {
+        baseUrl = `https://${baseUrl}`;
+      }
+      baseUrl = baseUrl.replace(/\/$/, "");
+
+      const coerceOriginalText = (original: unknown): string => {
+        if (typeof original === "string") {
+          const s = original.trim();
+          if (s.startsWith("{") || s.startsWith("[")) {
+            try {
+              const parsed = JSON.parse(s);
+              return coerceOriginalText(parsed);
+            } catch {
+              return s;
+            }
+          }
+          return s;
+        }
+        if (original && typeof original === "object") {
+          const anyObj = original as { text?: string };
+          if (typeof anyObj.text === "string") return anyObj.text.trim();
+        }
+        return "";
+      };
+
+      const fetchDocText = async (documentId?: string): Promise<string> => {
+        if (!documentId || !baseUrl) return "";
+        try {
+          const response = await fetch(`${baseUrl}/result/${documentId}`);
+          if (!response.ok) return "";
+          const data = await response.json();
+          const original = data?.analysis?.original;
+          return coerceOriginalText(original);
+        } catch {
+          return "";
+        }
+      };
+
+      const [documentTextA, documentTextB] = await Promise.all([
+        fetchDocText(body.documentIdA),
+        fetchDocText(body.documentIdB),
+      ]);
+
+      const result = await chatCompare(openaiKey, {
+        ...body,
+        documentTextA,
+        documentTextB,
+      });
       return rep.send(result);
 
     } catch (error) {

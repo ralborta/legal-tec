@@ -11,6 +11,8 @@ export type CompareChatInput = {
   areaLegal?: string; // Área legal para contexto
   documentIdA?: string; // ID del documento A
   documentIdB?: string; // ID del documento B
+  documentTextA?: string; // Texto del Documento A (extracto)
+  documentTextB?: string; // Texto del Documento B (extracto)
 };
 
 export type CompareChatOutput = {
@@ -28,6 +30,18 @@ export async function chatCompare(
   const openai = new OpenAI({ apiKey: openaiKey });
 
   const hasComparison = input.comparisonText && input.comparisonText.trim().length > 0;
+  const hasDocA = input.documentTextA && input.documentTextA.trim().length > 0;
+  const hasDocB = input.documentTextB && input.documentTextB.trim().length > 0;
+
+  const truncateText = (text: string, maxChars: number): string => {
+    if (!text || text.length <= maxChars) return text || "";
+    const sliced = text.slice(0, maxChars);
+    const lastBreak = Math.max(sliced.lastIndexOf("\n"), sliced.lastIndexOf(". "));
+    if (lastBreak > maxChars * 0.8) {
+      return `${sliced.slice(0, lastBreak)}\n\n[... texto truncado ...]`;
+    }
+    return `${sliced}\n\n[... texto truncado ...]`;
+  };
 
   const systemPrompt = `Sos un abogado argentino senior de WNS & Asociados, actuando como asistente jurídico conversacional especializado en ANÁLISIS COMPARATIVO DE DOCUMENTOS LEGALES.
 
@@ -44,7 +58,7 @@ INFORMACIÓN DE LA COMPARACIÓN:
 REGLAS FUNDAMENTALES:
 - Siempre asumí que el usuario se refiere a ESTA comparación y ESTE análisis, salvo que indique lo contrario
 - Usá toda la información contenida en el análisis comparativo: ventajas, desventajas, riesgos, recomendaciones
-- NO digas nunca "no tengo acceso a la comparación". El análisis completo está en el contexto
+- Si un dato específico NO aparece en el análisis comparativo ni en los extractos de los documentos, decilo explícitamente y pedí el dato faltante
 - Compará siempre ambos documentos cuando sea relevante
 
 CAPACIDADES:
@@ -73,14 +87,33 @@ ESTILO:
 - Profesional, claro y directo
 - Enfocado en "qué hacer" y "cómo proceder"
 - Comparativo: siempre mencioná ambos documentos cuando sea relevante
-- Citá artículos y normativa cuando corresponda`;
+- Citá artículos y normativa cuando corresponda
+- No inventes hechos, nombres o cláusulas que no estén en el texto provisto`;
 
   // Construir el contexto completo
   let contextPrompt = "";
 
   if (hasComparison) {
     contextPrompt += `ANÁLISIS COMPARATIVO DE LOS DOCUMENTOS:
-${input.comparisonText}
+${truncateText(input.comparisonText || "", 12000)}
+
+───────────────────────────────────────────────────────────────────────────────
+
+`;
+  }
+
+  if (hasDocA) {
+    contextPrompt += `DOCUMENTO A (extracto):
+${truncateText(input.documentTextA || "", 8000)}
+
+───────────────────────────────────────────────────────────────────────────────
+
+`;
+  }
+
+  if (hasDocB) {
+    contextPrompt += `DOCUMENTO B (extracto):
+${truncateText(input.documentTextB || "", 8000)}
 
 ───────────────────────────────────────────────────────────────────────────────
 
