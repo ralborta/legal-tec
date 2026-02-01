@@ -48,7 +48,7 @@ async function extractPdfTextViaOpenAIResponses(buffer: Buffer, filename: string
   return extracted;
 }
 
-async function extractPdfTextViaOpenAI(buffer: Buffer, filename: string): Promise<string> {
+async function extractFileTextViaOpenAI(buffer: Buffer, filename: string): Promise<string> {
   try {
     return await extractPdfTextViaOpenAIResponses(buffer, filename);
   } catch {
@@ -146,7 +146,7 @@ export async function ocrAgent(file: {
         if (!process.env.OPENAI_API_KEY) {
           return extracted;
         }
-        const ocrText = (await extractPdfTextViaOpenAI(file.buffer, file.filename)).trim();
+        const ocrText = (await extractFileTextViaOpenAI(file.buffer, file.filename)).trim();
         return ocrText || extracted;
       } finally {
         await parser.destroy();
@@ -155,7 +155,7 @@ export async function ocrAgent(file: {
       console.error("Error parsing PDF:", error);
       if (process.env.OPENAI_API_KEY) {
         try {
-          const ocrText = (await extractPdfTextViaOpenAI(file.buffer, file.filename)).trim();
+          const ocrText = (await extractFileTextViaOpenAI(file.buffer, file.filename)).trim();
           if (ocrText) return ocrText;
         } catch (e) {
           console.error("Error OCR fallback for PDF:", e);
@@ -172,9 +172,21 @@ export async function ocrAgent(file: {
   ) {
     try {
       const result = await mammoth.extractRawText({ buffer: file.buffer });
-      return result.value;
+      const extracted = (result.value || "").trim();
+      if (extracted.length > 0) return extracted;
+      if (!process.env.OPENAI_API_KEY) return extracted;
+      const fallback = (await extractFileTextViaOpenAI(file.buffer, file.filename)).trim();
+      return fallback || extracted;
     } catch (error) {
       console.error("Error parsing DOCX:", error);
+      if (process.env.OPENAI_API_KEY) {
+        try {
+          const fallback = (await extractFileTextViaOpenAI(file.buffer, file.filename)).trim();
+          if (fallback) return fallback;
+        } catch (e) {
+          console.error("Error DOCX fallback via OpenAI:", e);
+        }
+      }
       throw new Error("Failed to extract text from Word document");
     }
   }
@@ -190,9 +202,22 @@ export async function ocrAgent(file: {
       if (result.value && result.value.trim().length > 0) {
         return result.value;
       }
+      if (!process.env.OPENAI_API_KEY) {
+        throw new Error("Could not extract text from .doc file. Please convert to .docx format.");
+      }
+      const fallback = (await extractFileTextViaOpenAI(file.buffer, file.filename)).trim();
+      if (fallback) return fallback;
       throw new Error("Could not extract text from .doc file. Please convert to .docx format.");
     } catch (error: any) {
       console.error("Error parsing DOC:", error);
+      if (process.env.OPENAI_API_KEY) {
+        try {
+          const fallback = (await extractFileTextViaOpenAI(file.buffer, file.filename)).trim();
+          if (fallback) return fallback;
+        } catch (e) {
+          console.error("Error DOC fallback via OpenAI:", e);
+        }
+      }
       throw new Error(`Failed to extract text from Word document: ${error.message || "Please convert to .docx format"}`);
     }
   }
