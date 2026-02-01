@@ -1,8 +1,83 @@
 import OpenAI from "openai";
 import { PDFParse } from "pdf-parse";
 import mammoth from "mammoth";
+import { writeFileSync, unlinkSync, createReadStream } from "fs";
+import { join } from "path";
+import { tmpdir } from "os";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+async function extractPdfTextViaOpenAI(buffer: Buffer, filename: string): Promise<string> {
+  const tempPath = join(tmpdir(), `ocr-${Date.now()}-${filename}`);
+  let tempFileCreated = false;
+  let fileId: string | null = null;
+
+  try {
+    writeFileSync(tempPath, buffer);
+    tempFileCreated = true;
+
+    const fileStream = createReadStream(tempPath);
+    const file = await openai.files.create({
+      file: fileStream,
+      purpose: "assistants"
+    });
+    fileId = file.id;
+
+    const assistant = await openai.beta.assistants.create({
+      name: "PDF OCR Extractor",
+      instructions:
+        "Extraé TODO el texto del archivo provisto. No inventes. Preservá saltos de línea y la estructura. Devolvé SOLO el texto extraído.",
+      model: "gpt-4o-mini",
+      tools: [{ type: "file_search" }]
+    });
+
+    const thread = await openai.beta.threads.create({});
+    await openai.beta.threads.messages.create(thread.id, {
+      role: "user",
+      content: "Extraé TODO el texto del PDF adjunto. Devolvé SOLO el texto.",
+      attachments: [{ file_id: fileId, tools: [{ type: "file_search" }] }]
+    });
+
+    const run = await openai.beta.threads.runs.create(thread.id, {
+      assistant_id: assistant.id
+    });
+
+    let runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+    while (runStatus.status === "queued" || runStatus.status === "in_progress") {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+    }
+
+    if (runStatus.status !== "completed") {
+      throw new Error(`Run falló con status: ${runStatus.status}`);
+    }
+
+    const messages = await openai.beta.threads.messages.list(thread.id);
+    const lastMessage = messages.data[0];
+    const content = lastMessage?.content?.[0];
+    if (!content || content.type !== "text") {
+      throw new Error("Respuesta no es texto");
+    }
+
+    const extracted = content.text.value || "";
+    return extracted;
+  } finally {
+    if (fileId) {
+      try {
+        await openai.files.del(fileId);
+      } catch {
+        // ignore
+      }
+    }
+    if (tempFileCreated) {
+      try {
+        unlinkSync(tempPath);
+      } catch {
+        // ignore
+      }
+    }
+  }
+}
 
 export async function ocrAgent(file: {
   buffer: Buffer;
@@ -17,12 +92,28 @@ export async function ocrAgent(file: {
       const parser = new PDFParse({ data: file.buffer });
       try {
         const data = await parser.getText();
-        return data.text;
+        const extracted = (data.text || "").trim();
+        if (extracted.length >= 200) {
+          return extracted;
+        }
+        if (!process.env.OPENAI_API_KEY) {
+          return extracted;
+        }
+        const ocrText = (await extractPdfTextViaOpenAI(file.buffer, file.filename)).trim();
+        return ocrText || extracted;
       } finally {
         await parser.destroy();
       }
     } catch (error) {
       console.error("Error parsing PDF:", error);
+      if (process.env.OPENAI_API_KEY) {
+        try {
+          const ocrText = (await extractPdfTextViaOpenAI(file.buffer, file.filename)).trim();
+          if (ocrText) return ocrText;
+        } catch (e) {
+          console.error("Error OCR fallback for PDF:", e);
+        }
+      }
       throw new Error("Failed to extract text from PDF");
     }
   }
