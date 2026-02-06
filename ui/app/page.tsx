@@ -1945,7 +1945,7 @@ function AnalizarDocumentosPanel() {
   const [progress, setProgress] = useState<number>(0);
   const [statusLabel, setStatusLabel] = useState<string>("");
   const [instructions, setInstructions] = useState<string>("");
-  const instructionsLimit = 320; // Reducido de 500 a 320 para evitar truncado de JSON
+  const instructionsLimit = 400; // Alineado con report (slice 400); subir más puede causar truncado
   const API = useMemo(() => getApiUrl(), []);
   const LEGAL_DOCS_URL = useMemo(() => getLegalDocsUrl(), []);
 
@@ -2695,7 +2695,7 @@ function AnalizarComparativoPanel() {
   const [instructions, setInstructions] = useState<string>("");
   const [additionalInstructions, setAdditionalInstructions] = useState<string>("");
   const [areaLegal, setAreaLegal] = useState<"civil_comercial"|"laboral"|"corporativo"|"compliance"|"marcas"|"consumidor"|"traducir">("civil_comercial");
-  const instructionsLimit = 320; // Reducido de 500 a 320 para evitar truncado de JSON
+  const instructionsLimit = 400; // Alineado con report (slice 400); subir más puede causar truncado
   const API = useMemo(() => getApiUrl(), []);
   const LEGAL_DOCS_URL = useMemo(() => getLegalDocsUrl(), []);
 
