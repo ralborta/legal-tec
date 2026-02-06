@@ -78,6 +78,8 @@ export const legalDb = {
     await db.query(`
       CREATE INDEX IF NOT EXISTS idx_usuarios_activo ON usuarios(activo)
     `);
+    await db.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ DEFAULT NULL;`);
+    await db.query(`CREATE INDEX IF NOT EXISTS idx_usuarios_last_login_at ON usuarios(last_login_at);`);
     
     // Crear usuario admin inicial si no existe (email: adm@wns.com, password: adm123)
     // Hash bcrypt de 'adm123': $2b$10$C0xyNMS3pZIaWvZIZ.l/aey./IL9mABMOoJVSjZHDyqT1yOgsddUe

@@ -964,8 +964,19 @@ app.get("/stats", async (_req, res, next) => {
       sourcesNames = "Ninguna";
     }
     
-    // 7. Usuarios activos (por ahora siempre 1 - el usuario actual)
-    const activeUsers = 1;
+    // 7. Usuarios activos = logins en los últimos 30 minutos
+    let activeUsers = 0;
+    try {
+      const activeResult = await db.query(`
+        SELECT COUNT(*) as count
+        FROM usuarios
+        WHERE activo = true
+          AND last_login_at >= NOW() - INTERVAL '30 minutes'
+      `);
+      activeUsers = parseInt(activeResult.rows[0]?.count || "0", 10);
+    } catch (err: any) {
+      console.warn(`[STATS] ⚠️ No se pudo contar usuarios activos (¿columna last_login_at?):`, err.message);
+    }
     
     const stats = {
       queue: queueCount,
@@ -1357,7 +1368,43 @@ app.post("/auth/login", async (req, res, next) => {
         message: "Email o contraseña incorrectos"
       });
     }
+
+    // Límite de usuarios simultáneos (activos = login en últimos 15 min)
+    const MAX_CONCURRENT_USERS = Math.max(1, parseInt(process.env.LEGAL_DOCS_MAX_CONCURRENT_USERS || "10", 10));
+    const SESSION_WINDOW_MINUTES = Math.max(5, parseInt(process.env.LEGAL_DOCS_SESSION_WINDOW_MINUTES || "15", 10));
+    try {
+      const countResult = await db.query(`
+        SELECT COUNT(DISTINCT id) AS total
+        FROM usuarios
+        WHERE activo = true
+          AND last_login_at >= NOW() - INTERVAL '1 minute' * $1
+      `, [SESSION_WINDOW_MINUTES]);
+      const activeCount = parseInt(countResult.rows[0]?.total || "0", 10);
+
+      const isCurrentUserAlreadyActive = await db.query(`
+        SELECT 1 FROM usuarios
+        WHERE id = $1 AND last_login_at >= NOW() - INTERVAL '1 minute' * $2
+      `, [usuario.id, SESSION_WINDOW_MINUTES]);
+      const alreadyCounted = (isCurrentUserAlreadyActive.rows?.length || 0) > 0;
+
+      if (activeCount >= MAX_CONCURRENT_USERS && !alreadyCounted) {
+        return res.status(503).json({
+          error: "Service Unavailable",
+          code: "MAX_USERS_REACHED",
+          message: "Se ha alcanzado el número máximo de usuarios conectados. Por favor, intente más tarde."
+        });
+      }
+    } catch (err: any) {
+      console.warn(`[AUTH] No se pudo verificar límite de usuarios:`, err.message);
+      // Si falla la verificación (ej. columna inexistente), permitir login
+    }
     
+    // Actualizar last_login_at para estadísticas de usuarios activos
+    await db.query(
+      `UPDATE usuarios SET last_login_at = NOW() WHERE id = $1`,
+      [usuario.id]
+    ).catch((err: any) => console.warn(`[AUTH] No se pudo actualizar last_login_at:`, err.message));
+
     // Retornar información del usuario (sin password_hash)
     console.log(`[AUTH] ✅ Login exitoso: ${usuario.email} (${usuario.rol})`);
     res.json({
@@ -1410,6 +1457,20 @@ app.post("/usuarios", async (req, res, next) => {
       return res.status(400).json({ 
         error: "Bad request",
         message: "email, nombre y password son requeridos"
+      });
+    }
+
+    // Límite: solo 10 usuarios (excl. admin); el 11.º no puede registrarse
+    const MAX_REGISTERED_USERS = Math.max(1, parseInt(process.env.LEGAL_DOCS_MAX_REGISTERED_USERS || "10", 10));
+    const countResult = await db.query(`
+      SELECT COUNT(*) AS total FROM usuarios WHERE rol != 'admin'
+    `);
+    const totalNoAdmin = parseInt(countResult.rows[0]?.total || "0", 10);
+    if (totalNoAdmin >= MAX_REGISTERED_USERS) {
+      return res.status(403).json({
+        error: "Forbidden",
+        code: "MAX_USERS_LIMIT",
+        message: "Se alcanzó el límite de usuarios de su plan. Suba al siguiente plan para agregar más usuarios."
       });
     }
     

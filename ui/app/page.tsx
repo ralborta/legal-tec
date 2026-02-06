@@ -818,8 +818,8 @@ function KPIGrid() {
           },
           { 
             title: "Usuarios Activos", 
-            value: String(stats.activeUsers || 1), 
-            caption: "Usuario actual", 
+            value: String(stats.activeUsers ?? 0), 
+            caption: "últ. 30 min", 
             icon: Users, 
             color: "text-slate-600" 
           },
