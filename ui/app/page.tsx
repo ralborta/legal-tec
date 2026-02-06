@@ -1,7 +1,7 @@
 "use client";
 import React, { useMemo, useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { Search, FileText, Gavel, BookOpen, CheckCircle2, Clock3, Users, Settings, Upload, Send, Download, ExternalLink, Trash2, Filter, Plus, History, Sparkles, Loader2, Eye, X, GitCompare, LogOut } from "lucide-react";
+import { Search, FileText, Gavel, BookOpen, CheckCircle2, Clock3, Users, Settings, Upload, Send, Download, ExternalLink, Trash2, Filter, Plus, History, Sparkles, Loader2, Eye, X, GitCompare, LogOut, Paperclip } from "lucide-react";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 
@@ -6622,11 +6622,11 @@ function ChatDocumentoPersonalizado({
           />
           <button
             onClick={() => referenceInputRef.current?.click()}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-lg border-2 border-gray-300 bg-white text-gray-600 hover:border-purple-400 hover:bg-purple-50 hover:text-purple-700 transition-colors"
             disabled={generando}
-            title="Adjuntar 1-2 documentos ejemplo (PDF/DOCX/TXT)"
+            title="Adjuntar archivo"
           >
-            +
+            <Paperclip className="h-5 w-5" aria-hidden />
           </button>
           <select
             value={modoGeneracion}
