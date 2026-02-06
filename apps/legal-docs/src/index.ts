@@ -1421,6 +1421,28 @@ app.post("/auth/login", async (req, res, next) => {
   }
 });
 
+// Refrescar datos del usuario actual (rol, etc.) sin exponer la lista completa
+app.get("/auth/me", async (req, res, next) => {
+  try {
+    const email = (req.query.email as string)?.trim();
+    if (!email) {
+      return res.status(400).json({ error: "Bad request", message: "email es requerido" });
+    }
+    const result = await db.query(
+      `SELECT id, email, nombre, rol FROM usuarios WHERE email = $1 AND activo = true`,
+      [email.toLowerCase()]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Not found", message: "Usuario no encontrado" });
+    }
+    const row = result.rows[0];
+    res.json({ usuario: { id: row.id, email: row.email, nombre: row.nombre, rol: row.rol } });
+  } catch (err: any) {
+    console.error(`[AUTH] ❌ Error en /auth/me:`, err);
+    next(err);
+  }
+});
+
 // Endpoint para obtener lista de usuarios (solo admin)
 app.get("/usuarios", async (req, res, next) => {
   try {

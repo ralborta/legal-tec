@@ -153,12 +153,25 @@ export default function CentroGestionLegalPage() {
   const [usuario, setUsuario] = useState<{id: string; email: string; nombre: string; rol: string} | null>(null);
   const [showLogin, setShowLogin] = useState(false);
   
-  // Cargar sesión desde localStorage al iniciar
+  // Cargar sesión desde localStorage al iniciar y refrescar rol desde el servidor
   useEffect(() => {
     const savedUsuario = localStorage.getItem("legal-usuario");
     if (savedUsuario) {
       try {
-        setUsuario(JSON.parse(savedUsuario));
+        const parsed = JSON.parse(savedUsuario);
+        setUsuario(parsed);
+        // Refrescar datos del usuario desde el servidor para que el rol (admin/usuario) esté siempre actualizado
+        const API = getApiUrl();
+        if (API && parsed?.email) {
+          fetch(`${API}/legal/auth/me?email=${encodeURIComponent(parsed.email)}`)
+            .then((r) => (r.ok ? r.json() : null))
+            .then((data: { usuario?: { id: string; email: string; nombre: string; rol: string } }) => {
+              if (data?.usuario) {
+                setUsuario(data.usuario);
+              }
+            })
+            .catch(() => {});
+        }
       } catch (e) {
         console.warn("Error al cargar sesión:", e);
       }
