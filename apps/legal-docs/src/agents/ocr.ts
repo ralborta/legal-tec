@@ -1,11 +1,67 @@
 import OpenAI from "openai";
 import { PDFParse } from "pdf-parse";
 import mammoth from "mammoth";
-import { writeFileSync, unlinkSync, createReadStream } from "fs";
+import {
+  writeFileSync,
+  unlinkSync,
+  createReadStream,
+  mkdirSync,
+  readdirSync,
+  rmSync,
+} from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
+import { execFile } from "child_process";
+import { promisify } from "util";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+const execFileAsync = promisify(execFile);
+
+async function extractPdfTextViaLocalOcr(buffer: Buffer, filename: string): Promise<string> {
+  const safeBase = filename.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const tmpRoot = join(tmpdir(), `ocr-local-${Date.now()}-${safeBase}`);
+  const pdfPath = join(tmpRoot, "input.pdf");
+  const outPrefix = join(tmpRoot, "page");
+
+  mkdirSync(tmpRoot, { recursive: true });
+  try {
+    writeFileSync(pdfPath, buffer);
+
+    // Convertir a PNG (1 imagen por página). -r 200 da buen balance calidad/tiempo.
+    await execFileAsync("pdftoppm", ["-r", "200", "-png", pdfPath, outPrefix]);
+
+    const images = readdirSync(tmpRoot)
+      .filter((f) => f.startsWith("page-") && f.endsWith(".png"))
+      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }));
+
+    if (!images.length) {
+      throw new Error("No se generaron imágenes desde el PDF");
+    }
+
+    const maxPages = Number(process.env.OCR_MAX_PAGES || 10);
+    const selected = images.slice(0, Math.max(1, maxPages));
+
+    const pageTexts: string[] = [];
+    for (let i = 0; i < selected.length; i++) {
+      const imgPath = join(tmpRoot, selected[i]);
+      // OCR en stdout. Español + inglés ayuda a contratos mixtos.
+      const { stdout } = await execFileAsync("tesseract", [imgPath, "stdout", "-l", "spa+eng"]);
+      const text = (stdout || "").trim();
+      if (text) {
+        pageTexts.push(`\n\n--- Página ${i + 1} ---\n${text}`);
+      }
+    }
+
+    return pageTexts.join("\n").trim();
+  } finally {
+    try {
+      rmSync(tmpRoot, { recursive: true, force: true });
+    } catch {
+      // ignore
+    }
+  }
+}
 
 async function extractPdfTextViaOpenAIResponses(buffer: Buffer, filename: string): Promise<string> {
   // Nota: el SDK/entorno puede no soportar Responses API. Este método se llama dentro de try/catch.
@@ -143,6 +199,15 @@ export async function ocrAgent(file: {
         if (extracted.length >= 200) {
           return extracted;
         }
+        // Fallback 1 (gratis): OCR local con poppler + tesseract
+        try {
+          const localOcr = (await extractPdfTextViaLocalOcr(file.buffer, file.filename)).trim();
+          if (localOcr.length >= 50) return localOcr;
+        } catch (e) {
+          console.error("Error local OCR for PDF:", e);
+        }
+
+        // Fallback 2: OpenAI
         if (!process.env.OPENAI_API_KEY) {
           return extracted;
         }
@@ -153,6 +218,13 @@ export async function ocrAgent(file: {
       }
     } catch (error) {
       console.error("Error parsing PDF:", error);
+      // Intentar OCR local incluso si pdf-parse falla
+      try {
+        const localOcr = (await extractPdfTextViaLocalOcr(file.buffer, file.filename)).trim();
+        if (localOcr.length >= 50) return localOcr;
+      } catch (e) {
+        console.error("Error local OCR for PDF after parse failure:", e);
+      }
       if (process.env.OPENAI_API_KEY) {
         try {
           const ocrText = (await extractFileTextViaOpenAI(file.buffer, file.filename)).trim();
