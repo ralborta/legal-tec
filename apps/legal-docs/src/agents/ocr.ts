@@ -250,30 +250,41 @@ export async function ocrAgent(file: {
   
   // Si es PDF, extraer texto directamente
   if (file.mimeType === "application/pdf" || filenameLower.endsWith(".pdf")) {
+    const docAiOk = isDocumentAIConfigured();
+    console.log(`[OCR] PDF: ${file.buffer.length} bytes, Document AI configurado: ${docAiOk ? "SÍ" : "NO"}`);
+
+    if (docAiOk) {
+      try {
+        console.log("[OCR] Intentando Google Document AI primero (recomendado para escaneos)...");
+        const docAiText = await extractTextViaDocumentAI(file.buffer, file.mimeType);
+        if (docAiText && docAiText.length >= 100) {
+          console.log(`[OCR] Document AI OK: ${docAiText.length} caracteres`);
+          return docAiText;
+        }
+        if (docAiText) console.log(`[OCR] Document AI devolvió poco (${docAiText.length} chars), probando otros...`);
+      } catch (e) {
+        console.error("[OCR] Error Document AI:", e instanceof Error ? e.message : e);
+      }
+    }
+
     try {
       const parser = new PDFParse({ data: file.buffer });
       try {
         const data = await parser.getText();
         const extracted = (data.text || "").trim();
         if (extracted.length >= 200) {
+          console.log(`[OCR] pdf-parse OK: ${extracted.length} caracteres`);
           return extracted;
-        }
-        // Si está configurado Google Document AI, usarlo primero (muy bueno para escaneos y fotos).
-        if (isDocumentAIConfigured()) {
-          try {
-            console.log("[OCR] Intentando Google Document AI...");
-            const docAiText = await extractTextViaDocumentAI(file.buffer, file.mimeType);
-            if (docAiText && docAiText.length >= 50) return docAiText;
-          } catch (e) {
-            console.error("Error Document AI:", e);
-          }
         }
         const preferTesseract = process.env.OCR_PREFER_TESSERACT === "true" || process.env.OCR_PREFER_TESSERACT === "1";
         if (preferTesseract) {
           // Modo económico: tesseract primero (gratis), Vision solo si falla o devuelve poco.
           try {
             const localOcr = (await extractPdfTextViaLocalOcr(file.buffer, file.filename)).trim();
-            if (localOcr.length >= 100) return localOcr;
+            if (localOcr.length >= 100) {
+              console.log(`[OCR] tesseract OK: ${localOcr.length} caracteres`);
+              return localOcr;
+            }
           } catch (e) {
             console.error("Error local OCR for PDF:", e);
           }
@@ -294,7 +305,10 @@ export async function ocrAgent(file: {
         if (!preferTesseract) {
           try {
             const localOcr = (await extractPdfTextViaLocalOcr(file.buffer, file.filename)).trim();
-            if (localOcr.length >= 50) return localOcr;
+            if (localOcr.length >= 50) {
+              console.log(`[OCR] tesseract OK: ${localOcr.length} caracteres`);
+              return localOcr;
+            }
           } catch (e) {
             console.error("Error local OCR for PDF:", e);
           }
@@ -302,10 +316,13 @@ export async function ocrAgent(file: {
 
         // Último recurso: OpenAI (PDF completo con Responses/Assistants API)
         if (!process.env.OPENAI_API_KEY) {
+          console.log(`[OCR] Sin OPENAI_API_KEY; devolviendo texto pdf-parse: ${extracted.length} caracteres`);
           return extracted;
         }
         const ocrText = (await extractFileTextViaOpenAI(file.buffer, file.filename)).trim();
-        return ocrText || extracted;
+        const final = ocrText || extracted;
+        console.log(`[OCR] OpenAI fallback: ${ocrText.length} chars, usando ${final.length} caracteres`);
+        return final;
       } finally {
         await parser.destroy();
       }
@@ -338,7 +355,10 @@ export async function ocrAgent(file: {
       }
       try {
         const localOcr = (await extractPdfTextViaLocalOcr(file.buffer, file.filename)).trim();
-        if (localOcr.length >= 50) return localOcr;
+        if (localOcr.length >= 50) {
+          console.log(`[OCR] tesseract (post-fallo parse) OK: ${localOcr.length} caracteres`);
+          return localOcr;
+        }
       } catch (e) {
         console.error("Error local OCR for PDF after parse failure:", e);
       }
