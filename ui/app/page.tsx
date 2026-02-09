@@ -2083,11 +2083,10 @@ function AnalizarDocumentosPanel() {
         const analyzeResponse = await fetchWithTimeout(`${API}/legal/analyze/${uploadedDocumentIds[0]}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(
-            trimmedInstructions
-              ? { instructions: trimmedInstructions }
-              : {}
-          ),
+          body: JSON.stringify({
+            forceReanalyze: true,
+            ...(trimmedInstructions ? { instructions: trimmedInstructions } : {}),
+          }),
         }, 30000);
 
         if (!analyzeResponse.ok) {
@@ -4034,6 +4033,7 @@ function AnalysisResultPanel({
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
+  const [forceReanalyzing, setForceReanalyzing] = useState(false);
   const [showRegenerateModal, setShowRegenerateModal] = useState(false);
   const [pendingRegenerate, setPendingRegenerate] = useState(false);
   const API = useMemo(() => getApiUrl(), []);
@@ -4309,7 +4309,10 @@ function AnalysisResultPanel({
       const analyzeResponse = await fetchWithTimeout(`${API}/legal/analyze/${documentId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(instructionsToSend ? { instructions: instructionsToSend } : {}),
+        body: JSON.stringify({
+          forceReanalyze: true,
+          ...(instructionsToSend ? { instructions: instructionsToSend } : {}),
+        }),
       }, 30000);
       
       if (!analyzeResponse.ok) {
@@ -4337,6 +4340,39 @@ function AnalysisResultPanel({
       setPendingRegenerate(false);
     }
   };
+
+  const handleForceReanalyze = async () => {
+    if (!API || !documentId || forceReanalyzing || regenerating) return;
+    setForceReanalyzing(true);
+    if (setAnalyzing) setAnalyzing(true);
+    if (setProgress) setProgress(0);
+    if (setStatusLabel) setStatusLabel("Re-analizando desde cero (Document AI)...");
+    try {
+      const analyzeResponse = await fetchWithTimeout(`${API}/legal/analyze/${documentId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          forceReanalyze: true,
+          ...(originalInstructions ? { instructions: originalInstructions } : {}),
+        }),
+      }, 30000);
+      if (!analyzeResponse.ok) {
+        throw new Error(`Error ${analyzeResponse.status}: ${await analyzeResponse.text()}`);
+      }
+      if (onRegenerate && documentId) onRegenerate(documentId);
+      if (pollForResults && documentId) pollForResults(documentId);
+    } catch (err: any) {
+      alert(`Error al re-analizar: ${err.message || "Intenta de nuevo"}`);
+      if (setAnalyzing) setAnalyzing(false);
+    } finally {
+      setForceReanalyzing(false);
+    }
+  };
+
+  const showForceReanalyzeButton = report && (
+    (report.error && report.errorMessage?.includes("extracción")) ||
+    (typeof report.resumen_ejecutivo === "string" && report.resumen_ejecutivo.includes("no pudo ser leído"))
+  );
 
   return (
     <div className="bg-white p-6 rounded-xl border border-gray-200">
