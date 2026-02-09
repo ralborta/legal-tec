@@ -39,13 +39,21 @@ console.log("[LEGAL-DOCS] 🚀 Iniciando servicio legal-docs (Express)");
 console.log("[LEGAL-DOCS] Timestamp:", new Date().toISOString());
 console.log("=".repeat(60));
 
-// ✅ Health check (primera ruta, siempre disponible)
-app.get("/health", (_req, res) => {
+// ✅ Health check (primera ruta, siempre disponible). Incluye estado Document AI para diagnóstico sin depender de otra ruta.
+app.get("/health", async (_req, res) => {
+  let documentAi: Record<string, unknown> = {};
+  try {
+    const { getDocumentAIStatus } = await import("./agents/ocr-document-ai.js");
+    documentAi = getDocumentAIStatus();
+  } catch {
+    documentAi = { configured: false, message: "Módulo OCR no cargado" };
+  }
   res.json({ 
     status: "ok", 
     service: "legal-docs",
     framework: "express",
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    documentAi,
   });
 });
 
@@ -60,6 +68,12 @@ app.get("/metrics", async (_req, res) => {
     storage: storageStats,
     timestamp: new Date().toISOString()
   });
+});
+
+// Diagnóstico Document AI: ver si está configurado en ESTE servicio (legal-docs)
+app.get("/document-ai-status", async (_req, res) => {
+  const { getDocumentAIStatus } = await import("./agents/ocr-document-ai.js");
+  res.json(getDocumentAIStatus());
 });
 
 // ✅ Configurar multer con límite de tamaño (50MB)
