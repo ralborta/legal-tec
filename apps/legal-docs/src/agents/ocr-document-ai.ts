@@ -14,6 +14,41 @@ export function isDocumentAIConfigured(): boolean {
   return Boolean(PROJECT_ID && PROCESSOR_ID && (CREDENTIALS_JSON || process.env.GOOGLE_APPLICATION_CREDENTIALS));
 }
 
+/** Para diagnóstico: indica qué variables están seteadas (sin revelar valores). */
+export function getDocumentAIStatus(): {
+  configured: boolean;
+  hasProjectId: boolean;
+  hasProcessorId: boolean;
+  hasLocation: boolean;
+  hasCredentials: boolean;
+  message: string;
+  howToCheck: string;
+} {
+  const hasProjectId = Boolean(PROJECT_ID);
+  const hasProcessorId = Boolean(PROCESSOR_ID);
+  const hasLocation = Boolean(LOCATION);
+  const hasCredentials = Boolean(CREDENTIALS_JSON || process.env.GOOGLE_APPLICATION_CREDENTIALS);
+  const configured = hasProjectId && hasProcessorId && hasCredentials;
+  const missing: string[] = [];
+  if (!hasProjectId) missing.push("DOCUMENT_AI_PROJECT_ID");
+  if (!hasProcessorId) missing.push("DOCUMENT_AI_PROCESSOR_ID");
+  if (!hasCredentials) missing.push("GOOGLE_APPLICATION_CREDENTIALS_JSON (o GOOGLE_APPLICATION_CREDENTIALS)");
+  const message = configured
+    ? `Document AI listo (proyecto=${PROJECT_ID}, location=${LOCATION}, processor=${PROCESSOR_ID}). Al analizar un PDF, en los logs deberías ver [OCR-DocumentAI] Llamando API... y luego OK: N caracteres.`
+    : `Document AI no configurado. Faltan en este servicio: ${missing.join(", ")}. Agregá las variables en el servicio legal-docs de Railway.`;
+  return {
+    configured,
+    hasProjectId,
+    hasProcessorId,
+    hasLocation,
+    hasCredentials,
+    message,
+    howToCheck: configured
+      ? "Analizá un PDF y revisá los logs del servicio legal-docs: buscá [OCR] y [OCR-DocumentAI]. Si ves 'Document AI configurado: SÍ' y '[OCR-DocumentAI] Llamando API' pero no 'OK: N caracteres', el error aparecerá justo después."
+      : "Agregá DOCUMENT_AI_PROJECT_ID, DOCUMENT_AI_PROCESSOR_ID y GOOGLE_APPLICATION_CREDENTIALS_JSON en el servicio legal-docs (Railway), no en la API.",
+  };
+}
+
 function getClientOptions(): { credentials?: { client_email: string; private_key: string } } | Record<string, never> {
   if (!CREDENTIALS_JSON) return {};
   try {
