@@ -4,7 +4,7 @@ import { join } from "path";
 import { tmpdir } from "os";
 
 // Railway / entornos sin disco: si las credenciales GCP vienen en una variable (JSON como string), escribir a archivo temporal
-const credsJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+const credsJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON?.trim();
 if (credsJson && !process.env.GOOGLE_APPLICATION_CREDENTIALS) {
   try {
     const dir = mkdtempSync(join(tmpdir(), "gcp-creds-"));
@@ -15,6 +15,12 @@ if (credsJson && !process.env.GOOGLE_APPLICATION_CREDENTIALS) {
   } catch (e) {
     console.error("[LEGAL-DOCS] Error escribiendo credenciales GCP:", e);
   }
+}
+
+if (process.env.DOCUMENT_AI_PROJECT_ID && process.env.DOCUMENT_AI_PROCESSOR_ID) {
+  console.log("[LEGAL-DOCS] Document AI configurado:", process.env.DOCUMENT_AI_PROJECT_ID, process.env.DOCUMENT_AI_LOCATION || "us", process.env.DOCUMENT_AI_PROCESSOR_ID);
+} else {
+  console.log("[LEGAL-DOCS] Document AI no configurado (DOCUMENT_AI_PROJECT_ID y DOCUMENT_AI_PROCESSOR_ID requeridos)");
 }
 
 import express from "express";
