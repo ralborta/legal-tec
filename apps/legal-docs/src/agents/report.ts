@@ -117,11 +117,6 @@ export async function generateReport(input: ReportInput): Promise<AnalysisReport
       console.warn(`[REPORT] ⚠️ Texto original muy breve (${originalLength} caracteres). Se instruye al modelo a no inventar datos.`);
     }
 
-    // Para análisis conjunto, necesitamos MÁS texto (múltiples documentos)
-    const isConjointAnalysis = input.userInstructions?.includes("ANÁLISIS CONJUNTO") || 
-                                 input.userInstructions?.includes("múltiples documentos") ||
-                                 input.original.includes("DOCUMENTO 1 de") ||
-                                 input.original.includes("DOCUMENTO 2 de");
     // Tamaño optimizado del texto del documento (balance entre contexto y tokens)
     const maxTextLength = isConjointAnalysis ? 8000 : 6000; // Aumentado ligeramente para mejor contexto
     
