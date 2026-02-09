@@ -3853,7 +3853,7 @@ function DocumentosSugeridosPanel({ analysisResult }: { analysisResult: any }) {
         Documentos Sugeridos
       </h4>
       <p className="text-xs text-gray-500 mb-4">
-        Basados en el análisis, se sugieren los siguientes documentos. Los datos faltantes se marcan con <span className="bg-yellow-200 px-1 rounded font-mono">XXXXXX</span> y podés completarlos haciendo click.
+        Plantillas de documentos que podés generar a partir de este análisis (no es una comparación con otros archivos). Los datos faltantes se marcan con <span className="bg-yellow-200 px-1 rounded font-mono">XXXXXX</span> y podés completarlos haciendo click.
       </p>
       
       <div className="space-y-2">
@@ -4655,6 +4655,7 @@ function AnalysisResultPanel({
             {report?.documentos_sugeridos && Array.isArray(report.documentos_sugeridos) && report.documentos_sugeridos.length > 0 && (
               <div>
                 <h4 className="font-semibold text-gray-900 mb-3">Documentos Sugeridos</h4>
+                <p className="text-xs text-gray-500 mb-2">Plantillas que podés generar a partir de este análisis (no es comparación con otros archivos).</p>
                 <div className="space-y-2">
                   {report.documentos_sugeridos.map((doc: any, i: number) => (
                     <div key={i} className="bg-blue-50 border border-blue-200 rounded-lg p-3">

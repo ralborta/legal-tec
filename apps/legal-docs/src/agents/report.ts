@@ -111,6 +111,12 @@ export async function generateReport(input: ReportInput): Promise<AnalysisReport
           .join("\n")
       : "Sin checklist disponible";
 
+    const originalLength = input.original.trim().length;
+    const textTooShort = !isConjointAnalysis && originalLength < 600;
+    if (textTooShort) {
+      console.warn(`[REPORT] ⚠️ Texto original muy breve (${originalLength} caracteres). Se instruye al modelo a no inventar datos.`);
+    }
+
     // Para análisis conjunto, necesitamos MÁS texto (múltiples documentos)
     const isConjointAnalysis = input.userInstructions?.includes("ANÁLISIS CONJUNTO") || 
                                  input.userInstructions?.includes("múltiples documentos") ||
@@ -166,7 +172,8 @@ ${FUENTES_LEGALES}
 INSTRUCCIONES DEL USUARIO:
 ${instructionsText}
 
-${instructionsText.includes("ANÁLISIS CONJUNTO") || instructionsText.includes("múltiples documentos") ? `IMPORTANTE: Estás analizando múltiples documentos. Usa PLURAL ("los documentos", "estos documentos") en TODAS las secciones. El título debe ser "Análisis Legal Conjunto de [N] Documentos".` : `IMPORTANTE: Estás analizando UN SOLO documento (puede tener varias páginas). El título DEBE ser "Análisis Legal de [tipo] - [descripción o partes]". NUNCA uses "Análisis Legal Conjunto de N Documentos" — eso es solo cuando el usuario subió varios archivos distintos. Las menciones "Página 1", "Página 2", etc. en el texto son páginas del MISMO documento, no documentos diferentes.`}
+${instructionsText.includes("ANÁLISIS CONJUNTO") || instructionsText.includes("múltiples documentos") ? `IMPORTANTE: Estás analizando múltiples documentos. Usa PLURAL ("los documentos", "estos documentos") en TODAS las secciones. El título debe ser "Análisis Legal Conjunto de [N] Documentos".` : `IMPORTANTE: Estás analizando UN SOLO documento (puede tener varias páginas). NO es una comparación entre archivos ni entre documentos. El título DEBE ser "Análisis Legal de [tipo] - [descripción o partes]". NUNCA uses "Análisis Legal Conjunto de N Documentos" — eso es solo cuando el usuario subió varios archivos distintos. Las menciones "Página 1", "Página 2", etc. en el texto son páginas del MISMO documento, no documentos diferentes. Extrae partes, montos y datos SOLO del texto proporcionado; no inventes "Empresa A", "Empresa B" ni datos genéricos.`}
+${textTooShort ? `\nADVERTENCIA CRÍTICA: El texto extraído del documento es MUY BREVE (${originalLength} caracteres). Probablemente el OCR no leyó bien el archivo. NO inventes nombres de partes, montos, plazos ni datos. En el resumen_ejecutivo indica claramente que "El documento no pudo ser leído correctamente (extracción de texto insuficiente)" y recomienda re-subir el archivo o usar un PDF de mejor calidad/OCR. Reduce los mínimos de cláusulas/riesgos/recomendaciones si el texto no da para más.\n` : ""}
 
 TIPO DE DOCUMENTO: ${input.type}
 
