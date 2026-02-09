@@ -10,6 +10,13 @@ const LOCATION = process.env.DOCUMENT_AI_LOCATION || "us";
 const PROCESSOR_ID = process.env.DOCUMENT_AI_PROCESSOR_ID;
 const CREDENTIALS_JSON = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON?.trim();
 
+/** Último error de Document AI (para diagnóstico en resultado). */
+let lastDocumentAiError: string | null = null;
+
+export function getLastDocumentAiError(): string | null {
+  return lastDocumentAiError;
+}
+
 export function isDocumentAIConfigured(): boolean {
   return Boolean(PROJECT_ID && PROCESSOR_ID && (CREDENTIALS_JSON || process.env.GOOGLE_APPLICATION_CREDENTIALS));
 }
@@ -103,15 +110,20 @@ export async function extractTextViaDocumentAI(
     const doc = result?.document as { text?: string } | undefined;
     const text = (doc?.text ?? "").trim();
     if (text && text.length >= 50) {
+      lastDocumentAiError = null;
       console.log(`[OCR-DocumentAI] OK: ${text.length} caracteres`);
       return text;
     }
-    if (text) console.log(`[OCR-DocumentAI] Respuesta muy corta (${text.length} chars), se considera fallo`);
+    if (text) {
+      lastDocumentAiError = `Respuesta muy corta (${text.length} caracteres)`;
+      console.log(`[OCR-DocumentAI] Respuesta muy corta (${text.length} chars), se considera fallo`);
+    }
     return null;
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     const code = err && typeof err === "object" && "code" in err ? (err as { code: number }).code : undefined;
     const details = err && typeof err === "object" && "details" in err ? (err as { details: string }).details : undefined;
+    lastDocumentAiError = [msg, code !== undefined ? `code=${code}` : "", details ? String(details) : ""].filter(Boolean).join(" ");
     console.error("[OCR-DocumentAI] Error:", msg, code !== undefined ? `(code=${code})` : "", details ? String(details) : "");
     if (err instanceof Error && err.stack) console.error("[OCR-DocumentAI] Stack:", err.stack);
     return null;

@@ -4376,6 +4376,12 @@ function AnalysisResultPanel({
 
   return (
     <div className="bg-white p-6 rounded-xl border border-gray-200">
+      {(report as any)?.ocrProblem && (
+        <div className="mb-4 p-4 bg-red-50 border-2 border-red-400 rounded-lg">
+          <p className="font-bold text-red-800 text-sm uppercase tracking-wide">⚠️ OCR PROBLEM</p>
+          <p className="text-red-900 text-sm mt-1">{(report as any).ocrProblem}</p>
+        </div>
+      )}
       <div className="flex items-center justify-between mb-4">
             <div>
           <h3 className="font-bold text-lg text-gray-900">Resultado del Análisis</h3>
@@ -4524,6 +4530,23 @@ function AnalysisResultPanel({
       <div className="max-h-[500px] overflow-y-auto">
         {activeTab === "resumen" && (
           <div className="space-y-4">
+            {(report as any)?.ocrDiagnostic && (
+              <div className="bg-amber-50 border border-amber-300 rounded-lg p-4 text-sm">
+                <p className="font-semibold text-amber-900 mb-1">Diagnóstico OCR</p>
+                <p className="text-amber-800">
+                  Texto extraído: {(report as any).ocrDiagnostic.originalLength} caracteres.
+                  {(report as any).ocrDiagnostic.documentAiConfigured && (
+                    <span> Document AI estaba configurado pero no se usó.</span>
+                  )}
+                </p>
+                {(report as any).ocrDiagnostic.documentAiError && (
+                  <p className="text-amber-900 mt-2 font-mono text-xs break-all">
+                    Error Document AI: {(report as any).ocrDiagnostic.documentAiError}
+                  </p>
+                )}
+                <p className="text-amber-700 text-xs mt-2">{(report as any).ocrDiagnostic.hint}</p>
+              </div>
+            )}
               <div>
               <h4 className="font-semibold text-gray-900 mb-2">{report?.titulo || "Análisis del Documento"}</h4>
               <div className="text-sm text-gray-700 bg-gray-50 p-4 rounded-lg whitespace-pre-wrap">

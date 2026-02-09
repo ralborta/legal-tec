@@ -1,7 +1,7 @@
 import { legalDb } from "./db.js";
 import { getDocumentBuffer } from "./storage.js";
 import { ocrAgent } from "./agents/ocr.js";
-import { isDocumentAIConfigured } from "./agents/ocr-document-ai.js";
+import { isDocumentAIConfigured, getLastDocumentAiError } from "./agents/ocr-document-ai.js";
 import { translatorAgent } from "./agents/translator.js";
 import { classifierAgent } from "./agents/classifier.js";
 import { runDistributionAnalyzer } from "./agents/analyzerDistribution.js";
@@ -202,7 +202,7 @@ async function updateAnalysisStatus(documentId: string, status: string, progress
   }
 }
 
-export async function runFullAnalysis(documentId: string, userInstructions?: string | null) {
+export async function runFullAnalysis(documentId: string, userInstructions?: string | null, forceReanalyze?: boolean) {
   const startTime = Date.now();
   // Aumentar timeout: el reporte puede tardar hasta 5 min, más tiempo para OCR, traducción, etc.
   const MAX_PIPELINE_TIME = 420000; // 7 minutos máximo para todo el pipeline (reporte 5min + otros pasos 2min)
@@ -256,16 +256,19 @@ export async function runFullAnalysis(documentId: string, userInstructions?: str
     }
 
     // Si hay un análisis previo, usar datos existentes para evitar llamadas innecesarias
-    // EXCEPCIÓN: si el texto original guardado es muy corto (< 500 chars), re-ejecutar OCR (p. ej. Document AI no estaba configurado la primera vez)
-    const existingAnalysis = await legalDb.getAnalysis(documentId);
+    // EXCEPCIÓN: forceReanalyze=true (re-análisis forzado) o texto original muy corto (< 500 chars) → re-ejecutar OCR
+    const existingAnalysis = forceReanalyze ? null : await legalDb.getAnalysis(documentId);
     const MIN_ORIGINAL_LENGTH_TO_REUSE = 500;
     let existingOriginalLength = 0;
     if (existingAnalysis?.original) {
       const orig = existingAnalysis.original as { text?: string } | string;
       existingOriginalLength = typeof orig === "string" ? orig.length : (orig?.text?.length ?? 0);
     }
-    const shouldReuseAnalysis = existingAnalysis && existingAnalysis.original && existingAnalysis.translated && existingOriginalLength >= MIN_ORIGINAL_LENGTH_TO_REUSE;
+    const shouldReuseAnalysis = !forceReanalyze && existingAnalysis && existingAnalysis.original && existingAnalysis.translated && existingOriginalLength >= MIN_ORIGINAL_LENGTH_TO_REUSE;
 
+    if (forceReanalyze) {
+      console.log(`[PIPELINE] Re-análisis forzado: OCR desde cero (Document AI).`);
+    }
     if (shouldReuseAnalysis) {
       console.log(`[PIPELINE] ⚠️ Análisis previo encontrado para ${documentId} (${existingOriginalLength} chars), usando datos existentes`);
       if (trimmedInstructions || !existingAnalysis.report) {
@@ -345,6 +348,27 @@ export async function runFullAnalysis(documentId: string, userInstructions?: str
   });
   console.log(`[PIPELINE] Report generated`);
   await updateAnalysisStatus(documentId, "saving", 90);
+
+  // Diagnóstico OCR: cuando el texto es corto, guardar causa para que la UI lo muestre
+  const documentAiError = getLastDocumentAiError();
+  if (originalText.length < 500) {
+    (report as unknown as Record<string, unknown>).ocrDiagnostic = {
+      originalLength: originalText.length,
+      documentAiConfigured: isDocumentAIConfigured(),
+      documentAiError: documentAiError || undefined,
+      hint: documentAiError
+        ? "Document AI falló; se usó otro método (pdf-parse/Vision). Revisar variables y permisos en Railway."
+        : isDocumentAIConfigured()
+          ? "Revisar logs [OCR-DocumentAI] en legal-docs (Railway)."
+          : "Document AI no está configurado en legal-docs. Agregar variables en Railway.",
+    };
+    // Mensaje claro para el usuario cuando falló Document AI (el otro método no sirve bien para escaneos)
+    if (documentAiError && isDocumentAIConfigured()) {
+      (report as unknown as Record<string, unknown>).ocrProblem = `OCR PROBLEM: Google Document AI no pudo leer el documento. Error: ${documentAiError}. El método alternativo devolvió muy poco texto (${originalText.length} caracteres). Revisá variables y permisos en Railway (servicio legal-docs) o los logs [OCR-DocumentAI].`;
+    } else if (originalText.length < 300) {
+      (report as unknown as Record<string, unknown>).ocrProblem = `OCR PROBLEM: El texto extraído es insuficiente (${originalText.length} caracteres). Para PDFs escaneados hace falta Google Document AI configurado en legal-docs. Revisá /health en legal-docs y los logs.`;
+    }
+  }
 
   // 6. Guardar análisis
   console.log(`[PIPELINE] Guardando análisis en la DB para ${documentId}... (texto original: ${originalText.length} caracteres)`);
