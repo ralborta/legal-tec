@@ -1,4 +1,22 @@
 import "dotenv/config";
+import { writeFileSync, mkdtempSync } from "fs";
+import { join } from "path";
+import { tmpdir } from "os";
+
+// Railway / entornos sin disco: si las credenciales GCP vienen en una variable (JSON como string), escribir a archivo temporal
+const credsJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+if (credsJson && !process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+  try {
+    const dir = mkdtempSync(join(tmpdir(), "gcp-creds-"));
+    const path = join(dir, "credentials.json");
+    writeFileSync(path, credsJson, "utf8");
+    process.env.GOOGLE_APPLICATION_CREDENTIALS = path;
+    console.log("[LEGAL-DOCS] Credenciales GCP cargadas desde GOOGLE_APPLICATION_CREDENTIALS_JSON");
+  } catch (e) {
+    console.error("[LEGAL-DOCS] Error escribiendo credenciales GCP:", e);
+  }
+}
+
 import express from "express";
 import multer from "multer";
 import { runFullAnalysis, regenerateReportOnly } from "./pipeline.js";

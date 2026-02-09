@@ -37,19 +37,39 @@ Si el PDF es escaneado y el sistema no lo lee:
 - Evitar sombras, hojas torcidas o recortes raros.
 - Si podés, exportar/guardar como PDF con “OCR incluido” desde el escáner (así el PDF ya trae capa de texto y a veces pdf-parse lo lee sin Vision).
 
-### 3. Integrar un OCR dedicado (medio/largo plazo)
+### 3. Google Document AI (ya integrado, opcional)
 
-Para escaneados muy malos o mucho volumen:
+Si Vision/tesseract no alcanzan, podés activar **Google Document AI**: está integrado en legal-docs y se usa automáticamente cuando está configurado. Sirve para **PDFs** y para **imágenes** (JPG/PNG) que suba el cliente.
+
+**Pasos:**
+
+1. **Cuenta Google Cloud:** Crear proyecto en [Google Cloud Console](https://console.cloud.google.com).
+2. **Activar Document AI API** en “APIs & Services” → “Enable APIs” → “Cloud Document AI API”.
+3. **Crear procesador:** En “Document AI” → “Processors” → “Create processor”. Elegir **“Document OCR”**. Región `us` o `eu`. Anotar el **Processor ID** (UUID).
+4. **Credenciales:** IAM → “Service accounts” → Create → descargar clave JSON. En el servidor donde corre legal-docs:
+   - Opción A: poner el archivo en disco y setear `GOOGLE_APPLICATION_CREDENTIALS=/ruta/al/archivo.json`.
+   - Opción B (Railway): crear variable de entorno con el **contenido** del JSON (no la ruta); en código se puede escribir a un archivo temporal y apuntar `GOOGLE_APPLICATION_CREDENTIALS` a ese archivo al arrancar.
+5. **Variables de entorno** en legal-docs:
+   - `DOCUMENT_AI_PROJECT_ID` = ID del proyecto GCP (ej. `mi-proyecto-123`)
+   - `DOCUMENT_AI_LOCATION` = `us` o `eu` (donde creaste el procesador)
+   - `DOCUMENT_AI_PROCESSOR_ID` = ID del procesador (UUID)
+
+Con eso, para cada **PDF** con poco texto (o cuando pdf-parse falle) y para cada **imagen** (JPG/PNG) se intenta primero Document AI. Si no está configurado, el flujo sigue igual (Vision → tesseract).
+
+**Costo:** Document AI cobra por página procesada; ver [precios](https://cloud.google.com/document-ai/pricing). Suele ser más robusto que Vision para escaneos y fotos de documentos.
+
+### 4. Otros OCR (Azure, AWS)
+
+Para escaneados muy malos o mucho volumen también se puede integrar:
 
 | Servicio | Ventaja | Costo / nota |
 |----------|--------|----------------|
-| **Google Document AI** | Muy bueno con documentos e idiomas | Por uso, cuenta GCP |
 | **Azure Document Intelligence** | Bueno para formularios y tablas | Por uso, cuenta Azure |
 | **AWS Textract** | Bueno para tablas y textos | Por uso, cuenta AWS |
 
-Implementación típica: en `apps/legal-docs/src/agents/ocr.ts`, si tenés una API key del servicio, llamar a su API de OCR con el buffer del PDF (o con las imágenes por página), obtener el texto y devolverlo como “original” del documento. El resto del pipeline (traducción, clasificación, reporte) sigue igual.
+Implementación: nuevo módulo similar a `ocr-document-ai.ts` que llame a la API del servicio y se invoque desde `ocr.ts` cuando corresponda.
 
-### 4. Reintentar después del deploy
+### 5. Reintentar después del deploy
 
 Tras cada cambio en OCR (Vision primero, DPI, tokens), hace falta **volver a desplegar** legal-docs y **volver a analizar** el mismo PDF (subir de nuevo o “Regenerar análisis”). Los análisis ya guardados no se reprocesan solos.
 

@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { PDFParse } from "pdf-parse";
 import mammoth from "mammoth";
+import { isDocumentAIConfigured, extractTextViaDocumentAI } from "./ocr-document-ai.js";
 import {
   writeFileSync,
   unlinkSync,
@@ -257,6 +258,16 @@ export async function ocrAgent(file: {
         if (extracted.length >= 200) {
           return extracted;
         }
+        // Si está configurado Google Document AI, usarlo primero (muy bueno para escaneos y fotos).
+        if (isDocumentAIConfigured()) {
+          try {
+            console.log("[OCR] Intentando Google Document AI...");
+            const docAiText = await extractTextViaDocumentAI(file.buffer, file.mimeType);
+            if (docAiText && docAiText.length >= 50) return docAiText;
+          } catch (e) {
+            console.error("Error Document AI:", e);
+          }
+        }
         const preferTesseract = process.env.OCR_PREFER_TESSERACT === "true" || process.env.OCR_PREFER_TESSERACT === "1";
         if (preferTesseract) {
           // Modo económico: tesseract primero (gratis), Vision solo si falla o devuelve poco.
@@ -300,7 +311,16 @@ export async function ocrAgent(file: {
       }
     } catch (error) {
       console.error("Error parsing PDF:", error);
-      // pdf-parse falló (ej. PDF corrupto o solo imágenes). Probar Vision primero.
+      if (isDocumentAIConfigured()) {
+        try {
+          console.log("[OCR] PDF falló parse, intentando Document AI...");
+          const docAiText = await extractTextViaDocumentAI(file.buffer, file.mimeType);
+          if (docAiText && docAiText.length >= 50) return docAiText;
+        } catch (e) {
+          console.error("Error Document AI after parse failure:", e);
+        }
+      }
+      // pdf-parse falló (ej. PDF corrupto o solo imágenes). Probar Vision.
       if (process.env.OPENAI_API_KEY) {
         try {
           console.log("[OCR] PDF falló parse, intentando Vision...");
@@ -396,7 +416,7 @@ export async function ocrAgent(file: {
     }
   }
 
-  // Si es imagen (JPG, JPEG, PNG), usar OpenAI Vision API
+  // Si es imagen (JPG, JPEG, PNG)
   if (
     file.mimeType === "image/jpeg" ||
     file.mimeType === "image/jpg" ||
@@ -406,11 +426,13 @@ export async function ocrAgent(file: {
     filenameLower.endsWith(".png")
   ) {
     try {
-      // Convertir imagen a base64 para OpenAI Vision
+      if (isDocumentAIConfigured()) {
+        const docAiText = await extractTextViaDocumentAI(file.buffer, file.mimeType);
+        if (docAiText && docAiText.length >= 50) return docAiText;
+      }
       const base64Image = file.buffer.toString("base64");
       const imageUrl = `data:${file.mimeType};base64,${base64Image}`;
 
-      // Usar OpenAI Vision API para extraer texto
       const response = await openai.chat.completions.create({
         model: "gpt-4o", // Mejor OCR en imágenes/escaneados
         messages: [
