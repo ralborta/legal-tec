@@ -73,7 +73,8 @@ async function extractPdfAllPagesViaVision(buffer: Buffer, filename: string): Pr
   mkdirSync(tmpRoot, { recursive: true });
   try {
     writeFileSync(pdfPath, buffer);
-    await execFileAsync("pdftoppm", ["-r", "200", "-png", pdfPath, outPrefix]);
+    const dpi = Number(process.env.OCR_VISION_DPI || 300);
+    await execFileAsync("pdftoppm", ["-r", String(dpi), "-png", pdfPath, outPrefix]);
     const images = readdirSync(tmpRoot)
       .filter((f) => f.startsWith("page-") && f.endsWith(".png"))
       .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }));
@@ -102,7 +103,7 @@ async function extractPdfAllPagesViaVision(buffer: Buffer, filename: string): Pr
             ],
           },
         ],
-        max_tokens: 4096,
+        max_tokens: 8192,
       });
       const text = (response.choices[0]?.message?.content || "").trim();
       if (text) pageTexts.push(`\n\n--- Página ${i + 1} ---\n${text}`);
@@ -256,25 +257,39 @@ export async function ocrAgent(file: {
         if (extracted.length >= 200) {
           return extracted;
         }
-        // Fallback 1 (gratis): OCR local con poppler + tesseract
-        try {
-          const localOcr = (await extractPdfTextViaLocalOcr(file.buffer, file.filename)).trim();
-          if (localOcr.length >= 50) return localOcr;
-        } catch (e) {
-          console.error("Error local OCR for PDF:", e);
+        const preferTesseract = process.env.OCR_PREFER_TESSERACT === "true" || process.env.OCR_PREFER_TESSERACT === "1";
+        if (preferTesseract) {
+          // Modo económico: tesseract primero (gratis), Vision solo si falla o devuelve poco.
+          try {
+            const localOcr = (await extractPdfTextViaLocalOcr(file.buffer, file.filename)).trim();
+            if (localOcr.length >= 100) return localOcr;
+          } catch (e) {
+            console.error("Error local OCR for PDF:", e);
+          }
         }
-
-        // Fallback 2: Primera página como imagen → gpt-4o Vision (muy bueno para escaneados)
+        // Vision (tiene costo por página). Si OCR_PREFER_TESSERACT no está, se usa primero para mejor calidad en escaneados.
         if (process.env.OPENAI_API_KEY) {
           try {
+            console.log("[OCR] PDF con poco texto, intentando Vision (todas las páginas)...");
             const visionText = (await extractPdfAllPagesViaVision(file.buffer, file.filename)).trim();
-            if (visionText.length >= 50) return visionText;
+            if (visionText.length >= 50) {
+              console.log(`[OCR] Vision OK: ${visionText.length} caracteres`);
+              return visionText;
+            }
           } catch (e) {
-            console.error("Error PDF todas las páginas con Vision:", e);
+            console.error("Error PDF Vision (todas las páginas):", e);
+          }
+        }
+        if (!preferTesseract) {
+          try {
+            const localOcr = (await extractPdfTextViaLocalOcr(file.buffer, file.filename)).trim();
+            if (localOcr.length >= 50) return localOcr;
+          } catch (e) {
+            console.error("Error local OCR for PDF:", e);
           }
         }
 
-        // Fallback 3: OpenAI (PDF completo con Responses/Assistants API)
+        // Último recurso: OpenAI (PDF completo con Responses/Assistants API)
         if (!process.env.OPENAI_API_KEY) {
           return extracted;
         }
@@ -285,19 +300,14 @@ export async function ocrAgent(file: {
       }
     } catch (error) {
       console.error("Error parsing PDF:", error);
-      // Intentar OCR local incluso si pdf-parse falla
-      try {
-        const localOcr = (await extractPdfTextViaLocalOcr(file.buffer, file.filename)).trim();
-        if (localOcr.length >= 50) return localOcr;
-      } catch (e) {
-        console.error("Error local OCR for PDF after parse failure:", e);
-      }
+      // pdf-parse falló (ej. PDF corrupto o solo imágenes). Probar Vision primero.
       if (process.env.OPENAI_API_KEY) {
         try {
+          console.log("[OCR] PDF falló parse, intentando Vision...");
           const visionText = (await extractPdfAllPagesViaVision(file.buffer, file.filename)).trim();
           if (visionText.length >= 50) return visionText;
         } catch (e) {
-          console.error("Error PDF Vision (todas las páginas) after parse failure:", e);
+          console.error("Error PDF Vision after parse failure:", e);
         }
         try {
           const ocrText = (await extractFileTextViaOpenAI(file.buffer, file.filename)).trim();
@@ -305,6 +315,12 @@ export async function ocrAgent(file: {
         } catch (e) {
           console.error("Error OCR fallback for PDF:", e);
         }
+      }
+      try {
+        const localOcr = (await extractPdfTextViaLocalOcr(file.buffer, file.filename)).trim();
+        if (localOcr.length >= 50) return localOcr;
+      } catch (e) {
+        console.error("Error local OCR for PDF after parse failure:", e);
       }
       throw new Error("Failed to extract text from PDF");
     }
