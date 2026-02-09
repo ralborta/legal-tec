@@ -255,11 +255,18 @@ export async function runFullAnalysis(documentId: string, userInstructions?: str
     }
 
     // Si hay un análisis previo, usar datos existentes para evitar llamadas innecesarias
+    // EXCEPCIÓN: si el texto original guardado es muy corto (< 500 chars), re-ejecutar OCR (p. ej. Document AI no estaba configurado la primera vez)
     const existingAnalysis = await legalDb.getAnalysis(documentId);
-    if (existingAnalysis && existingAnalysis.original && existingAnalysis.translated) {
-      console.log(`[PIPELINE] ⚠️ Análisis previo encontrado para ${documentId}, usando datos existentes para evitar llamadas innecesarias`);
-      // NO hacer OCR, traducción, clasificación de nuevo - usar datos existentes
-      // Solo regenerar el reporte si hay nuevas instrucciones o si el reporte está corrupto
+    const MIN_ORIGINAL_LENGTH_TO_REUSE = 500;
+    let existingOriginalLength = 0;
+    if (existingAnalysis?.original) {
+      const orig = existingAnalysis.original as { text?: string } | string;
+      existingOriginalLength = typeof orig === "string" ? orig.length : (orig?.text?.length ?? 0);
+    }
+    const shouldReuseAnalysis = existingAnalysis && existingAnalysis.original && existingAnalysis.translated && existingOriginalLength >= MIN_ORIGINAL_LENGTH_TO_REUSE;
+
+    if (shouldReuseAnalysis) {
+      console.log(`[PIPELINE] ⚠️ Análisis previo encontrado para ${documentId} (${existingOriginalLength} chars), usando datos existentes`);
       if (trimmedInstructions || !existingAnalysis.report) {
         console.log(`[PIPELINE] Regenerando solo el reporte con datos existentes...`);
         return await regenerateReportOnly(documentId, trimmedInstructions, existingAnalysis);
@@ -268,6 +275,9 @@ export async function runFullAnalysis(documentId: string, userInstructions?: str
         await updateAnalysisStatus(documentId, "completed", 100);
         return;
       }
+    }
+    if (existingAnalysis && existingAnalysis.original && existingOriginalLength > 0 && existingOriginalLength < MIN_ORIGINAL_LENGTH_TO_REUSE) {
+      console.log(`[PIPELINE] Texto original previo muy breve (${existingOriginalLength} chars). Re-ejecutando OCR (p. ej. Document AI).`);
     }
 
   const originalText = await ocrAgent({
