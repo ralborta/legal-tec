@@ -94,7 +94,7 @@ Document ID: ${item.documentId}
       console.warn(`[PIPELINE-MANY] ⚠️ Texto extraído insuficiente (${combinedText.trim().length} caracteres). No se generará análisis hueco.`);
       const errorReport = {
         error: true,
-        errorMessage: "No se pudo extraer texto de los documentos. Pueden ser PDFs escaneados de mala calidad o formatos no soportados. Intentá con otros archivos o asegurate de que tengan texto seleccionable.",
+        errorMessage: `No se pudo extraer texto de los ${documentIds.length} archivos. Si tu contrato es un solo documento de varias páginas, subí un único PDF (no cada página por separado). Si son escaneos, asegurate de que tengan buena calidad o que el PDF tenga texto seleccionable.`,
         errorType: "TEXT_EXTRACTION_FAILED",
       };
       await legalDb.upsertAnalysis({
@@ -335,7 +335,7 @@ export async function runFullAnalysis(documentId: string, userInstructions?: str
   await updateAnalysisStatus(documentId, "saving", 90);
 
   // 6. Guardar análisis
-  console.log(`[PIPELINE] Guardando análisis en la DB para ${documentId}...`);
+  console.log(`[PIPELINE] Guardando análisis en la DB para ${documentId}... (texto original: ${originalText.length} caracteres)`);
   try {
     await legalDb.upsertAnalysis({
       documentId,

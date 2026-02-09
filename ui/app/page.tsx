@@ -2373,6 +2373,11 @@ function AnalizarDocumentosPanel() {
                   {files.length < 5 && (
                     <p className="text-xs text-gray-500">Podés agregar hasta {5 - files.length} archivo{5 - files.length > 1 ? 's' : ''} más</p>
                   )}
+                  {files.length > 1 && (
+                    <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5 mt-1">
+                      Cada archivo se analiza como un documento. Si tu contrato es <strong>un solo PDF de varias páginas</strong>, subí un único archivo (no hace falta subir cada página por separado).
+                    </p>
+                  )}
                 </div>
               ) : (
                 <p className="text-sm text-gray-500">Arrastrá archivos (PDF, Word, TXT, JPG, PNG) o hacé click para subir (máx. 5)</p>
@@ -4215,7 +4220,7 @@ function AnalysisResultPanel({
           <p className="text-xs text-red-700 mb-3">{report.errorMessage || "Error desconocido al procesar el reporte"}</p>
           <p className="text-xs text-red-600">
             {isExtractionError
-              ? "Intentá con otro archivo o asegurate de que el PDF tenga texto seleccionable (no solo imágenes escaneadas de mala calidad)."
+              ? "Intentá con otro archivo o asegurate de que el PDF tenga texto seleccionable (no solo imágenes escaneadas de mala calidad). Si tu documento tiene varias páginas, subí un único PDF con todas las páginas, no un archivo por página."
               : "Esto puede ocurrir si el análisis fue interrumpido o si el reporte es demasiado grande. Por favor, intenta regenerar el análisis."}
           </p>
         </div>

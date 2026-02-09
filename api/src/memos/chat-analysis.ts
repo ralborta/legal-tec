@@ -91,8 +91,13 @@ ESTILO:
   let contextPrompt = "";
 
   if (hasDocumentText) {
-    const docExcerpt = input.documentText!.length > 8000 ? input.documentText!.substring(0, 8000) + "\n[... texto truncado ...]" : input.documentText;
-    contextPrompt += `TEXTO DEL DOCUMENTO (extracto para referencia):
+    // Incluir más texto para que el asistente pueda responder sobre firmas, partes (suelen estar al final)
+    const maxDocChars = 20000;
+    const docExcerpt = input.documentText!.length > maxDocChars ? input.documentText!.substring(0, maxDocChars) + "\n[... texto truncado ...]" : input.documentText;
+    const docLen = input.documentText!.trim().length;
+    const shortDocNote = docLen < 400 ? "\nNOTA: El texto del documento recibido es muy breve; puede que la extracción no haya capturado todo el contenido (p. ej. PDF escaneado). Si el usuario pregunta por datos concretos (firmas, partes, cláusulas) y no están en el texto, decilo y sugerí regenerar el análisis o subir de nuevo el PDF." : "";
+    contextPrompt += `TEXTO DEL DOCUMENTO (extracto para referencia):${shortDocNote}
+
 ${docExcerpt}
 
 ───────────────────────────────────────────────────────────────────────────────

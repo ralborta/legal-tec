@@ -750,6 +750,20 @@ async function handleResult(req: express.Request, res: express.Response, next: e
     if (result.analysis) {
       console.log(`[RESULT] Tipo de análisis: ${result.analysis.type}`);
       console.log(`[RESULT] Report existe: ${result.analysis.report ? 'SÍ' : 'NO'}`);
+      // Log longitud del texto original (diagnóstico: si es 0 o muy bajo, el chat "no ve" el documento)
+      const origRaw = result.analysis.original;
+      let originalLength = 0;
+      if (typeof origRaw === 'string') {
+        try {
+          const parsed = origRaw.trim().startsWith('{') ? JSON.parse(origRaw) : null;
+          originalLength = parsed?.text?.length ?? origRaw.length;
+        } catch {
+          originalLength = origRaw.length;
+        }
+      } else if (origRaw && typeof origRaw === 'object' && typeof (origRaw as { text?: string }).text === 'string') {
+        originalLength = (origRaw as { text: string }).text.length;
+      }
+      console.log(`[RESULT] Texto original (documento) longitud: ${originalLength} caracteres`);
       if (result.analysis.report) {
         console.log(`[RESULT] Tipo de report: ${typeof result.analysis.report}`);
         if (typeof result.analysis.report === 'object') {

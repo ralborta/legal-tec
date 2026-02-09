@@ -165,12 +165,12 @@ ${FUENTES_LEGALES}
 INSTRUCCIONES DEL USUARIO:
 ${instructionsText}
 
-${instructionsText.includes("ANÁLISIS CONJUNTO") || instructionsText.includes("múltiples documentos") ? `IMPORTANTE: Estás analizando múltiples documentos. Usa PLURAL ("los documentos", "estos documentos") en TODAS las secciones. El título debe ser "Análisis Legal Conjunto de [N] Documentos".` : ""}
+${instructionsText.includes("ANÁLISIS CONJUNTO") || instructionsText.includes("múltiples documentos") ? `IMPORTANTE: Estás analizando múltiples documentos. Usa PLURAL ("los documentos", "estos documentos") en TODAS las secciones. El título debe ser "Análisis Legal Conjunto de [N] Documentos".` : `IMPORTANTE: Estás analizando UN SOLO documento (puede tener varias páginas). El título DEBE ser "Análisis Legal de [tipo] - [descripción o partes]". NUNCA uses "Análisis Legal Conjunto de N Documentos" — eso es solo cuando el usuario subió varios archivos distintos. Las menciones "Página 1", "Página 2", etc. en el texto son páginas del MISMO documento, no documentos diferentes.`}
 
 TIPO DE DOCUMENTO: ${input.type}
 
-TEXTO ORIGINAL:
-${isConjointAnalysis ? input.original.substring(0, 3000) : input.original.substring(0, 2500)}
+TEXTO ORIGINAL (usa TODO este contenido para fundamentar el análisis; incluye firmas, partes, cláusulas):
+${isConjointAnalysis ? input.original.substring(0, 6000) : input.original.substring(0, 12000)}
 
 CLÁUSULAS DEL DOCUMENTO:
 ${translatedText}

@@ -39,7 +39,7 @@ async function extractPdfTextViaLocalOcr(buffer: Buffer, filename: string): Prom
       throw new Error("No se generaron imágenes desde el PDF");
     }
 
-    const maxPages = Number(process.env.OCR_MAX_PAGES || 10);
+    const maxPages = Number(process.env.OCR_MAX_PAGES || 25);
     const selected = images.slice(0, Math.max(1, maxPages));
 
     const pageTexts: string[] = [];
@@ -79,7 +79,7 @@ async function extractPdfAllPagesViaVision(buffer: Buffer, filename: string): Pr
       .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }));
     if (!images.length) throw new Error("No se generaron imágenes desde el PDF");
 
-    const maxPages = Math.min(images.length, Math.max(1, Number(process.env.OCR_MAX_PAGES || 10)));
+    const maxPages = Math.min(images.length, Math.max(1, Number(process.env.OCR_MAX_PAGES || 25)));
     const selected = images.slice(0, maxPages);
     const pageTexts: string[] = [];
     const readFile = (await import("fs")).promises.readFile;
