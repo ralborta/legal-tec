@@ -3242,6 +3242,53 @@ function ComparisonResultPanel({
     setChatLoading(true);
 
     try {
+      // Misma lógica que análisis: extraer textos de documentos para que el chat tenga vista de ambos
+      function coerceDocText(raw: unknown): string {
+        if (raw == null) return "";
+        if (typeof raw === "string") {
+          const t = raw.trim();
+          if (t.startsWith("{")) {
+            try {
+              const o = JSON.parse(t) as { text?: string };
+              return typeof o?.text === "string" ? o.text : t;
+            } catch {
+              return t;
+            }
+          }
+          return t;
+        }
+        if (typeof raw === "object" && raw !== null && "text" in raw && typeof (raw as { text: unknown }).text === "string")
+          return (raw as { text: string }).text;
+        return String(raw);
+      }
+
+      let documentTextA = "";
+      let documentTextB = "";
+      if (API) {
+        if (documentIdA) {
+          try {
+            const resA = await fetch(`${API}/legal/result/${documentIdA}`);
+            if (resA.ok) {
+              const dataA = await resA.json();
+              documentTextA = coerceDocText(dataA?.analysis?.original) || "";
+            }
+          } catch {
+            // ignorar
+          }
+        }
+        if (documentIdB) {
+          try {
+            const resB = await fetch(`${API}/legal/result/${documentIdB}`);
+            if (resB.ok) {
+              const dataB = await resB.json();
+              documentTextB = coerceDocText(dataB?.analysis?.original) || "";
+            }
+          } catch {
+            // ignorar
+          }
+        }
+      }
+
       const response = await fetch(`${API}/api/compare-chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -3249,8 +3296,10 @@ function ComparisonResultPanel({
           comparisonText: comparisonText,
           messages: newMessages,
           areaLegal: originalAreaLegal,
-          documentIdA: documentIdA,
-          documentIdB: documentIdB,
+          documentIdA: documentIdA ?? undefined,
+          documentIdB: documentIdB ?? undefined,
+          documentTextA: documentTextA || undefined,
+          documentTextB: documentTextB || undefined,
         })
       });
 
@@ -4060,20 +4109,59 @@ function AnalysisResultPanel({
         recomendacion: r.recomendacion
       })) || [];
 
-      // Usar endpoint específico para análisis de documentos
+      // Extraer texto del documento: analysis.original puede ser string, { text: string } o JSON string
+      function coerceDocumentText(raw: unknown): string | undefined {
+        if (raw == null) return undefined;
+        if (typeof raw === "string") {
+          const trimmed = raw.trim();
+          if (trimmed.startsWith("{")) {
+            try {
+              const o = JSON.parse(trimmed) as { text?: string };
+              return typeof o?.text === "string" ? o.text : trimmed;
+            } catch {
+              return trimmed;
+            }
+          }
+          return trimmed || undefined;
+        }
+        if (typeof raw === "object" && raw !== null && "text" in raw && typeof (raw as { text: unknown }).text === "string")
+          return (raw as { text: string }).text;
+        return String(raw);
+      }
+
+      let documentText = coerceDocumentText(analysisResult?.analysis?.original);
+
+      // Si no tenemos texto del documento pero sí documentId, volver a pedir el resultado completo (puede incluir original)
+      if ((!documentText || documentText.length === 0) && API && analysisResult?.documentId) {
+        try {
+          const res = await fetch(`${API}/legal/result/${analysisResult.documentId}`);
+          if (res.ok) {
+            const full = await res.json();
+            documentText = coerceDocumentText(full?.analysis?.original) || documentText;
+          }
+        } catch {
+          // ignorar
+        }
+      }
+
+      // Texto del análisis: priorizar texto formateado, sino el report completo (string o stringificado)
+      const rawReport = analysisResult?.analysis?.report;
+      const analysisText =
+        report?.texto_formateado ||
+        (typeof rawReport === "string" ? rawReport : rawReport != null ? JSON.stringify(rawReport) : "") ||
+        "";
+
+      // Usar endpoint específico para análisis de documentos (incluye análisis + texto del documento)
       const response = await fetch(`${API}/api/analysis/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          // Texto completo del análisis
-          analysisText: report?.texto_formateado || (typeof analysisResult?.analysis?.report === 'string' ? analysisResult.analysis.report : JSON.stringify(analysisResult?.analysis?.report)),
-          // Historial de mensajes
+          analysisText: analysisText || undefined,
+          documentText: documentText || undefined,
           messages: newMessages,
-          // Metadata del documento
           areaLegal: report?.area_legal || "",
           jurisdiccion: report?.jurisdiccion || "",
           tipoDocumento: report?.tipo_documento || analysisResult?.analysis?.type || "",
-          // Citas y riesgos para contexto
           citas: citas,
           riesgos: riesgos
         })

@@ -120,6 +120,13 @@ ${truncateText(input.documentTextB || "", 8000)}
 `;
   }
 
+  // Si no hay ningún contexto, no dejar que el modelo afirme que "ve" la comparación o los documentos
+  if (!contextPrompt.trim() && input.messages.length > 0) {
+    const lastUserMessage = input.messages[input.messages.length - 1];
+    const lastContent = lastUserMessage?.role === "user" ? lastUserMessage.content : "";
+    contextPrompt = `IMPORTANTE: No se recibió el análisis comparativo ni los textos de los documentos. No inventes contenido. Responde únicamente algo como: "No pude cargar el análisis comparativo ni los documentos en este momento. Por favor, recargá la página o volvé a ejecutar la comparación y probá de nuevo en el chat."\n\nConsulta del usuario: ${lastContent}`;
+  }
+
   // Construir historial de conversación
   const conversationHistory = input.messages.map(msg => ({
     role: msg.role,

@@ -1045,6 +1045,7 @@ Generá el documento completo, profesional y listo para usar:`;
     try {
       const body = z.object({
         analysisText: z.string().optional(),
+        documentText: z.string().optional(),
         messages: z.array(z.object({
           role: z.enum(["user", "assistant"]),
           content: z.string()
@@ -1094,6 +1095,8 @@ Generá el documento completo, profesional y listo para usar:`;
         areaLegal: z.string().optional(),
         documentIdA: z.string().optional(),
         documentIdB: z.string().optional(),
+        documentTextA: z.string().optional(),
+        documentTextB: z.string().optional(),
       }).parse(req.body);
 
       const openaiKey = process.env.OPENAI_API_KEY;
@@ -1141,15 +1144,16 @@ Generá el documento completo, profesional y listo para usar:`;
         }
       };
 
-      const [documentTextA, documentTextB] = await Promise.all([
-        fetchDocText(body.documentIdA),
-        fetchDocText(body.documentIdB),
-      ]);
+      // Usar textos enviados por el cliente si vienen; si no, obtenerlos desde legal-docs
+      let documentTextA = (body.documentTextA && body.documentTextA.trim()) || "";
+      let documentTextB = (body.documentTextB && body.documentTextB.trim()) || "";
+      if (!documentTextA && body.documentIdA) documentTextA = await fetchDocText(body.documentIdA);
+      if (!documentTextB && body.documentIdB) documentTextB = await fetchDocText(body.documentIdB);
 
       const result = await chatCompare(openaiKey, {
         ...body,
-        documentTextA,
-        documentTextB,
+        documentTextA: documentTextA || undefined,
+        documentTextB: documentTextB || undefined,
       });
       return rep.send(result);
 

@@ -134,9 +134,8 @@ export async function generateReport(input: ReportInput): Promise<AnalysisReport
     // Usar gpt-4o para ambos (máxima calidad y profundidad)
     // Análisis conjunto requiere MÁS profundidad, no menos
     const model = "gpt-4o"; // Siempre usar el modelo más potente para análisis profundo
-    // Reducir tokens para controlar costos - 8000 es suficiente para análisis detallado
-    // El problema de truncado se soluciona reduciendo el prompt, no aumentando tokens
-    const maxTokens = isConjointAnalysis ? 8000 : 8000; // Reducido de 16384 a 8000 para controlar costos
+    // Límite suficiente para análisis exhaustivo; 16384 evita "excedió el límite de tokens"
+    const maxTokens = isConjointAnalysis ? 16384 : 16384;
     
     console.log(`[REPORT] Using model: ${model}, max_tokens: ${maxTokens}, conjoint: ${isConjointAnalysis}`);
     

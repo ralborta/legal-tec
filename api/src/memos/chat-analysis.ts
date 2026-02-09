@@ -7,6 +7,7 @@ export type ChatMessage = {
 
 export type AnalysisChatInput = {
   analysisText?: string; // Texto completo del análisis
+  documentText?: string; // Texto extraído del documento (vista del documento) para contexto
   messages: ChatMessage[]; // Historial de la conversación
   areaLegal?: string; // Área legal para contexto
   jurisdiccion?: string; // Jurisdicción del documento
@@ -39,6 +40,7 @@ export async function chatAnalysis(
   const openai = new OpenAI({ apiKey: openaiKey });
 
   const hasAnalysis = input.analysisText && input.analysisText.trim().length > 0;
+  const hasDocumentText = input.documentText && input.documentText.trim().length > 0;
   const hasCitas = input.citas && input.citas.length > 0;
   const hasRiesgos = input.riesgos && input.riesgos.length > 0;
 
@@ -56,8 +58,8 @@ INFORMACIÓN DEL DOCUMENTO:
 
 REGLAS FUNDAMENTALES:
 - Siempre asumí que el usuario se refiere a ESTE documento y ESTE análisis, salvo que indique lo contrario.
-- Usá toda la información contenida en el análisis: cláusulas, riesgos, recomendaciones, citas.
-- NO digas nunca "no tengo acceso al documento". El análisis completo está en el contexto.
+- Usá toda la información contenida en el análisis y en el texto del documento cuando estén disponibles.
+- NO digas nunca "no tengo acceso al documento". Tenés el análisis y/o el texto del documento en el contexto.
 
 CAPACIDADES:
 - Explicar cláusulas específicas del documento
@@ -85,8 +87,18 @@ ESTILO:
 - Enfocado en "qué hacer" y "cómo proceder"
 - Citá artículos y normativa cuando corresponda`;
 
-  // Construir el contexto completo
+  // Construir el contexto completo (análisis + texto del documento para "vista del documento")
   let contextPrompt = "";
+
+  if (hasDocumentText) {
+    const docExcerpt = input.documentText!.length > 8000 ? input.documentText!.substring(0, 8000) + "\n[... texto truncado ...]" : input.documentText;
+    contextPrompt += `TEXTO DEL DOCUMENTO (extracto para referencia):
+${docExcerpt}
+
+───────────────────────────────────────────────────────────────────────────────
+
+`;
+  }
 
   if (hasAnalysis) {
     contextPrompt += `ANÁLISIS DEL DOCUMENTO:
@@ -120,6 +132,12 @@ ${input.citas.map(c => `- [${c.tipo}] ${c.referencia}${c.descripcion ? ` – ${c
     { role: "system", content: systemPrompt }
   ];
 
+  // Si no hay ningún contexto (ni análisis ni documento), el modelo no debe afirmar que "ve" el documento
+  if (!contextPrompt.trim() && input.messages.length > 0) {
+    const firstUserMessage = input.messages[0];
+    contextPrompt = `IMPORTANTE: No se recibió el texto del análisis ni del documento en esta solicitud. No inventes contenido. Responde únicamente algo como: "No pude cargar el análisis ni el documento en este momento. Por favor, recargá la página o volvé a analizar el documento y probá de nuevo en el chat."\n\nPREGUNTA DEL USUARIO:\n${firstUserMessage.content}`;
+  }
+
   // Agregar contexto al primer mensaje del usuario
   if (input.messages.length > 0) {
     const firstUserMessage = input.messages[0];
@@ -127,7 +145,9 @@ ${input.citas.map(c => `- [${c.tipo}] ${c.referencia}${c.descripcion ? ` – ${c
     if (contextPrompt.trim()) {
       messages.push({
         role: "user",
-        content: `${contextPrompt}PREGUNTA DEL USUARIO:
+        content: contextPrompt.includes("PREGUNTA DEL USUARIO:")
+          ? contextPrompt
+          : `${contextPrompt}PREGUNTA DEL USUARIO:
 ${firstUserMessage.content}`
       });
     } else {
