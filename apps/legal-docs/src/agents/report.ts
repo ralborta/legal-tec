@@ -138,16 +138,17 @@ export async function generateReport(input: ReportInput): Promise<AnalysisReport
     const maxTokens = isConjointAnalysis ? 16384 : 16384;
     
     console.log(`[REPORT] Using model: ${model}, max_tokens: ${maxTokens}, conjoint: ${isConjointAnalysis}`);
-    
-    const response = await Promise.race([
-      openai.chat.completions.create({
-      model: model,
-      temperature: 0.3,
-        max_tokens: maxTokens,
-      messages: [
-        {
-          role: "system",
-            content: `Eres un analista legal senior de WNS & Asociados especializado en análisis exhaustivos de documentos legales. Genera análisis ULTRA PROFUNDOS, DETALLADOS y EXHAUSTIVOS cumpliendo todos los mínimos requeridos. 
+
+    const createReport = () =>
+      Promise.race([
+        openai.chat.completions.create({
+          model: model,
+          temperature: 0.3,
+          max_tokens: maxTokens,
+          messages: [
+            {
+              role: "system",
+              content: `Eres un analista legal senior de WNS & Asociados especializado en análisis exhaustivos de documentos legales. Genera análisis ULTRA PROFUNDOS, DETALLADOS y EXHAUSTIVOS cumpliendo todos los mínimos requeridos. 
 
 REQUISITOS DE PROFUNDIDAD:
 - Análisis jurídico: mínimo 20 párrafos cubriendo marco normativo, interpretación, validez, jurisprudencia, derechos/obligaciones, cumplimiento, estándares, vacíos legales, estructura, litigios, aspectos procesales, eficacia, análisis comparativo (si aplica), perspectivas comercial y financiera.
@@ -155,10 +156,10 @@ REQUISITOS DE PROFUNDIDAD:
 - Citas: incluir artículos específicos con números exactos, leyes completas, decretos, resoluciones, jurisprudencia con datos de tribunales y fechas.
 
 Aplica las instrucciones del usuario coherentemente en todas las secciones. Analiza desde múltiples perspectivas (jurídica, comercial, operativa, financiera). Mantén coherencia: riesgos deben corresponder a recomendaciones, próximos pasos a recomendaciones. Devuelve SOLO JSON válido sin texto adicional.`,
-        },
-        {
-          role: "user",
-          content: `${prompt}
+            },
+            {
+              role: "user",
+              content: `${prompt}
 
 ${FUENTES_LEGALES}
 
@@ -180,35 +181,54 @@ ${checklistText}
 
 JURISPRUDENCIA:
 ${jurisprudenceText}`,
-          },
-        ],
-        response_format: { type: "json_object" },
-      }, { timeout }),
-      new Promise((_, reject) => 
-        setTimeout(() => reject(new Error(`Report generation timeout after ${timeout / 1000}s`)), timeout)
-      )
-    ]) as any;
-    
-    const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-    const usage = response.usage;
-    const promptTokens = usage?.prompt_tokens || 0;
-    const completionTokens = usage?.completion_tokens || 0;
-    const totalTokens = usage?.total_tokens || 0;
-    console.log(`[REPORT] Completed in ${duration}s | Tokens: ${totalTokens} (prompt: ${promptTokens}, completion: ${completionTokens})`);
+            },
+          ],
+          response_format: { type: "json_object" },
+        }, { timeout }),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error(`Report generation timeout after ${timeout / 1000}s`)), timeout)
+        ),
+      ]) as Promise<any>;
 
-    // Verificar finish_reason para detectar truncado
+    let response: any;
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      response = await createReport();
+      const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+      const usage = response.usage;
+      const promptTokens = usage?.prompt_tokens || 0;
+      const completionTokens = usage?.completion_tokens || 0;
+      const totalTokens = usage?.total_tokens || 0;
+      console.log(`[REPORT] Completed in ${duration}s | Tokens: ${totalTokens} (prompt: ${promptTokens}, completion: ${completionTokens}) attempt ${attempt}`);
+
+      const finishReason = response.choices[0]?.finish_reason;
+      if (finishReason === "length") {
+        console.error(`[REPORT] ❌ ERROR: Respuesta truncada por límite de tokens (finish_reason: length)`);
+        throw new Error(`El reporte generado excedió el límite de tokens (${maxTokens}). El análisis es demasiado extenso. Intenta con un documento más corto o reduce las instrucciones adicionales.`);
+      }
+
+      const content = response.choices[0]?.message?.content;
+      if (content && (typeof content !== "string" || content.trim().length > 0)) break;
+
+      console.error(`[REPORT] ❌ OpenAI devolvió respuesta vacía. finish_reason: ${finishReason ?? "n/a"}, choices.length: ${response.choices?.length ?? 0}, attempt: ${attempt}`);
+      if (attempt === 1) {
+        console.log(`[REPORT] Reintentando en 3s...`);
+        await new Promise((r) => setTimeout(r, 3000));
+        continue;
+      }
+      const first = response.choices?.[0];
+      const finish = first?.finish_reason;
+      if (first?.message?.refusal) {
+        console.error(`[REPORT] refusal: ${JSON.stringify(first.message.refusal).slice(0, 200)}`);
+      }
+      throw new Error(
+        finish === "content_filter"
+          ? "OpenAI filtró el contenido del análisis. Probá con un documento con menos texto o imágenes."
+          : "OpenAI no devolvió contenido. Puede ser un fallo temporal; intentá regenerar el análisis en unos minutos."
+      );
+    }
+
     const finishReason = response.choices[0]?.finish_reason;
-    if (finishReason === 'length') {
-      console.error(`[REPORT] ❌ ERROR: Respuesta truncada por límite de tokens (finish_reason: length)`);
-      console.error(`[REPORT] max_tokens usado: ${maxTokens}, pero la respuesta fue truncada`);
-      throw new Error(`El reporte generado excedió el límite de tokens (${maxTokens}). El análisis es demasiado extenso. Intenta con un documento más corto o reduce las instrucciones adicionales.`);
-    }
-
     const content = response.choices[0]?.message?.content;
-    
-    if (!content) {
-      throw new Error("OpenAI no devolvió contenido");
-    }
     
     // Validar que el contenido cumple con los mínimos requeridos
     try {
