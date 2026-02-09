@@ -89,6 +89,28 @@ Document ID: ${item.documentId}
     }).join("\n\n");
     
     console.log(`[PIPELINE-MANY] Combined text length: ${combinedText.length} characters`);
+    const MIN_EXTRACTED_TEXT = 80;
+    if (combinedText.trim().length < MIN_EXTRACTED_TEXT) {
+      console.warn(`[PIPELINE-MANY] ⚠️ Texto extraído insuficiente (${combinedText.trim().length} caracteres). No se generará análisis hueco.`);
+      const errorReport = {
+        error: true,
+        errorMessage: "No se pudo extraer texto de los documentos. Pueden ser PDFs escaneados de mala calidad o formatos no soportados. Intentá con otros archivos o asegurate de que tengan texto seleccionable.",
+        errorType: "TEXT_EXTRACTION_FAILED",
+      };
+      await legalDb.upsertAnalysis({
+        documentId: primaryDocumentId,
+        type: "unreadable",
+        original: { text: combinedText.trim(), documents: allTexts.map(t => ({ id: t.documentId, filename: t.filename })) },
+        translated: [],
+        checklist: null,
+        report: errorReport,
+        userInstructions: trimmedInstructions || undefined,
+      });
+      await updateAnalysisStatus(primaryDocumentId, "completed", 100);
+      clearTimeout(pipelineTimeout);
+      if (releaseSlot) releaseSlot();
+      return;
+    }
     await updateAnalysisStatus(primaryDocumentId, "translating", 25);
     
     // 3. Traducción y estructuración del texto combinado
@@ -255,6 +277,30 @@ export async function runFullAnalysis(documentId: string, userInstructions?: str
   });
 
   console.log(`[PIPELINE] OCR completed, extracted ${originalText.length} characters`);
+  const trimmed = (originalText || "").trim();
+  const MIN_EXTRACTED_TEXT = 80;
+  if (trimmed.length < MIN_EXTRACTED_TEXT) {
+    console.warn(`[PIPELINE] ⚠️ Texto extraído insuficiente (${trimmed.length} caracteres). No se generará análisis hueco.`);
+    const errorReport = {
+      error: true,
+      errorMessage: "No se pudo extraer texto del documento. Puede ser un PDF escaneado de mala calidad, una imagen sin texto o un formato no soportado. Intentá con otro archivo o asegurate de que el PDF tenga texto seleccionable.",
+      errorType: "TEXT_EXTRACTION_FAILED",
+    };
+    await legalDb.upsertAnalysis({
+      documentId,
+      type: "unreadable",
+      original: { text: trimmed || "" },
+      translated: [],
+      checklist: null,
+      report: errorReport,
+      userInstructions: trimmedInstructions || undefined,
+    });
+    await updateAnalysisStatus(documentId, "completed", 100);
+    clearTimeout(pipelineTimeout);
+    if (releaseSlot) releaseSlot();
+    return;
+  }
+
   await updateAnalysisStatus(documentId, "translating", 25);
 
   // 2. Traducción y estructuración

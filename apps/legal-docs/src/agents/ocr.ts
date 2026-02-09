@@ -63,6 +63,63 @@ async function extractPdfTextViaLocalOcr(buffer: Buffer, filename: string): Prom
   }
 }
 
+/** Convierte todas las páginas del PDF a imágenes y las envía a gpt-4o Vision (para escaneados de varias páginas cuando tesseract falla). */
+async function extractPdfAllPagesViaVision(buffer: Buffer, filename: string): Promise<string> {
+  const safeBase = filename.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const tmpRoot = join(tmpdir(), `ocr-vision-${Date.now()}-${safeBase}`);
+  const pdfPath = join(tmpRoot, "input.pdf");
+  const outPrefix = join(tmpRoot, "page");
+
+  mkdirSync(tmpRoot, { recursive: true });
+  try {
+    writeFileSync(pdfPath, buffer);
+    await execFileAsync("pdftoppm", ["-r", "200", "-png", pdfPath, outPrefix]);
+    const images = readdirSync(tmpRoot)
+      .filter((f) => f.startsWith("page-") && f.endsWith(".png"))
+      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }));
+    if (!images.length) throw new Error("No se generaron imágenes desde el PDF");
+
+    const maxPages = Math.min(images.length, Math.max(1, Number(process.env.OCR_MAX_PAGES || 10)));
+    const selected = images.slice(0, maxPages);
+    const pageTexts: string[] = [];
+    const readFile = (await import("fs")).promises.readFile;
+
+    for (let i = 0; i < selected.length; i++) {
+      const imgPath = join(tmpRoot, selected[i]);
+      const imgBuffer = await readFile(imgPath);
+      const imageUrl = `data:image/png;base64,${imgBuffer.toString("base64")}`;
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: `Extrae TODO el texto de esta imagen (página ${i + 1} de un documento escaneado). Si es un documento legal, contrato o cualquier texto, extrae todo el contenido de manera completa y precisa. Preserva la estructura y saltos de línea.`,
+              },
+              { type: "image_url", image_url: { url: imageUrl } },
+            ],
+          },
+        ],
+        max_tokens: 4096,
+      });
+      const text = (response.choices[0]?.message?.content || "").trim();
+      if (text) pageTexts.push(`\n\n--- Página ${i + 1} ---\n${text}`);
+    }
+
+    const full = pageTexts.join("").trim();
+    if (!full) throw new Error("Vision no devolvió texto en ninguna página");
+    return full;
+  } finally {
+    try {
+      rmSync(tmpRoot, { recursive: true, force: true });
+    } catch {
+      // ignore
+    }
+  }
+}
+
 async function extractPdfTextViaOpenAIResponses(buffer: Buffer, filename: string): Promise<string> {
   // Nota: el SDK/entorno puede no soportar Responses API. Este método se llama dentro de try/catch.
   const base64 = buffer.toString("base64");
@@ -207,7 +264,17 @@ export async function ocrAgent(file: {
           console.error("Error local OCR for PDF:", e);
         }
 
-        // Fallback 2: OpenAI
+        // Fallback 2: Primera página como imagen → gpt-4o Vision (muy bueno para escaneados)
+        if (process.env.OPENAI_API_KEY) {
+          try {
+            const visionText = (await extractPdfAllPagesViaVision(file.buffer, file.filename)).trim();
+            if (visionText.length >= 50) return visionText;
+          } catch (e) {
+            console.error("Error PDF todas las páginas con Vision:", e);
+          }
+        }
+
+        // Fallback 3: OpenAI (PDF completo con Responses/Assistants API)
         if (!process.env.OPENAI_API_KEY) {
           return extracted;
         }
@@ -226,6 +293,12 @@ export async function ocrAgent(file: {
         console.error("Error local OCR for PDF after parse failure:", e);
       }
       if (process.env.OPENAI_API_KEY) {
+        try {
+          const visionText = (await extractPdfAllPagesViaVision(file.buffer, file.filename)).trim();
+          if (visionText.length >= 50) return visionText;
+        } catch (e) {
+          console.error("Error PDF Vision (todas las páginas) after parse failure:", e);
+        }
         try {
           const ocrText = (await extractFileTextViaOpenAI(file.buffer, file.filename)).trim();
           if (ocrText) return ocrText;

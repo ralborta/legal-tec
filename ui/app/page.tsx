@@ -4204,15 +4204,19 @@ function AnalysisResultPanel({
 
   // Si el reporte tiene un error (JSON truncado o corrupto)
   if (report && typeof report === 'object' && report.error === true) {
+    const isExtractionError = report.errorType === "TEXT_EXTRACTION_FAILED";
     return (
       <div className="bg-white p-6 rounded-xl border border-red-200">
         <h3 className="font-bold text-lg text-red-900 mb-2">Error en el Análisis</h3>
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-          <p className="text-sm text-red-800 font-semibold mb-2">El reporte del análisis está corrupto o truncado</p>
+          <p className="text-sm text-red-800 font-semibold mb-2">
+            {isExtractionError ? "No se pudo leer el documento" : "El reporte del análisis está corrupto o truncado"}
+          </p>
           <p className="text-xs text-red-700 mb-3">{report.errorMessage || "Error desconocido al procesar el reporte"}</p>
           <p className="text-xs text-red-600">
-            Esto puede ocurrir si el análisis fue interrumpido o si el reporte es demasiado grande. 
-            Por favor, intenta regenerar el análisis.
+            {isExtractionError
+              ? "Intentá con otro archivo o asegurate de que el PDF tenga texto seleccionable (no solo imágenes escaneadas de mala calidad)."
+              : "Esto puede ocurrir si el análisis fue interrumpido o si el reporte es demasiado grande. Por favor, intenta regenerar el análisis."}
           </p>
         </div>
         {documentId && onRegenerate && (
