@@ -261,9 +261,14 @@ export async function ocrAgent(file: {
           console.log(`[OCR] Document AI OK: ${docAiText.length} caracteres`);
           return docAiText;
         }
-        if (docAiText) console.log(`[OCR] Document AI devolvió poco (${docAiText.length} chars), probando otros...`);
+        if (docAiText) {
+          console.log(`[OCR] Document AI devolvió poco (${docAiText.length} chars), probando otros...`);
+        } else {
+          console.warn("[OCR] Document AI devolvió null o vacío. Buscar línea [OCR-DocumentAI] Error arriba en los logs.");
+        }
       } catch (e) {
-        console.error("[OCR] Error Document AI:", e instanceof Error ? e.message : e);
+        console.error("[OCR] Error Document AI (excepción):", e instanceof Error ? e.message : e);
+        if (e instanceof Error && e.stack) console.error("[OCR] Stack:", e.stack);
       }
     }
 
@@ -274,6 +279,9 @@ export async function ocrAgent(file: {
         const extracted = (data.text || "").trim();
         if (extracted.length >= 200) {
           console.log(`[OCR] pdf-parse OK: ${extracted.length} caracteres`);
+          if (docAiOk && extracted.length < 500) {
+            console.warn(`[OCR] ⚠️ Document AI estaba configurado pero se usó pdf-parse (${extracted.length} chars). Revisar [OCR-DocumentAI] por error.`);
+          }
           return extracted;
         }
         const preferTesseract = process.env.OCR_PREFER_TESSERACT === "true" || process.env.OCR_PREFER_TESSERACT === "1";
@@ -322,6 +330,9 @@ export async function ocrAgent(file: {
         const ocrText = (await extractFileTextViaOpenAI(file.buffer, file.filename)).trim();
         const final = ocrText || extracted;
         console.log(`[OCR] OpenAI fallback: ${ocrText.length} chars, usando ${final.length} caracteres`);
+        if (docAiOk && final.length < 500) {
+          console.warn(`[OCR] ⚠️ Document AI estaba configurado pero el texto final es corto (${final.length} chars). Revisar líneas [OCR-DocumentAI] por error de API o permisos.`);
+        }
         return final;
       } finally {
         await parser.destroy();

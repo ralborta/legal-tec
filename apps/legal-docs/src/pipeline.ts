@@ -1,6 +1,7 @@
 import { legalDb } from "./db.js";
 import { getDocumentBuffer } from "./storage.js";
 import { ocrAgent } from "./agents/ocr.js";
+import { isDocumentAIConfigured } from "./agents/ocr-document-ai.js";
 import { translatorAgent } from "./agents/translator.js";
 import { classifierAgent } from "./agents/classifier.js";
 import { runDistributionAnalyzer } from "./agents/analyzerDistribution.js";
@@ -280,6 +281,7 @@ export async function runFullAnalysis(documentId: string, userInstructions?: str
       console.log(`[PIPELINE] Texto original previo muy breve (${existingOriginalLength} chars). Re-ejecutando OCR (p. ej. Document AI).`);
     }
 
+  console.log(`[PIPELINE] Iniciando extracción de texto (OCR). Document AI configurado: ${isDocumentAIConfigured() ? "SÍ" : "NO"}. Buffer: ${fileBuffer.length} bytes, archivo: ${doc.filename}`);
   const originalText = await ocrAgent({
     buffer: fileBuffer,
     mimeType: doc.mime_type,
@@ -290,7 +292,7 @@ export async function runFullAnalysis(documentId: string, userInstructions?: str
   const trimmed = (originalText || "").trim();
   const MIN_EXTRACTED_TEXT = 80;
   if (trimmed.length < MIN_EXTRACTED_TEXT) {
-    console.warn(`[PIPELINE] ⚠️ Texto extraído insuficiente (${trimmed.length} caracteres). No se generará análisis hueco.`);
+    console.warn(`[PIPELINE] ⚠️ Texto extraído insuficiente (${trimmed.length} caracteres). Document AI configurado: ${isDocumentAIConfigured() ? "SÍ → revisar logs [OCR-DocumentAI] por error" : "NO"}.`);
     const errorReport = {
       error: true,
       errorMessage: "No se pudo extraer texto del documento. Puede ser un PDF escaneado de mala calidad, una imagen sin texto o un formato no soportado. Intentá con otro archivo o asegurate de que el PDF tenga texto seleccionable.",
