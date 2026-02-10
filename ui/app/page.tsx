@@ -1,7 +1,7 @@
 "use client";
 import React, { useMemo, useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { Search, FileText, Gavel, BookOpen, CheckCircle2, Clock3, Users, Settings, Upload, Send, Download, ExternalLink, Trash2, Filter, Plus, History, Sparkles, Loader2, Eye, X, GitCompare, LogOut, Paperclip } from "lucide-react";
+import { Search, FileText, Gavel, BookOpen, CheckCircle2, Clock3, Users, Settings, Upload, Send, Download, ExternalLink, Trash2, Filter, Plus, History, Sparkles, Loader2, Eye, EyeOff, X, GitCompare, LogOut, Paperclip } from "lucide-react";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 
@@ -7852,6 +7852,7 @@ function HistorialPanel({ items }: { items: Array<any> }) {
 function LoginModal({ onLogin, onClose }: { onLogin: (usuario: {id: string; email: string; nombre: string; rol: string}) => void; onClose: () => void }) {
   const [email, setEmail] = useState("adm@wns.com");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [wnsLogoExists, setWnsLogoExists] = useState<boolean | null>(null);
@@ -7953,16 +7954,27 @@ function LoginModal({ onLogin, onClose }: { onLogin: (usuario: {id: string; emai
             </div>
             <div>
               <label htmlFor="login-password" className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
-              <input
-                id="login-password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                placeholder="adm123"
-                autoComplete="current-password"
-              />
+              <div className="relative">
+                <input
+                  id="login-password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 pr-10 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  placeholder="adm123"
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                  title={showPassword ? "Ocultar contraseña" : "Ver contraseña"}
+                  aria-label={showPassword ? "Ocultar contraseña" : "Ver contraseña"}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
 
             <div className="flex items-center justify-end gap-3 pt-2">
