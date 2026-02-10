@@ -7954,25 +7954,26 @@ function LoginModal({ onLogin, onClose }: { onLogin: (usuario: {id: string; emai
             </div>
             <div>
               <label htmlFor="login-password" className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
-              <div className="relative">
+              <div className="relative flex items-center">
                 <input
                   id="login-password"
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 pr-10 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 pr-11 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                   placeholder="adm123"
                   autoComplete="current-password"
                 />
                 <button
                   type="button"
+                  tabIndex={0}
                   onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-9 h-9 rounded-lg text-gray-500 hover:text-gray-800 hover:bg-gray-100 border border-transparent hover:border-gray-200"
                   title={showPassword ? "Ocultar contraseña" : "Ver contraseña"}
                   aria-label={showPassword ? "Ocultar contraseña" : "Ver contraseña"}
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
             </div>
