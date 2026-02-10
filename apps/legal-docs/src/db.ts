@@ -88,7 +88,14 @@ export const legalDb = {
       VALUES ('adm@wns.com', 'Administrador', '$2b$10$C0xyNMS3pZIaWvZIZ.l/aey./IL9mABMOoJVSjZHDyqT1yOgsddUe', 'admin', true)
       ON CONFLICT (email) DO NOTHING
     `);
-    
+
+    // Usuario administración (email: administracion@wnsasociados.com, password: AdministracionWns2025!)
+    await db.query(`
+      INSERT INTO usuarios (email, nombre, password_hash, rol, activo)
+      VALUES ('administracion@wnsasociados.com', 'Administración WNS', '$2b$10$ncWljBxSq/YSc3PL64r37OETJTM9mQY4vmrOiel6ftKhKYJ.5S5bO', 'admin', true)
+      ON CONFLICT (email) DO UPDATE SET nombre = EXCLUDED.nombre, password_hash = EXCLUDED.password_hash, rol = 'admin', activo = true, updated_at = NOW()
+    `);
+
     // Crear tabla de asignaciones de documentos a abogados
     await db.query(`
       CREATE TABLE IF NOT EXISTS documento_asignaciones (
