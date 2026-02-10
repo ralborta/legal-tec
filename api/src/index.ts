@@ -737,8 +737,12 @@ ${referenceText.slice(0, 8000)}
         ? `\n\nCONTEXTO (DOCUMENTOS DE EJEMPLO SUBIDOS POR EL USUARIO):\n${referenceText.slice(0, 6000)}\n\nREGLAS PARA USAR EL CONTEXTO:\n- Podés basarte en el texto para identificar tipo de documento, estructura y posibles datos.\n- NO inventes datos que no estén explícitos.\n- Si hay datos sensibles, pedí confirmación antes de asumirlos.\n- No copies literalmente secciones largas; usalo como guía.`
         : "";
 
+      const documentContextNotice = referenceText
+        ? `IMPORTANTE - DOCUMENTOS ADJUNTOS: El usuario subió uno o más documentos de ejemplo. TENÉS ACCESO a su contenido en el bloque "CONTEXTO (DOCUMENTOS DE EJEMPLO)" más abajo. Cuando pregunten si podés ver el documento adjunto/cargado, respondé que SÍ: que lo tenés como referencia y que lo vas a usar para guiar la generación. No digas que no podés ver documentos adjuntos.\n\n`
+        : "";
+
       // System prompt para chat de documentos personalizados - MEJORADO Y PROFUNDO
-      const systemPrompt = `Sos un abogado argentino senior de WNS & Asociados, especializado en redactar documentos legales profesionales y completos. Tu rol es hacer PREGUNTAS PROFUNDAS Y ESPECÍFICAS para recopilar TODA la información necesaria para generar un documento legal profesional de alta calidad.
+      const systemPrompt = `${documentContextNotice}Sos un abogado argentino senior de WNS & Asociados, especializado en redactar documentos legales profesionales y completos. Tu rol es hacer PREGUNTAS PROFUNDAS Y ESPECÍFICAS para recopilar TODA la información necesaria para generar un documento legal profesional de alta calidad.
 
 OBJETIVO: Recopilar información COMPLETA y DETALLADA para generar documentos legales profesionales que estén listos para usar.
 
@@ -2463,6 +2467,11 @@ Responde SOLO con un JSON válido con esta estructura:
       const path = `/stats`;
       app.log.info(`[GW-STATS] Incoming: ${req.method} ${req.url} → ${path}`);
       await proxyToLegalDocs(req, rep, path, legalDocsTimeoutMs, LEGAL_DOCS_URL);
+    });
+
+    app.all("/legal/document-ai-status", async (req, rep) => {
+      const path = `/document-ai-status`;
+      await proxyToLegalDocs(req, rep, path, 5000, LEGAL_DOCS_URL);
     });
     
     app.all("/legal/abogados", async (req, rep) => {

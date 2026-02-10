@@ -331,7 +331,8 @@ async function handleAnalyze(req: express.Request, res: express.Response, next: 
       : (req.body?.instructions ? String(req.body.instructions) : "");
     // Aumentar límite a 2000 caracteres para incluir contexto del chat
     const userInstructions = rawInstructions.trim().slice(0, 2000);
-    
+    const forceReanalyze = req.body?.forceReanalyze === true || req.query?.forceReanalyze === "true";
+
     // 🔍 LOGGING para diagnóstico (más detallado)
     console.log(`[LEGAL-DOCS-ANALYZE] ========================================`);
     console.log(`[LEGAL-DOCS-ANALYZE] Request recibido: ${req.method} ${req.originalUrl || req.url}`);
@@ -413,9 +414,14 @@ async function handleAnalyze(req: express.Request, res: express.Response, next: 
     
     console.log(`[LEGAL-DOCS-ANALYZE] ✅ Archivo existe en disco: ${doc.raw_path}`);
     console.log(`[LEGAL-DOCS-ANALYZE] ✅ Documento y archivo validados: ${doc.filename}, iniciando análisis...`);
-    
+
+    if (forceReanalyze) {
+      const deleted = await legalDb.deleteAnalysis(documentId);
+      console.log(`[LEGAL-DOCS-ANALYZE] 🔄 Re-análisis forzado: análisis previo ${deleted ? "borrado" : "no existía"}. Se ejecutará OCR desde cero (Document AI).`);
+    }
+
     // Disparar análisis de forma asíncrona
-    runFullAnalysis(documentId, userInstructions || undefined).catch((error) => {
+    runFullAnalysis(documentId, userInstructions || undefined, forceReanalyze).catch((error) => {
       console.error(`[ANALYZE] Error en análisis de documento ${documentId}:`, error);
     });
 
